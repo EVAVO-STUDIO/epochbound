@@ -107,7 +107,8 @@ func probe_runtime_scene() -> void:
 	runtime.set("player", Vector2(386, 216))
 	runtime.set("companion", Vector2(270, 230))
 	var player_health_before := int(runtime.get("player_health"))
-	var authored_attack_damage := int(ash_hound.get("attack_damage", 4))
+	var hound_definition: Dictionary = hound.get("definition", {})
+	var authored_attack_damage := int(hound_definition.get("attack_damage", 4))
 	var expected_player_damage := authored_attack_damage
 	if runtime.has_method("player_defense_value"):
 		expected_player_damage = maxi(1, authored_attack_damage - int(runtime.call("player_defense_value")))

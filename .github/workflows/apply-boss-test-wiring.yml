@@ -14,23 +14,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: work/boss-phase-foundation-20260730
-      - name: Extend inherited and permanent validation
+
+      - name: Apply idempotent Boss regression wiring
         shell: python
         run: |
           from pathlib import Path
 
           workflow = Path(".github/workflows/validate.yml")
           text = workflow.read_text(encoding="utf-8")
-          marker = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"\n'
-          addition = marker + '          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"\n          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"\n          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"\n'
-          if text.count(marker) != 1:
-              raise SystemExit("Arsenal workflow marker missing")
-          workflow.write_text(text.replace(marker, addition, 1), encoding="utf-8", newline="\n")
+          boss_line = '          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"\n'
+          if boss_line not in text:
+              marker = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"\n'
+              addition = (
+                  marker
+                  + boss_line
+                  + '          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"\n'
+                  + '          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"\n'
+              )
+              if marker not in text:
+                  raise SystemExit("Arsenal workflow marker missing")
+              workflow.write_text(text.replace(marker, addition, 1), encoding="utf-8", newline="\n")
 
           ps = Path("scripts/validate.ps1")
           text = ps.read_text(encoding="utf-8")
-          marker = '    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."\n'
-          addition = '''    Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
+          if "res://tools/smoke_boss_runtime.gd" not in text:
+              index = text.rfind('    Write-Host "')
+              if index < 0:
+                  raise SystemExit("PowerShell completion line missing")
+              line_end = text.find("\n", index)
+              if line_end < 0:
+                  line_end = len(text)
+              blocks = '''    Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
               "--headless", "--path", $ProjectRoot,
               "--script", "res://tools/smoke_boss_runtime.gd"
           )
@@ -45,36 +59,36 @@ jobs:
               "--script", "res://tools/smoke_boss_validation_edges.gd"
           )
 
-          Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."
-          '''
-          if text.count(marker) != 1:
-              raise SystemExit("PowerShell completion marker missing")
-          ps.write_text(text.replace(marker, addition, 1), encoding="utf-8", newline="\n")
+          Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."'''
+              ps.write_text(text[:index] + blocks + text[line_end:], encoding="utf-8", newline="\n")
 
           for path in Path("tools").glob("smoke_*.gd"):
               if path.name.startswith("smoke_boss_"):
                   continue
               text = path.read_text(encoding="utf-8")
-              text = text.replace('== "res://src/arsenal_runtime.gd"', '== "res://src/boss_runtime.gd"')
+              text = text.replace(
+                  '== "res://src/arsenal_runtime.gd"',
+                  '== "res://src/boss_runtime.gd"',
+              )
               if '"res://src/arsenal_runtime.gd"' in text and '"res://src/boss_runtime.gd"' not in text:
-                  text = text.replace('"res://src/arsenal_runtime.gd"', '"res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"')
+                  text = text.replace(
+                      '"res://src/arsenal_runtime.gd"',
+                      '"res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"',
+                  )
+              if path.name == "smoke_encounters.gd":
+                  text = text.replace(
+                      '== 12, "Reference campaign must expose twelve object placements."',
+                      '== 14, "Reference campaign must expose fourteen object placements."',
+                  )
+              if path.name == "smoke_combat_director.gd":
+                  text = text.replace(
+                      '== 12, "Reference campaign must retain twelve placements."',
+                      '== 14, "Reference campaign must retain fourteen placements."',
+                  )
               path.write_text(text, encoding="utf-8", newline="\n")
 
-          encounter = Path("tools/smoke_encounters.gd")
-          text = encounter.read_text(encoding="utf-8")
-          old = '== 12, "Reference campaign must expose twelve object placements."'
-          if old not in text:
-              raise SystemExit("Encounter placement count marker missing")
-          encounter.write_text(text.replace(old, '== 14, "Reference campaign must expose fourteen object placements."', 1), encoding="utf-8", newline="\n")
-
-          director = Path("tools/smoke_combat_director.gd")
-          text = director.read_text(encoding="utf-8")
-          old = '== 12, "Reference campaign must retain twelve placements."'
-          if old not in text:
-              raise SystemExit("Combat Director placement count marker missing")
-          director.write_text(text.replace(old, '== 14, "Reference campaign must retain fourteen placements."', 1), encoding="utf-8", newline="\n")
-
           Path(".github/workflows/apply-boss-test-wiring.yml").unlink()
+
       - name: Commit regression wiring
         shell: bash
         run: |

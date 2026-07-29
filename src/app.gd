@@ -1,67 +1,180 @@
 extends Node2D
 
-# Epochbound Phase 1: asset-independent playable flow.
+# Phase 2: the playable reference slice is driven by the same campaign data
+# that the editor creates and validates.
 
-enum Flow { SPLASH, TITLE, INTRO, GAME, PAUSED }
-enum Era { VERDANT, ASHEN }
-
+const CampaignRepository = preload("res://src/content/campaign_repository.gd")
+const CampaignValidator = preload("res://src/content/campaign_validator.gd")
+const DEFAULT_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const VIEW := Vector2(640, 360)
+const PLAYER_SPEED := 105.0
+const COMPANION_SPEED := 132.0
+const COMPANION_FOLLOW_DISTANCE := 34.0
+const COMPANION_RECOVERY_DISTANCE := 300.0
+
+enum Flow { SPLASH, TITLE, CAMPAIGN_SELECT, INTRO, GAME, PAUSED }
+
 var flow := Flow.SPLASH
-var era := Era.VERDANT
 var elapsed := 0.0
 var intro_page := 0
 var selected_menu := 0
+var selected_campaign_index := 0
 var player := Vector2(312, 220)
-var dog := Vector2(270, 230)
+var companion := Vector2(270, 230)
 var facing := Vector2.DOWN
 var dialogue := ""
 var shift_lock := 0.0
+var campaign_path := DEFAULT_CAMPAIGN_PATH
+var campaign: Dictionary = {}
+var map_data: Dictionary = {}
+var current_era_id := ""
+var campaign_catalog: Array = []
+var load_error := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	refresh_campaign_catalog()
+	load_campaign(DEFAULT_CAMPAIGN_PATH)
 	queue_redraw()
+
+func refresh_campaign_catalog() -> void:
+	campaign_catalog = CampaignRepository.scan_playable_campaigns()
+	selected_campaign_index = clampi(selected_campaign_index, 0, maxi(0, campaign_catalog.size() - 1))
+
+func load_campaign(path: String) -> bool:
+	var validation := CampaignValidator.validate_campaign_path(path)
+	if not validation.get("ok", false):
+		load_error = format_errors(validation.get("errors", []))
+		push_error("Campaign validation failed: %s" % load_error)
+		if campaign.is_empty():
+			load_fallback_campaign()
+		return false
+	var campaign_result := CampaignRepository.read_json(path)
+	if not campaign_result.get("ok", false):
+		load_error = format_errors(campaign_result.get("errors", []))
+		push_error("Campaign load failed: %s" % load_error)
+		if campaign.is_empty():
+			load_fallback_campaign()
+		return false
+	var next_campaign: Dictionary = campaign_result.get("data", {})
+	var start_map := String(next_campaign.get("start_map", ""))
+	var map_path := CampaignRepository.find_map_path(path, next_campaign, start_map)
+	var map_result := CampaignRepository.read_json(map_path)
+	if not map_result.get("ok", false):
+		load_error = format_errors(map_result.get("errors", []))
+		push_error("Map load failed: %s" % load_error)
+		if campaign.is_empty():
+			load_fallback_campaign()
+		return false
+	campaign_path = path
+	campaign = next_campaign
+	map_data = map_result.get("data", {})
+	current_era_id = String(campaign.get("start_era", first_era_id()))
+	if current_era_id.is_empty():
+		current_era_id = first_era_id()
+	intro_page = 0
+	load_error = ""
+	reset_actor_positions()
+	return true
+
+func load_fallback_campaign() -> void:
+	campaign_path = ""
+	campaign = CampaignRepository.default_campaign("epochbound_fallback", "EPOCHBOUND")
+	map_data = CampaignRepository.default_map("first_crossing", "First Crossing")
+	current_era_id = first_era_id()
+	reset_actor_positions()
+
+func format_errors(value: Variant) -> String:
+	var lines := PackedStringArray()
+	if typeof(value) == TYPE_ARRAY:
+		for message in value:
+			lines.append(String(message))
+	return " | ".join(lines)
+
+func reset_actor_positions() -> void:
+	var spawns: Dictionary = map_data.get("spawns", {})
+	player = CampaignRepository.data_to_vector(spawns.get("player"), Vector2(312, 220))
+	companion = CampaignRepository.data_to_vector(spawns.get("companion"), Vector2(270, 230))
 
 func _process(delta: float) -> void:
 	elapsed += delta
 	shift_lock = maxf(0.0, shift_lock - delta)
 	match flow:
 		Flow.SPLASH:
-			if elapsed > 2.4 or confirm(): change_flow(Flow.TITLE)
-		Flow.TITLE: update_title()
-		Flow.INTRO: update_intro()
-		Flow.GAME: update_game(delta)
+			if elapsed > 2.4 or confirm():
+				change_flow(Flow.TITLE)
+		Flow.TITLE:
+			update_title()
+		Flow.CAMPAIGN_SELECT:
+			update_campaign_select()
+		Flow.INTRO:
+			update_intro()
+		Flow.GAME:
+			update_game(delta)
 		Flow.PAUSED:
-			if Input.is_action_just_pressed("pause_game"): change_flow(Flow.GAME)
+			if Input.is_action_just_pressed("pause_game"):
+				change_flow(Flow.GAME)
 	queue_redraw()
 
-func change_flow(next: int) -> void:
-	flow = next
+func change_flow(next_flow: int) -> void:
+	flow = next_flow
 	elapsed = 0.0
-	if next != Flow.GAME: dialogue = ""
+	if next_flow != Flow.GAME:
+		dialogue = ""
 
 func confirm() -> bool:
 	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("ui_accept")
 
+func title_menu() -> Array[String]:
+	return ["NEW JOURNEY", "CAMPAIGNS", "QUICK START", "QUIT"]
+
 func update_title() -> void:
-	if Input.is_action_just_pressed("ui_up"): selected_menu = wrapi(selected_menu - 1, 0, 3)
-	if Input.is_action_just_pressed("ui_down"): selected_menu = wrapi(selected_menu + 1, 0, 3)
+	var menu := title_menu()
+	if Input.is_action_just_pressed("ui_up"):
+		selected_menu = wrapi(selected_menu - 1, 0, menu.size())
+	if Input.is_action_just_pressed("ui_down"):
+		selected_menu = wrapi(selected_menu + 1, 0, menu.size())
 	if confirm():
-		if selected_menu == 0:
-			intro_page = 0
+		match selected_menu:
+			0:
+				if load_campaign(DEFAULT_CAMPAIGN_PATH):
+					change_flow(Flow.INTRO)
+			1:
+				refresh_campaign_catalog()
+				change_flow(Flow.CAMPAIGN_SELECT)
+			2:
+				begin_game()
+			3:
+				get_tree().quit()
+
+func update_campaign_select() -> void:
+	if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("pause_game"):
+		change_flow(Flow.TITLE)
+		return
+	if campaign_catalog.is_empty():
+		return
+	if Input.is_action_just_pressed("ui_up"):
+		selected_campaign_index = wrapi(selected_campaign_index - 1, 0, campaign_catalog.size())
+	if Input.is_action_just_pressed("ui_down"):
+		selected_campaign_index = wrapi(selected_campaign_index + 1, 0, campaign_catalog.size())
+	if confirm():
+		var entry: Dictionary = campaign_catalog[selected_campaign_index]
+		if load_campaign(String(entry.get("path", ""))):
 			change_flow(Flow.INTRO)
-		elif selected_menu == 1: begin_game()
-		else: get_tree().quit()
 
 func update_intro() -> void:
-	if Input.is_action_just_pressed("ui_cancel"): begin_game()
+	if Input.is_action_just_pressed("ui_cancel"):
+		begin_game()
 	elif confirm():
 		intro_page += 1
-		if intro_page >= intro_pages().size(): begin_game()
+		if intro_page >= intro_pages().size():
+			begin_game()
 
 func begin_game() -> void:
-	player = Vector2(312, 220)
-	dog = Vector2(270, 230)
-	era = Era.VERDANT
+	reset_actor_positions()
+	current_era_id = String(campaign.get("start_era", first_era_id()))
+	if current_era_id.is_empty():
+		current_era_id = first_era_id()
 	change_flow(Flow.GAME)
 
 func update_game(delta: float) -> void:
@@ -69,66 +182,263 @@ func update_game(delta: float) -> void:
 		change_flow(Flow.PAUSED)
 		return
 	if not dialogue.is_empty():
-		if confirm() or Input.is_action_just_pressed("ui_cancel"): dialogue = ""
+		if confirm() or Input.is_action_just_pressed("ui_cancel"):
+			dialogue = ""
 		return
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if direction.length_squared() > 0.01:
 		facing = direction.normalized()
-		player += facing * 105.0 * delta
-		player.x = clampf(player.x, 32.0, VIEW.x - 32.0)
-		player.y = clampf(player.y, 106.0, VIEW.y - 38.0)
-	var offset := player - dog
-	if offset.length() > 34.0:
-		dog += offset.normalized() * minf(132.0 * delta, offset.length() - 34.0)
-	if Input.is_action_just_pressed("era_shift") and shift_lock <= 0.0:
-		era = Era.ASHEN if era == Era.VERDANT else Era.VERDANT
-		shift_lock = 0.65
-	if Input.is_action_just_pressed("interact"): interact()
+		player += facing * PLAYER_SPEED * delta
+		clamp_actor_to_map("player")
+	if companion_enabled():
+		update_companion(delta)
+	if (
+		Input.is_action_just_pressed("era_shift")
+		and shift_lock <= 0.0
+		and era_shifting_enabled()
+	):
+		shift_to_next_era()
+	if Input.is_action_just_pressed("interact"):
+		interact()
+
+func update_companion(delta: float) -> void:
+	var offset := player - companion
+	if offset.length() > COMPANION_RECOVERY_DISTANCE:
+		companion = player - facing * COMPANION_FOLLOW_DISTANCE
+		clamp_actor_to_map("companion")
+	elif offset.length() > COMPANION_FOLLOW_DISTANCE:
+		companion += offset.normalized() * minf(
+			COMPANION_SPEED * delta,
+			offset.length() - COMPANION_FOLLOW_DISTANCE
+		)
+		clamp_actor_to_map("companion")
+
+func clamp_actor_to_map(actor_id: String) -> void:
+	var bounds: Dictionary = map_data.get("bounds", {})
+	var position := player if actor_id == "player" else companion
+	position.x = clampf(position.x, float(bounds.get("left", 32.0)), float(bounds.get("right", VIEW.x - 32.0)))
+	position.y = clampf(position.y, float(bounds.get("top", 96.0)), float(bounds.get("bottom", VIEW.y - 32.0)))
+	if actor_id == "player":
+		player = position
+	else:
+		companion = position
+
+func shift_to_next_era() -> void:
+	var era_ids := all_era_ids()
+	if era_ids.size() < 2:
+		return
+	var index := era_ids.find(current_era_id)
+	current_era_id = String(era_ids[(index + 1) % era_ids.size()])
+	shift_lock = 0.65
 
 func interact() -> void:
-	if player.distance_to(Vector2(500, 170)) < 62.0:
-		dialogue = "The brass dial answers your touch.\nTwo ages occupy the same wound."
-	elif player.distance_to(Vector2(124, 206)) < 58.0:
-		dialogue = "Morrow growls at the old well.\nSomething below knows his name."
+	var closest: Dictionary = {}
+	var closest_distance := 999999.0
+	for value in map_data.get("interactions", []):
+		var interaction: Dictionary = value
+		if not interaction_is_available(interaction):
+			continue
+		var position := CampaignRepository.data_to_vector(interaction.get("position"))
+		var distance := player.distance_to(position)
+		if distance <= float(interaction.get("radius", 32.0)) and distance < closest_distance:
+			closest = interaction
+			closest_distance = distance
+	if closest.is_empty():
+		if companion_enabled():
+			dialogue = "%s sniffs the wind, then looks toward the nearest unfinished story." % companion_name().capitalize()
+		else:
+			dialogue = "Nothing answers yet."
 	else:
-		dialogue = "Morrow sniffs the wind, then looks toward the eastern ruins."
+		dialogue = dialogue_for(closest)
 
-func intro_pages() -> Array[String]:
-	return [
-		"1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum.",
-		"Eli Vale entered with one flashlight,\none borrowed key, and his dog Morrow.",
-		"They returned to a world that remembered\nevery age at once."
-	]
+func interaction_is_available(interaction: Dictionary) -> bool:
+	var available: Array = interaction.get("available_eras", [])
+	return available.is_empty() or available.has(current_era_id)
+
+func dialogue_for(interaction: Dictionary) -> String:
+	var value: Variant = interaction.get("dialogue", "")
+	if typeof(value) == TYPE_STRING:
+		return String(value)
+	if typeof(value) == TYPE_DICTIONARY:
+		var dialogue_by_era: Dictionary = value
+		return String(dialogue_by_era.get(current_era_id, dialogue_by_era.get("default", "...")))
+	return "..."
+
+func intro_pages() -> Array:
+	var pages: Variant = campaign.get("intro", [])
+	if typeof(pages) == TYPE_ARRAY and not pages.is_empty():
+		return pages
+	return ["A journey begins beyond the edge of the authored world."]
+
+func ruleset() -> Dictionary:
+	return campaign.get("ruleset", {})
+
+func companion_enabled() -> bool:
+	return bool(ruleset().get("companion_enabled", true))
+
+func era_shifting_enabled() -> bool:
+	return bool(ruleset().get("era_shifting_enabled", true))
+
+func first_era_id() -> String:
+	for value in map_data.get("eras", []):
+		var era: Dictionary = value
+		return String(era.get("id", ""))
+	return ""
+
+func all_era_ids() -> Array:
+	var ids: Array = []
+	for value in map_data.get("eras", []):
+		var era: Dictionary = value
+		var era_id := String(era.get("id", ""))
+		if not era_id.is_empty():
+			ids.append(era_id)
+	return ids
+
+func current_era() -> Dictionary:
+	for value in map_data.get("eras", []):
+		var era: Dictionary = value
+		if String(era.get("id", "")) == current_era_id:
+			return era
+	for value in map_data.get("eras", []):
+		var fallback: Dictionary = value
+		return fallback
+	return {}
+
+func palette_color(key: String, fallback: String) -> Color:
+	var era_data := current_era()
+	var palette: Dictionary = era_data.get("palette", {})
+	return Color.from_string(String(palette.get(key, fallback)), Color.from_string(fallback, Color.WHITE))
+
+func player_name() -> String:
+	var actors: Dictionary = campaign.get("actors", {})
+	var actor: Dictionary = actors.get("player", {})
+	return String(actor.get("name", "HERO"))
+
+func companion_name() -> String:
+	var actors: Dictionary = campaign.get("actors", {})
+	var actor: Dictionary = actors.get("companion", {})
+	return String(actor.get("name", "COMPANION"))
+
+func actor_health(actor_id: String, fallback: int) -> int:
+	var actors: Dictionary = campaign.get("actors", {})
+	var actor: Dictionary = actors.get(actor_id, {})
+	return int(actor.get("max_health", fallback))
+
+func camera_offset() -> Vector2:
+	var canvas: Dictionary = map_data.get("canvas", {})
+	var world_size := Vector2(float(canvas.get("width", VIEW.x)), float(canvas.get("height", VIEW.y)))
+	return Vector2(
+		clampf(player.x - VIEW.x * 0.5, 0.0, maxf(0.0, world_size.x - VIEW.x)),
+		clampf(player.y - VIEW.y * 0.5, 0.0, maxf(0.0, world_size.y - VIEW.y))
+	)
 
 func _draw() -> void:
 	match flow:
-		Flow.SPLASH: draw_splash()
-		Flow.TITLE: draw_title()
-		Flow.INTRO: draw_intro()
-		Flow.GAME: draw_game()
+		Flow.SPLASH:
+			draw_splash()
+		Flow.TITLE:
+			draw_title()
+		Flow.CAMPAIGN_SELECT:
+			draw_campaign_select()
+		Flow.INTRO:
+			draw_intro()
+		Flow.GAME:
+			draw_game()
 		Flow.PAUSED:
 			draw_game()
 			draw_pause()
 
 func draw_splash() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("070a0f"))
-	draw_centered("EVAVO STUDIO", 148, 28, Color("e8edf5"))
+	var pulse := 0.84 + sin(elapsed * 3.0) * 0.12
+	draw_centered("EVAVO STUDIO", 148, 28, Color(0.91, 0.93, 0.96, pulse))
 	draw_centered("PRESENTS", 190, 12, Color("788598"))
 
 func draw_title() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("0b1017"))
-	for i in range(11):
-		var x := fmod(float(i * 83) + elapsed * (7.0 + i), 700.0) - 30.0
-		draw_circle(Vector2(x, 52 + (i * 29) % 210), 1.2, Color("9eb6c7"))
-	draw_colored_polygon(PackedVector2Array([Vector2(0,280),Vector2(105,238),Vector2(210,271),Vector2(325,208),Vector2(470,270),Vector2(640,224),Vector2(640,360),Vector2(0,360)]), Color("18282d"))
-	draw_centered("EPOCHBOUND", 76, 42, Color("e7d7a2"))
-	draw_centered("THE HOURS BENEATH", 111, 12, Color("8fa9a5"))
-	var menu := ["NEW JOURNEY", "QUICK START", "QUIT"]
-	for i in menu.size():
-		var active := i == selected_menu
-		draw_string(ThemeDB.fallback_font, Vector2(220, 176 + i * 28), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("e7c66b"))
-		draw_string(ThemeDB.fallback_font, Vector2(244, 176 + i * 28), menu[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("fff2c9") if active else Color("76858b"))
+	for index in range(11):
+		var x := fmod(float(index * 83) + elapsed * (7.0 + index), 700.0) - 30.0
+		draw_circle(Vector2(x, 52 + (index * 29) % 210), 1.2, Color("9eb6c7"))
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(0, 280), Vector2(105, 238), Vector2(210, 271), Vector2(325, 208),
+			Vector2(470, 270), Vector2(640, 224), Vector2(640, 360), Vector2(0, 360)
+		]),
+		Color("18282d")
+	)
+	draw_centered(String(campaign.get("title", "EPOCHBOUND")), 65, 40, Color("e7d7a2"))
+	draw_centered(String(campaign.get("subtitle", "A NEW JOURNEY")), 98, 12, Color("8fa9a5"))
+	var menu := title_menu()
+	for index in range(menu.size()):
+		var active := index == selected_menu
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(205, 152 + index * 27),
+			"◆" if active else "",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			14,
+			Color("e7c66b")
+		)
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(229, 152 + index * 27),
+			menu[index],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			16,
+			Color("fff2c9") if active else Color("76858b")
+		)
 	draw_centered("E / Z / A  CONFIRM     ARROWS  SELECT", 336, 10, Color("58656b"))
+
+func draw_campaign_select() -> void:
+	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("0a0e14"))
+	draw_centered("CHOOSE A CAMPAIGN", 42, 24, Color("e7d7a2"))
+	draw_centered("Authored journeys share one runtime contract", 65, 11, Color("7f939b"))
+	if campaign_catalog.is_empty():
+		draw_centered("NO VALID CAMPAIGNS FOUND", 170, 16, Color("cc8d82"))
+		draw_centered("ESC TO RETURN", 210, 11, Color("78858c"))
+		return
+	var visible_count := mini(7, campaign_catalog.size())
+	var start_index := clampi(selected_campaign_index - 3, 0, maxi(0, campaign_catalog.size() - visible_count))
+	for row in range(visible_count):
+		var index := start_index + row
+		var entry: Dictionary = campaign_catalog[index]
+		var active := index == selected_campaign_index
+		var y := 104 + row * 30
+		if active:
+			draw_rect(Rect2(90, y - 20, 460, 26), Color("1f2a2f"))
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(108, y),
+			"◆" if active else "",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			13,
+			Color("e7c66b")
+		)
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(132, y),
+			String(entry.get("title", entry.get("id", "Campaign"))),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			300,
+			15,
+			Color("fff2c9") if active else Color("9aa7aa")
+		)
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(455, y),
+			"CUSTOM" if entry.get("source", "built_in") == "user" else "BUILT-IN",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			90,
+			9,
+			Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c")
+		)
+	if not load_error.is_empty():
+		draw_centered("SELECTED CAMPAIGN COULD NOT BE LOADED", 319, 10, Color("d78f84"))
+	else:
+		draw_centered("CONFIRM TO BEGIN   •   ESC TO RETURN", 329, 10, Color("68747e"))
 
 func draw_intro() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("05070a"))
@@ -136,47 +446,142 @@ func draw_intro() -> void:
 	draw_rect(Rect2(58, 52, 524, 242), Color("7b6a4f"), false, 2.0)
 	draw_circle(Vector2(320, 142), 66, Color("26343a"))
 	draw_circle(Vector2(320, 142), 39, Color("d7b666"), false, 3.0)
-	draw_line(Vector2(320,142), Vector2(320 + cos(elapsed) * 29, 142 + sin(elapsed) * 29), Color("f2df9b"), 2.0)
-	draw_multiline_centered(intro_pages()[intro_page], 226, 15, Color("e8e3d5"))
+	draw_line(
+		Vector2(320, 142),
+		Vector2(320 + cos(elapsed) * 29, 142 + sin(elapsed) * 29),
+		Color("f2df9b"),
+		2.0
+	)
+	draw_multiline_centered(String(intro_pages()[intro_page]), 226, 15, Color("e8e3d5"))
 	draw_centered("CONFIRM TO CONTINUE   •   ESC TO SKIP", 330, 10, Color("68747e"))
 
 func draw_game() -> void:
-	var verdant := era == Era.VERDANT
-	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("819a91") if verdant else Color("5e4541"))
-	draw_circle(Vector2(530, 65), 28, Color("e5d89f") if verdant else Color("d77850"))
-	draw_rect(Rect2(0, 96, 640, 264), Color("4f6550") if verdant else Color("52443a"))
-	draw_rect(Rect2(470, 105, 62, 89), Color("53625b") if verdant else Color("392f2d"))
-	draw_circle(Vector2(501, 166), 15, Color("c9b46f"), false, 3.0)
-	draw_circle(Vector2(124, 211), 25, Color("313b3b"))
-	draw_circle(Vector2(124, 207), 20, Color("10181b"))
-	draw_circle(dog + Vector2(0,-4), 10, Color("3b2a24"))
-	draw_circle(dog + Vector2(9,-9), 6, Color("5a3d2e"))
-	draw_circle(player + Vector2(0,-13), 8, Color("e2b38a"))
-	draw_rect(Rect2(player + Vector2(-8,-6), Vector2(16,22)), Color("334b68"))
-	draw_line(player + Vector2(0,6), player + facing * 18.0, Color("e8d69a"), 3.0)
-	draw_rect(Rect2(10, 9, 210, 46), Color(0.03,0.04,0.05,0.86))
-	draw_string(ThemeDB.fallback_font, Vector2(21,29), "ELI  32 / 32", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("f0e5c7"))
-	draw_string(ThemeDB.fallback_font, Vector2(21,47), "MORROW  24 / 24", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c8b998"))
-	draw_string(ThemeDB.fallback_font, Vector2(500,27), "VERDANT AGE" if verdant else "ASHEN AGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("f3df9b"))
-	if dialogue.is_empty(): draw_centered("MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X", 348, 9, Color("d7d0bd"))
-	else: draw_dialogue()
+	var era_data: Dictionary = current_era()
+	var canvas: Dictionary = map_data.get("canvas", {})
+	var width := float(canvas.get("width", VIEW.x))
+	var height := float(canvas.get("height", VIEW.y))
+	var offset := camera_offset()
+	draw_set_transform(-offset, 0.0, Vector2.ONE)
+	draw_rect(Rect2(0, 0, width, height), palette_color("sky", "819a91"))
+	var bounds: Dictionary = map_data.get("bounds", {})
+	var ground_top := float(bounds.get("top", 96.0))
+	draw_rect(Rect2(0, ground_top, width, height - ground_top), palette_color("ground", "4f6550"))
+	for value in era_data.get("landmarks", []):
+		var landmark: Dictionary = value
+		draw_landmark(landmark)
+	if companion_enabled():
+		draw_companion()
+	draw_player()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_hud(era_data)
+	if dialogue.is_empty():
+		draw_centered("MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X", 348, 9, Color("d7d0bd"))
+	else:
+		draw_dialogue()
+
+func draw_landmark(landmark: Dictionary) -> void:
+	var position := CampaignRepository.data_to_vector(landmark.get("position"))
+	var size_value := float(landmark.get("size", 24.0))
+	var kind := String(landmark.get("kind", "marker"))
+	var accent := palette_color("accent", "e5d89f")
+	var structure := palette_color("structure", "53625b")
+	match kind:
+		"sun":
+			draw_circle(position, size_value, accent)
+		"ruin":
+			draw_rect(Rect2(position - Vector2(size_value * 0.5, size_value * 0.72), Vector2(size_value, size_value * 1.44)), structure)
+			draw_rect(Rect2(position - Vector2(size_value * 0.18, size_value * 0.35), Vector2(size_value * 0.36, size_value * 0.7)), Color("1a2021"))
+		"well":
+			draw_circle(position + Vector2(0, 4), size_value, Color("313b3b"))
+			draw_circle(position, size_value * 0.78, Color("10181b"))
+		"tree":
+			draw_line(position + Vector2(0, size_value), position - Vector2(0, size_value), structure, 6.0)
+			draw_circle(position - Vector2(0, size_value * 0.55), size_value * 0.74, Color("3f5945"))
+		"dead_tree":
+			draw_line(position + Vector2(0, size_value), position - Vector2(0, size_value), structure, 5.0)
+			draw_line(position - Vector2(0, size_value * 0.25), position + Vector2(size_value * 0.7, -size_value * 0.8), structure, 3.0)
+			draw_line(position - Vector2(0, size_value * 0.1), position + Vector2(-size_value * 0.65, -size_value * 0.65), structure, 3.0)
+		_:
+			draw_circle(position, maxf(4.0, size_value * 0.25), accent)
+
+func draw_companion() -> void:
+	draw_circle(companion + Vector2(0, -4), 10, Color("3b2a24"))
+	draw_circle(companion + Vector2(9, -9), 6, Color("5a3d2e"))
+	draw_line(companion + Vector2(-7, -6), companion + Vector2(-14, -12), Color("3b2a24"), 3.0)
+
+func draw_player() -> void:
+	draw_circle(player + Vector2(0, -13), 8, Color("e2b38a"))
+	draw_rect(Rect2(player + Vector2(-8, -6), Vector2(16, 22)), Color("334b68"))
+	draw_line(player + Vector2(0, 6), player + facing * 18.0, Color("e8d69a"), 3.0)
+
+func draw_hud(era_data: Dictionary) -> void:
+	draw_rect(Rect2(10, 9, 236, 46), Color(0.03, 0.04, 0.05, 0.86))
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(21, 29),
+		"%s  %d / %d" % [player_name(), actor_health("player", 32), actor_health("player", 32)],
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color("f0e5c7")
+	)
+	if companion_enabled():
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(21, 47),
+			"%s  %d / %d" % [companion_name(), actor_health("companion", 24), actor_health("companion", 24)],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			12,
+			Color("c8b998")
+		)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(472, 24),
+		String(era_data.get("display_name", current_era_id.capitalize())).to_upper(),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		11,
+		Color("f3df9b")
+	)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(472, 42),
+		String(map_data.get("display_name", "MAP")).to_upper(),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		9,
+		Color("d2c8aa")
+	)
 
 func draw_dialogue() -> void:
-	draw_rect(Rect2(24,270,592,72), Color("10151b"))
-	draw_rect(Rect2(24,270,592,72), Color("d0b978"), false, 2.0)
-	draw_multiline(dialogue, Vector2(43,295), 15, Color("f1ead8"))
+	draw_rect(Rect2(24, 270, 592, 72), Color("10151b"))
+	draw_rect(Rect2(24, 270, 592, 72), Color("d0b978"), false, 2.0)
+	draw_multiline(dialogue, Vector2(43, 295), 15, Color("f1ead8"))
 
 func draw_pause() -> void:
-	draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0,0,0,0.62))
-	draw_rect(Rect2(202,116,236,118), Color("111820"))
+	draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0, 0, 0, 0.62))
+	draw_rect(Rect2(202, 116, 236, 118), Color("111820"))
 	draw_centered("JOURNEY PAUSED", 159, 22, Color("f0dfad"))
 	draw_centered("ESC / START TO RETURN", 207, 11, Color("87949b"))
 
 func draw_centered(text: String, y: float, size: int, color: Color) -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(0,y), text, HORIZONTAL_ALIGNMENT_CENTER, int(VIEW.x), size, color)
+	draw_string(ThemeDB.fallback_font, Vector2(0, y), text, HORIZONTAL_ALIGNMENT_CENTER, int(VIEW.x), size, color)
 
 func draw_multiline_centered(text: String, y: float, size: int, color: Color) -> void:
-	for i in text.split("\n").size(): draw_centered(text.split("\n")[i], y + i * (size + 5), size, color)
+	var lines := text.split("\n")
+	for index in range(lines.size()):
+		draw_centered(lines[index], y + index * (size + 5), size, color)
 
 func draw_multiline(text: String, start: Vector2, size: int, color: Color) -> void:
-	for i in text.split("\n").size(): draw_string(ThemeDB.fallback_font, start + Vector2(0,i * (size + 5)), text.split("\n")[i], HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+	var lines := text.split("\n")
+	for index in range(lines.size()):
+		draw_string(
+			ThemeDB.fallback_font,
+			start + Vector2(0, index * (size + 5)),
+			lines[index],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			size,
+			color
+		)

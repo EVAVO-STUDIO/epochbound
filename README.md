@@ -1,28 +1,47 @@
 # Epochbound
 
-Epochbound is an original Godot 4.6.2 action RPG designed with the pacing, readability, tactile movement and authored surprise of a premium lost 1990s console adventure.
+Epochbound is an original Godot 4.6.2 action RPG and campaign-authoring platform designed with the pacing, readability, tactile movement and authored surprise of a premium lost 1990s console adventure.
 
-It is influenced by the design strengths of classic action RPGs and timeline-spanning adventures, but uses an entirely original world, cast, narrative, terminology, artwork and audio.
+It learns from the design strengths of classic action RPGs and timeline-spanning adventures while using an entirely original world, cast, narrative, terminology, artwork and audio.
 
-## Current playable slice
+## Current playable flow
 
-The repository now boots directly into a complete prototype flow:
+The repository now provides:
 
 1. EVAVO Studio splash
-2. Animated title screen and menu
-3. Skippable three-beat prologue
-4. Playable exploration field
-5. Responsive eight-direction movement
-6. Morrow, a dog companion with distance-based follow behaviour
-7. Contextual interactions and dialogue
-8. Instant shifting between the Verdant and Ashen versions of the field
-9. Pause and resume flow
+2. Animated title menu
+3. Built-in and custom campaign browser
+4. Validated campaign loading
+5. Campaign-defined skippable prologues
+6. Variable-size scrolling exploration maps
+7. Responsive eight-direction movement
+8. A campaign-defined animal companion with follow and recovery behaviour
+9. Contextual interactions and era-specific dialogue
+10. Shifting between authored versions of the same location
+11. Pause and resume flow
 
-The prototype uses Godot drawing primitives so it runs without external art assets. These placeholders establish composition, scale, timing and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera and interaction contracts for the future pixel-art pipeline.
+
+## Campaign Studio
+
+Epochbound includes its own Godot main-screen editor plugin. Open the project and select the **Campaign** tab to:
+
+- create campaigns and starter maps;
+- create additional maps;
+- preview era-specific palettes and landmarks;
+- place player and companion spawns;
+- add and edit interactions;
+- author dialogue per era;
+- validate cross-file content before play;
+- run authored campaigns through the same runtime as the reference game.
+
+Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
+
+Read [`docs/CAMPAIGN_STUDIO.md`](docs/CAMPAIGN_STUDIO.md) for the editor workflow and [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the versioned JSON contract.
 
 ## Run
 
-Open the repository folder in Godot 4.6.2 and press **F6** or **F5**.
+Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 
 ### Controls
 
@@ -31,7 +50,18 @@ Open the repository folder in Godot 4.6.2 and press **F6** or **F5**.
 | Move | WASD or arrow keys | D-pad / left stick |
 | Confirm / interact | E or Z | South face button |
 | Shift era | Q or X | West face button |
-| Pause / skip | Escape | Start |
+| Back, pause or skip | Escape | Start |
+
+## Validate
+
+From Windows PowerShell:
+
+```powershell
+Set-Location C:\GitRepos\epochbound
+.\scripts\validate.ps1 -GodotExecutable "C:\Path\To\Godot_v4.6.2-stable_win64.exe"
+```
+
+This performs a headless editor import and script parse, followed by campaign and map validation.
 
 ## Design pillars
 
@@ -43,9 +73,15 @@ Open the repository folder in Godot 4.6.2 and press **F6** or **F5**.
 - Distinct regional systems instead of repeated content with new colours
 - Strong authored pacing supported by data-driven production tools
 - Authentic low-resolution presentation with modern accessibility and reliability
+- Campaign creation that remains portable, inspectable and safe to validate
 
-## Repository direction
+## Documentation
 
-The next slices will separate the prototype into production systems: flow orchestration, save profiles, world state, actors, companion orders, dialogue graphs, interactions, era transitions, combat, inventory, quests, authored scenes and editor-facing validation.
+- [`docs/GAME_VISION.md`](docs/GAME_VISION.md): originality and player promise
+- [`docs/GAME_DESIGN_RESEARCH.md`](docs/GAME_DESIGN_RESEARCH.md): research synthesis and map-quality rubric
+- [`docs/CAMPAIGN_STUDIO.md`](docs/CAMPAIGN_STUDIO.md): editor workflow and roadmap
+- [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): data schema and migration rules
 
-See [`docs/GAME_VISION.md`](docs/GAME_VISION.md) for the originality and design contract.
+## Next production layers
+
+The next vertical slices will build on the current contracts rather than replace them: tile and terrain painting, collision and navigation editing, cross-map entrances, world state, save profiles, actor definitions, companion orders, dialogue graphs, quests, combat, inventory, crafting, encounters, cinematics and automated softlock detection.

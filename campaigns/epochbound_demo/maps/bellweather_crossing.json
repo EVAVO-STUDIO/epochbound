@@ -1,0 +1,93 @@
+{
+	"schema_version": 1,
+	"id": "bellweather_crossing",
+	"display_name": "Bellweather Crossing",
+	"canvas": {
+		"width": 640,
+		"height": 360,
+		"grid_size": 16
+	},
+	"bounds": {
+		"left": 32,
+		"right": 608,
+		"top": 96,
+		"bottom": 328
+	},
+	"spawns": {
+		"player": {
+			"x": 312,
+			"y": 220
+		},
+		"companion": {
+			"x": 270,
+			"y": 230
+		}
+	},
+	"eras": [
+		{
+			"id": "verdant",
+			"display_name": "Verdant Age",
+			"palette": {
+				"sky": "819a91",
+				"ground": "4f6550",
+				"accent": "e5d89f",
+				"structure": "53625b"
+			},
+			"landmarks": [
+				{"id": "sun", "kind": "sun", "position": {"x": 530, "y": 65}, "size": 28},
+				{"id": "east_ruin", "kind": "ruin", "position": {"x": 501, "y": 150}, "size": 62},
+				{"id": "old_well", "kind": "well", "position": {"x": 124, "y": 207}, "size": 24},
+				{"id": "north_tree", "kind": "tree", "position": {"x": 208, "y": 139}, "size": 30}
+			]
+		},
+		{
+			"id": "ashen",
+			"display_name": "Ashen Age",
+			"palette": {
+				"sky": "5e4541",
+				"ground": "52443a",
+				"accent": "d77850",
+				"structure": "392f2d"
+			},
+			"landmarks": [
+				{"id": "sun", "kind": "sun", "position": {"x": 530, "y": 65}, "size": 28},
+				{"id": "east_ruin", "kind": "ruin", "position": {"x": 501, "y": 150}, "size": 62},
+				{"id": "old_well", "kind": "well", "position": {"x": 124, "y": 207}, "size": 24},
+				{"id": "north_tree", "kind": "dead_tree", "position": {"x": 208, "y": 139}, "size": 30}
+			]
+		}
+	],
+	"layers": [
+		{"id": "ground", "type": "terrain", "z_index": 0, "visible": true, "locked": false},
+		{"id": "objects", "type": "objects", "z_index": 10, "visible": true, "locked": false},
+		{"id": "collision", "type": "collision", "z_index": 20, "visible": true, "locked": false},
+		{"id": "navigation", "type": "navigation", "z_index": 30, "visible": true, "locked": false}
+	],
+	"interactions": [
+		{
+			"id": "brass_dial",
+			"kind": "dial",
+			"position": {"x": 501, "y": 166},
+			"radius": 62,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "The brass dial answers your touch.\nTwo ages occupy the same wound.",
+				"ashen": "The dial is hot enough to burn.\nIts hands point toward a year that never came.",
+				"default": "The brass dial turns without moving."
+			}
+		},
+		{
+			"id": "old_well",
+			"kind": "well",
+			"position": {"x": 124, "y": 207},
+			"radius": 58,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "Morrow growls at the old well.\nSomething below knows his name.",
+				"ashen": "Ash drifts upward from the empty well.\nMorrow refuses to look down.",
+				"default": "The well carries a sound from another age."
+			}
+		}
+	],
+	"connections": []
+}

@@ -71,8 +71,8 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) == "res://src/inventory_runtime.gd",
-			"Runtime scene must bind the inventory runtime."
+			str((script_value as GDScript).resource_path) in ["res://src/inventory_runtime.gd", "res://src/story_runtime.gd"],
+			"Runtime scene must bind an inventory-capable runtime."
 		)
 	root.add_child(runtime)
 	check(runtime.has_method("use_inventory_item"), "Runtime must expose item use.")

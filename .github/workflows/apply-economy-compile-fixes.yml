@@ -1,0 +1,65 @@
+name: Apply economy compile fixes
+
+on:
+  push:
+    branches:
+      - work/merchant-economy-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Align merchant runtime and editor imports
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/merchant-economy-foundation-20260729
+
+      - name: Apply exact fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_name: str, old: str, new: str) -> None:
+              path = Path(path_name)
+              text = path.read_text(encoding="utf-8")
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path_name}: reviewed occurrence not found exactly once: {old!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          replace_once(
+              "addons/epochbound_trade_studio/trade_studio.gd",
+              'const ObjectCatalog = preload("res://src/content/object_catalog.gd")\n',
+              'const ObjectCatalog = preload("res://src/content/object_catalog.gd")\nconst StoryCatalog = preload("res://src/content/story_catalog.gd")\n'
+          )
+          replace_once(
+              "src/merchant_runtime.gd",
+              'const MerchantItemCatalog = preload("res://src/content/item_catalog.gd")\n',
+              'const MerchantItemCatalog = preload("res://src/content/item_catalog.gd")\nconst MerchantInventoryModel = preload("res://src/game/inventory_model.gd")\n'
+          )
+          replace_once(
+              "src/merchant_runtime.gd",
+              'InventoryModel.count(inventory, item_id)',
+              'MerchantInventoryModel.count(inventory, item_id)'
+          )
+          replace_once(
+              "addons/epochbound_trade_studio/plugin.gd",
+              'get_icon("Shop", "EditorIcons")',
+              'get_icon("AssetLib", "EditorIcons")'
+          )
+          Path(".github/workflows/apply-economy-compile-fixes.yml").unlink()
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: align merchant runtime and Trade Studio imports"
+          git push origin HEAD:work/merchant-economy-foundation-20260729

@@ -23,6 +23,13 @@
 	"story_files": [
 		"story/core.json"
 	],
+	"save_policy": {
+		"manual_slots": 3,
+		"autosave_enabled": true,
+		"autosave_on_travel": true,
+		"autosave_on_progress": true,
+		"allow_manual_save_in_combat": false
+	},
 	"starting_inventory": [
 		{
 			"item_id": "museum_tonic",

@@ -96,7 +96,22 @@ try {
         "--script", "res://tools/smoke_story_validation_edges.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge and Story Studio validation passed."
+    Invoke-GodotStep "Smoke test save capture and exact restoration" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_save_profiles.gd"
+    )
+
+    Invoke-GodotStep "Smoke test save migration integrity and backup recovery" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_save_migrations.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Save and State Studio inspector" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_save_state_studio.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio and Save & State Studio validation passed."
 }
 finally {
     Pop-Location

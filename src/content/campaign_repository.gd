@@ -212,6 +212,13 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"item_files": ["items/core.json"],
 		"recipe_files": ["recipes/core.json"],
 		"story_files": ["story/core.json"],
+		"save_policy": {
+			"manual_slots": 3,
+			"autosave_enabled": true,
+			"autosave_on_travel": true,
+			"autosave_on_progress": true,
+			"allow_manual_save_in_combat": false
+		},
 		"starting_inventory": [
 			{"item_id": "trail_tonic", "quantity": 1},
 			{"item_id": "brass_scrap", "quantity": 2}

@@ -18,7 +18,7 @@ var map_list: ItemList
 var map_id_edit: LineEdit
 var era_selector: OptionButton
 var tool_selector: OptionButton
-var map_canvas: Control
+var map_canvas
 var interaction_id_edit: LineEdit
 var interaction_kind_selector: OptionButton
 var interaction_radius: SpinBox
@@ -152,10 +152,11 @@ func build_ui() -> void:
 	set_inspector_enabled(false)
 
 	status_label = RichTextLabel.new()
-	status_label.bbcode_enabled = true
+	status_label.bbcode_enabled = false
 	status_label.fit_content = true
 	status_label.custom_minimum_size.y = 72
-	status_label.text = "[color=#9aa8b5]Campaign Studio ready.[/color]"
+	status_label.text = "Campaign Studio ready."
+	status_label.modulate = Color("9aa8b5")
 	root.add_child(status_label)
 
 func make_button(text: String, callback: Callable) -> Button:
@@ -249,8 +250,9 @@ func populate_eras() -> void:
 	var previous := selected_era_id()
 	era_selector.clear()
 	var selected_index := 0
-	for index in range(active_map.get("eras", []).size()):
-		var era: Dictionary = active_map.get("eras", [])[index]
+	var eras: Array = active_map.get("eras", [])
+	for index in range(eras.size()):
+		var era: Dictionary = eras[index]
 		era_selector.add_item(String(era.get("display_name", era.get("id", "Era"))))
 		era_selector.set_item_metadata(index, String(era.get("id", "")))
 		if String(era.get("id", "")) == previous:
@@ -329,15 +331,16 @@ func set_spawn(spawn_id: String, world_position: Vector2) -> void:
 	var spawns: Dictionary = active_map.get("spawns", {})
 	spawns[spawn_id] = Repository.vector_to_data(world_position)
 	active_map["spawns"] = spawns
-	save_active_map()
-	set_status("Placed %s spawn at %s." % [spawn_id, world_position], false)
+	if save_active_map():
+		set_status("Placed %s spawn at %s." % [spawn_id, world_position], false)
 
 func add_interaction(world_position: Vector2) -> void:
 	var interactions: Array = active_map.get("interactions", [])
 	var index := 1
 	var candidate := "interaction_%03d" % index
 	var ids: Dictionary = {}
-	for interaction in interactions:
+	for value in interactions:
+		var interaction: Dictionary = value
 		ids[String(interaction.get("id", ""))] = true
 	while ids.has(candidate):
 		index += 1
@@ -352,15 +355,16 @@ func add_interaction(world_position: Vector2) -> void:
 	})
 	active_map["interactions"] = interactions
 	select_interaction(interactions.size() - 1)
-	save_active_map()
-	set_status("Added interaction '%s' at %s." % [candidate, world_position], false)
+	if save_active_map():
+		set_status("Added interaction '%s' at %s." % [candidate, world_position], false)
 
 func select_interaction_near(world_position: Vector2) -> void:
 	var interactions: Array = active_map.get("interactions", [])
 	var best_index := -1
 	var best_distance := 28.0
 	for index in range(interactions.size()):
-		var position := Repository.data_to_vector(interactions[index].get("position"), Vector2.ZERO)
+		var interaction: Dictionary = interactions[index]
+		var position := Repository.data_to_vector(interaction.get("position"), Vector2.ZERO)
 		var distance := position.distance_to(world_position)
 		if distance < best_distance:
 			best_distance = distance
@@ -369,14 +373,15 @@ func select_interaction_near(world_position: Vector2) -> void:
 
 func select_interaction(index: int) -> void:
 	selected_interaction_index = index
-	if index < 0 or index >= active_map.get("interactions", []).size():
+	var interactions: Array = active_map.get("interactions", [])
+	if index < 0 or index >= interactions.size():
 		selected_interaction_index = -1
 		map_canvas.set_selected_interaction("")
 		set_inspector_enabled(false)
 		interaction_id_edit.text = ""
 		interaction_dialogue.text = ""
 		return
-	var interaction: Dictionary = active_map.get("interactions", [])[index]
+	var interaction: Dictionary = interactions[index]
 	map_canvas.set_selected_interaction(String(interaction.get("id", "")))
 	set_inspector_enabled(true)
 	populate_interaction_inspector(index)
@@ -395,11 +400,12 @@ func populate_interaction_inspector(index: int) -> void:
 	interaction_radius.value = float(interaction.get("radius", 48.0))
 	var available: Array = interaction.get("available_eras", [])
 	interaction_era_only.button_pressed = available.size() == 1 and available.has(selected_era_id())
-	var dialogue: Variant = interaction.get("dialogue", "")
-	if typeof(dialogue) == TYPE_DICTIONARY:
-		interaction_dialogue.text = String(dialogue.get(selected_era_id(), dialogue.get("default", "")))
+	var dialogue_value: Variant = interaction.get("dialogue", "")
+	if typeof(dialogue_value) == TYPE_DICTIONARY:
+		var dialogue_by_era: Dictionary = dialogue_value
+		interaction_dialogue.text = String(dialogue_by_era.get(selected_era_id(), dialogue_by_era.get("default", "")))
 	else:
-		interaction_dialogue.text = String(dialogue)
+		interaction_dialogue.text = String(dialogue_value)
 
 func set_inspector_enabled(enabled: bool) -> void:
 	interaction_id_edit.editable = enabled
@@ -420,7 +426,8 @@ func apply_interaction() -> void:
 		set_status("Interaction ID cannot be empty.", true)
 		return
 	for index in range(interactions.size()):
-		if index != selected_interaction_index and String(interactions[index].get("id", "")) == requested_id:
+		var other: Dictionary = interactions[index]
+		if index != selected_interaction_index and String(other.get("id", "")) == requested_id:
 			set_status("Interaction ID '%s' is already used." % requested_id, true)
 			return
 	interaction["id"] = requested_id
@@ -428,7 +435,11 @@ func apply_interaction() -> void:
 	interaction["radius"] = interaction_radius.value
 	interaction["available_eras"] = [selected_era_id()] if interaction_era_only.button_pressed else []
 	var existing_dialogue: Variant = interaction.get("dialogue", {})
-	var dialogue_by_era: Dictionary = existing_dialogue if typeof(existing_dialogue) == TYPE_DICTIONARY else {"default": String(existing_dialogue)}
+	var dialogue_by_era: Dictionary = {}
+	if typeof(existing_dialogue) == TYPE_DICTIONARY:
+		dialogue_by_era = existing_dialogue
+	else:
+		dialogue_by_era["default"] = String(existing_dialogue)
 	var era_key := selected_era_id()
 	if era_key.is_empty():
 		era_key = "default"
@@ -437,43 +448,45 @@ func apply_interaction() -> void:
 	interactions[selected_interaction_index] = interaction
 	active_map["interactions"] = interactions
 	map_canvas.set_selected_interaction(requested_id)
-	save_active_map()
-	set_status("Updated interaction '%s'." % requested_id, false)
+	if save_active_map():
+		set_status("Updated interaction '%s'." % requested_id, false)
 
 func delete_interaction() -> void:
 	var interactions: Array = active_map.get("interactions", [])
 	if selected_interaction_index < 0 or selected_interaction_index >= interactions.size():
 		return
-	var deleted_id := String(interactions[selected_interaction_index].get("id", "interaction"))
+	var interaction: Dictionary = interactions[selected_interaction_index]
+	var deleted_id := String(interaction.get("id", "interaction"))
 	interactions.remove_at(selected_interaction_index)
 	active_map["interactions"] = interactions
 	select_interaction(-1)
-	save_active_map()
-	set_status("Deleted interaction '%s'." % deleted_id, false)
+	if save_active_map():
+		set_status("Deleted interaction '%s'." % deleted_id, false)
 
-func save_active_map() -> void:
+func save_active_map() -> bool:
 	if active_map_path.is_empty() or active_map.is_empty():
 		set_status("No map is loaded.", true)
-		return
+		return false
 	var report := Validator.validate_map(active_map, active_map_path)
 	if not report.get("ok", false):
 		set_status(format_report(report), true)
-		return
+		return false
 	var result := Repository.save_json(active_map_path, active_map)
 	if not result.get("ok", false):
 		set_status(format_messages(result.get("errors", [])), true)
-		return
+		return false
 	map_canvas.set_map_data(active_map)
 	rescan_editor_files()
 	if not report.get("warnings", []).is_empty():
 		set_status(format_report(report), false)
+	return true
 
 func validate_all_campaigns() -> void:
 	var report := Validator.validate_all()
 	set_status(format_report(report), not report.get("ok", false))
 
 func format_report(report: Dictionary) -> String:
-	var lines: Array[String] = []
+	var lines := PackedStringArray()
 	lines.append(
 		"%d campaign(s), %d map(s), %d warning(s), %d error(s)." % [
 			report.get("campaign_count", campaigns.size()),
@@ -495,13 +508,14 @@ func format_messages(messages: Array) -> String:
 	return "\n".join(lines)
 
 func set_status(message: String, is_error: bool) -> void:
-	var color := "#ff8f8f" if is_error else "#a9d5b0"
-	status_label.text = "[color=%s]%s[/color]" % [color, message]
+	status_label.text = message
+	status_label.modulate = Color("ff8f8f") if is_error else Color("a9d5b0")
 
 func rescan_editor_files() -> void:
 	if Engine.is_editor_hint():
 		EditorInterface.get_resource_filesystem().scan()
 
 func open_campaign_folder() -> void:
-	DirAccess.make_dir_recursive_absolute(Repository.DEFAULT_ROOT)
-	OS.shell_open(ProjectSettings.globalize_path(Repository.DEFAULT_ROOT))
+	var absolute_path := ProjectSettings.globalize_path(Repository.DEFAULT_ROOT)
+	DirAccess.make_dir_recursive_absolute(absolute_path)
+	OS.shell_open(absolute_path)

@@ -8,8 +8,11 @@ const TARGETS := [
 	"res://src/game_runtime.gd",
 	"res://src/combat_runtime.gd",
 	"res://src/combat_director_runtime.gd",
+	"res://src/companion_runtime.gd",
 	"res://src/content/combat_director_validator.gd",
+	"res://src/content/companion_validator.gd",
 	"res://src/game/encounter_zone_model.gd",
+	"res://src/game/companion_model.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio.gd",
 	"res://addons/epochbound_campaign_studio/world_builder_studio.gd",
 	"res://addons/epochbound_encounter_studio/encounter_canvas.gd",
@@ -19,10 +22,14 @@ const TARGETS := [
 	"res://addons/epochbound_combat_director/combat_director_canvas.gd",
 	"res://addons/epochbound_combat_director/combat_director_studio.gd",
 	"res://addons/epochbound_combat_director/plugin.gd",
+	"res://addons/epochbound_companion_studio/companion_canvas.gd",
+	"res://addons/epochbound_companion_studio/companion_studio.gd",
+	"res://addons/epochbound_companion_studio/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
 	"res://tools/smoke_combat_director.gd",
+	"res://tools/smoke_companion_director.gd",
 	"res://src/app.tscn"
 ]
 
@@ -40,7 +47,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: runtime, all four editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

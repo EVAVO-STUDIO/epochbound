@@ -73,9 +73,10 @@ func probe_runtime_scene() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
+		var runtime_path := str((script_value as GDScript).resource_path)
 		check(
-			str((script_value as GDScript).resource_path) == "res://src/combat_director_runtime.gd",
-			"Runtime scene must bind the Combat Director runtime."
+			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd"],
+			"Runtime scene must bind a Combat Director-capable runtime."
 		)
 	root.add_child(runtime)
 	check(runtime.has_method("update_runtime_entities"), "Runtime must expose directed enemy updates.")

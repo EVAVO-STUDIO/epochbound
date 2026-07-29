@@ -763,5 +763,39 @@
 			],
 			"clear_state_key": "clockwood:zone:hound_pair"
 		}
+	],
+	"companion_cues": [
+		{
+			"id": "future_bark_trail",
+			"kind": "trail",
+			"position": {
+				"x": 382,
+				"y": 224
+			},
+			"reveal_radius": 24,
+			"message": "Morrow follows a sap-bright scent between the carved dates. The newest mark carries Eli's fingerprint beneath the bark.",
+			"reward": 1,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"verdant"
+			],
+			"state_key": "clockwood:companion:future_bark_trail"
+		},
+		{
+			"id": "cold_ash_cache",
+			"kind": "resource",
+			"position": {
+				"x": 616,
+				"y": 264
+			},
+			"reveal_radius": 24,
+			"message": "Morrow digs beneath a skin of cold ash and uncovers a clock shard wrapped in unburned museum catalogue cloth.",
+			"reward": 1,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"ashen"
+			],
+			"state_key": "clockwood:companion:cold_ash_cache"
+		}
 	]
 }

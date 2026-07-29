@@ -61,7 +61,12 @@ try {
         "--script", "res://tools/smoke_combat_director.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter and Combat Director validation passed."
+    Invoke-GodotStep "Smoke test Companion Studio commands and discovery" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_companion_director.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director and Companion Studio validation passed."
 }
 finally {
     Pop-Location

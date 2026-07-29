@@ -1,0 +1,76 @@
+{
+	"schema_version": 1,
+	"objects": [
+		{
+			"id": "brass_supply_crate",
+			"display_name": "Brass Supply Crate",
+			"kind": "prop",
+			"appearance": {
+				"shape": "crate",
+				"color": "7f6548",
+				"accent": "d6ba78"
+			},
+			"solid": true,
+			"collision_radius": 12,
+			"interaction_radius": 36,
+			"dialogue": {
+				"verdant": "A museum shipping crate. The brass corners are warm despite the rain.",
+				"ashen": "The crate has burned away, but its brass corners remain suspended in the ash.",
+				"default": "A shipping crate marked with an impossible delivery date."
+			}
+		},
+		{
+			"id": "lost_archivist",
+			"display_name": "Lost Archivist",
+			"kind": "npc",
+			"appearance": {
+				"shape": "person",
+				"color": "526b82",
+				"accent": "e4c39e"
+			},
+			"solid": true,
+			"collision_radius": 9,
+			"interaction_radius": 46,
+			"dialogue": {
+				"verdant": "The catalogues changed first. Then the rooms began remembering other years.",
+				"ashen": "You came back too late. The museum is still burning somewhere beneath us.",
+				"default": "Every shelf leads to a different year now."
+			}
+		},
+		{
+			"id": "ash_hound",
+			"display_name": "Ash Hound",
+			"kind": "enemy",
+			"appearance": {
+				"shape": "beast",
+				"color": "5d3432",
+				"accent": "dd7652"
+			},
+			"solid": true,
+			"collision_radius": 9,
+			"interaction_radius": 0,
+			"max_health": 12,
+			"move_speed": 58,
+			"awareness_radius": 132,
+			"attack_radius": 20,
+			"attack_damage": 4,
+			"attack_cooldown": 1.05,
+			"reward": 2
+		},
+		{
+			"id": "clock_shard",
+			"display_name": "Clock Shard",
+			"kind": "pickup",
+			"appearance": {
+				"shape": "orb",
+				"color": "d9c36e",
+				"accent": "fff1ae"
+			},
+			"solid": false,
+			"collision_radius": 5,
+			"interaction_radius": 18,
+			"pickup_value": 1,
+			"pickup_label": "Clock shard recovered."
+		}
+	]
+}

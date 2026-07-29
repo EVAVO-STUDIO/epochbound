@@ -1,0 +1,51 @@
+name: Align Combat Director canvas API
+
+on:
+  push:
+    branches:
+      - work/combat-director-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Align with shared World Builder canvas signal
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/combat-director-foundation-20260729
+
+      - name: Apply exact canvas API changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("addons/epochbound_combat_director/combat_director_studio.gd")
+          source = path.read_text(encoding="utf-8")
+          replacements = {
+              '\tcanvas.connect("canvas_clicked", Callable(self, "on_canvas_clicked"))\n':
+                  '\tcanvas.connect("canvas_action", Callable(self, "on_canvas_action"))\n',
+              'func on_canvas_clicked(world_position: Vector2, tool: String) -> void:\n':
+                  'func on_canvas_action(world_position: Vector2, _cell: Vector2i, tool: String, _erase: bool) -> void:\n'
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f"Expected one reviewed occurrence of: {old!r}")
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding="utf-8", newline="\n")
+          Path(".github/workflows/apply-combat-director-canvas-api-fix.yml").unlink()
+
+      - name: Commit canvas API alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add addons/epochbound_combat_director/combat_director_studio.gd .github/workflows/apply-combat-director-canvas-api-fix.yml
+          git commit -m "fix: align Combat Director with shared canvas actions"
+          git push origin HEAD:work/combat-director-foundation-20260729

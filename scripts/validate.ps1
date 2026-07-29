@@ -141,7 +141,22 @@ try {
         "--script", "res://tools/smoke_economy_validation_edges.gd"
     )
 
-    Write-Host "`nEpochbound project and all nine authoring systems passed complete merchant-aware validation."
+    Invoke-GodotStep "Smoke test Arsenal ranged combat and durable magazines" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_arsenal_runtime.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Arsenal Studio editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_arsenal_studio.gd"
+    )
+
+    Invoke-GodotStep "Smoke test malformed ranged weapons ammunition enemies and saves" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_arsenal_validation_edges.gd"
+    )
+
+    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."
 }
 finally {
     Pop-Location

@@ -5,9 +5,10 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const SaveProfile = preload("res://src/content/save_profile.gd")
 const SaveProfileStore = preload("res://src/content/save_profile_store.gd")
 const SaveValidator = preload("res://src/content/save_validator.gd")
-const EquipmentValidator = preload("res://src/content/economy_validator.gd")
+const EquipmentValidator = preload("res://src/content/arsenal_validator.gd")
 const EquipmentCatalog = preload("res://src/content/equipment_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const StoryModel = preload("res://src/game/story_model.gd")
@@ -30,6 +31,7 @@ var slot_list: ItemList
 var overview: RichTextLabel
 var inventory_list: ItemList
 var equipment_list: ItemList
+var loaded_ammo_list: ItemList
 var wallet_list: ItemList
 var merchant_stock_list: ItemList
 var quest_list: ItemList
@@ -131,6 +133,11 @@ func build_ui() -> void:
 	equipment_list.name = "Equipment"
 	equipment_list.select_mode = ItemList.SELECT_SINGLE
 	tabs.add_child(equipment_list)
+
+	loaded_ammo_list = ItemList.new()
+	loaded_ammo_list.name = "Loaded Ammo"
+	loaded_ammo_list.select_mode = ItemList.SELECT_SINGLE
+	tabs.add_child(loaded_ammo_list)
 
 	wallet_list = ItemList.new()
 	wallet_list.name = "Wallet"
@@ -310,7 +317,7 @@ func display_profile(profile: Dictionary) -> void:
 		+ "[color=#8fa9a5]LOCATION[/color]\n%s / %s\n" % [str(summary.get("map_id", "")).replace("_", " ").capitalize(), str(summary.get("era_id", "")).replace("_", " ").capitalize()]
 		+ "Play time  %s\n\n" % format_play_time(float(summary.get("play_time_seconds", 0.0)))
 		+ "[color=#8fa9a5]ACTORS[/color]\nPlayer health  %d\nCompanion health  %d\nClock shards  %d\n\n" % [int(summary.get("player_health", 0)), int(summary.get("companion_health", 0)), int(summary.get("clock_shards", 0))]
-		+ "[color=#8fa9a5]DURABLE STATE[/color]\nInventory stacks  %d\nEquipped slots  %d\nWallets  %d\nMerchant records  %d\nActive quests  %d\nCompleted quests  %d\nState keys  %d\n\n" % [int(summary.get("inventory_stacks", 0)), int(summary.get("equipment_slots", 0)), int(summary.get("currency_wallets", 0)), int(summary.get("merchant_records", 0)), int(summary.get("active_quests", 0)), int(summary.get("completed_quests", 0)), int(summary.get("state_keys", 0))]
+		+ "[color=#8fa9a5]DURABLE STATE[/color]\nInventory stacks  %d\nEquipped slots  %d\nLoaded magazines  %d\nWallets  %d\nMerchant records  %d\nActive quests  %d\nCompleted quests  %d\nState keys  %d\n\n" % [int(summary.get("inventory_stacks", 0)), int(summary.get("equipment_slots", 0)), int(summary.get("loaded_magazines", 0)), int(summary.get("currency_wallets", 0)), int(summary.get("merchant_records", 0)), int(summary.get("active_quests", 0)), int(summary.get("completed_quests", 0)), int(summary.get("state_keys", 0))]
 		+ "[color=#87949b]Profile ID: %s\nChecksum: %s\nMap label: %s\nEra label: %s[/color]" % [str(profile.get("profile_id", "")), str(profile.get("checksum", "")), str(metadata.get("map_name", "")), str(metadata.get("era_name", ""))]
 	)
 	inventory_list.clear()
@@ -323,6 +330,11 @@ func display_profile(profile: Dictionary) -> void:
 		equipment_list.add_item(str(row_value))
 	if equipment_list.item_count == 0:
 		equipment_list.add_item("No equipment is stored.")
+	loaded_ammo_list.clear()
+	for row_value in sections.get("loaded_ammo", []):
+		loaded_ammo_list.add_item(str(row_value))
+	if loaded_ammo_list.item_count == 0:
+		loaded_ammo_list.add_item("No loaded magazines are stored.")
 	wallet_list.clear()
 	for row_value in sections.get("wallet", []):
 		wallet_list.add_item(str(row_value))
@@ -381,6 +393,18 @@ static func profile_sections(
 			var definition_data := ItemCatalog.item(items, item_id)
 			var item_name := ItemCatalog.item_name(definition_data, item_id)
 			equipment_rows.append("%s   %s   [%s]" % [slot_id.replace("_", " ").capitalize(), item_name, item_id])
+	var loaded_ammo_rows: Array[String] = []
+	var loaded_value: Variant = payload.get("loaded_ammo", {})
+	if typeof(loaded_value) == TYPE_DICTIONARY:
+		var loaded: Dictionary = loaded_value
+		var weapon_ids: Array[String] = []
+		for weapon_key in loaded.keys():
+			weapon_ids.append(str(weapon_key))
+		weapon_ids.sort()
+		for weapon_id in weapon_ids:
+			var weapon_data := ItemCatalog.item(items, weapon_id)
+			var weapon_name := ItemCatalog.item_name(weapon_data, weapon_id)
+			loaded_ammo_rows.append("%s   %d / %d   [%s]" % [weapon_name, int(loaded.get(weapon_id, 0)), ArsenalCatalog.magazine_size(weapon_data), weapon_id])
 	var wallet_rows: Array[String] = []
 	var balances_value: Variant = payload.get("currency_balances", {})
 	if typeof(balances_value) == TYPE_DICTIONARY:
@@ -437,7 +461,7 @@ static func profile_sections(
 		keys.sort()
 		for key in keys:
 			state_rows.append("%s = %s" % [key, format_state_value(state.get(key))])
-	return {"summary": summary, "inventory": inventory_rows, "equipment": equipment_rows, "wallet": wallet_rows, "merchant_stock": merchant_rows, "quests": quest_rows, "state": state_rows}
+	return {"summary": summary, "inventory": inventory_rows, "equipment": equipment_rows, "loaded_ammo": loaded_ammo_rows, "wallet": wallet_rows, "merchant_stock": merchant_rows, "quests": quest_rows, "state": state_rows}
 
 
 static func format_state_value(value: Variant) -> String:
@@ -536,6 +560,7 @@ func clear_profile_views() -> void:
 	overview.text = "[color=#87949b]Select an occupied save slot to inspect its deterministic state.[/color]"
 	inventory_list.clear()
 	equipment_list.clear()
+	loaded_ammo_list.clear()
 	wallet_list.clear()
 	merchant_stock_list.clear()
 	quest_list.clear()

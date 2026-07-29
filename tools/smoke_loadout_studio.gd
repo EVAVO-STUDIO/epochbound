@@ -34,7 +34,7 @@ func run_smoke_test() -> void:
 	if campaign_selector_value is OptionButton:
 		check((campaign_selector_value as OptionButton).item_count >= 1, "Loadout Studio must discover the reference campaign.")
 	if equipment_list_value is ItemList:
-		check((equipment_list_value as ItemList).item_count == 5, "Reference campaign must expose five equipment items in the editor.")
+		check((equipment_list_value as ItemList).item_count == 6, "Reference campaign must expose six equipment items in the editor.")
 	if capability_list_value is ItemList:
 		check((capability_list_value as ItemList).item_count == 3, "Reference campaign must expose three capability definitions in the editor.")
 	if slot_lines_value is TextEdit:

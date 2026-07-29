@@ -1,6 +1,6 @@
 extends RefCounted
 
-const CURRENT_SCHEMA := 3
+const CURRENT_SCHEMA := 4
 const AUTOSAVE_SLOT := "autosave"
 const MIN_MANUAL_SLOTS := 1
 const MAX_MANUAL_SLOTS := 9
@@ -84,6 +84,8 @@ static func build_profile(
 		normalised_payload["merchant_stock"] = {}
 	if typeof(normalised_payload.get("economy_initialized")) != TYPE_BOOL:
 		normalised_payload["economy_initialized"] = false
+	if typeof(normalised_payload.get("loaded_ammo")) != TYPE_DICTIONARY:
+		normalised_payload["loaded_ammo"] = {}
 	var profile := {
 		"schema_version": CURRENT_SCHEMA,
 		"profile_id": "%s:%s" % [campaign_id, slot_id],
@@ -123,6 +125,36 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 			"errors": ["Save profile schema_version cannot be negative."]
 		}
 
+	if version == 3:
+		if not checksum_valid(raw_profile):
+			return {
+				"ok": false,
+				"profile": {},
+				"migrated": false,
+				"from_version": version,
+				"errors": ["Legacy schema 3 checksum is missing or invalid."]
+			}
+		var metadata := dictionary_or_empty(raw_profile.get("metadata", {}))
+		var payload := dictionary_or_empty(raw_profile.get("payload", {}))
+		payload["equipment"] = dictionary_or_empty(payload.get("equipment", {}))
+		payload["currency_balances"] = dictionary_or_empty(payload.get("currency_balances", {}))
+		payload["merchant_stock"] = dictionary_or_empty(payload.get("merchant_stock", {}))
+		payload["economy_initialized"] = bool(payload.get("economy_initialized", false))
+		payload["loaded_ammo"] = {}
+		var migrated_profile := build_profile(
+			str(raw_profile.get("campaign_id", "")),
+			str(raw_profile.get("slot_id", "slot_1")),
+			metadata,
+			payload
+		)
+		return {
+			"ok": true,
+			"profile": migrated_profile,
+			"migrated": true,
+			"from_version": version,
+			"errors": []
+		}
+
 	if version == 2:
 		if not checksum_valid(raw_profile):
 			return {
@@ -138,6 +170,7 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 		payload["currency_balances"] = {}
 		payload["merchant_stock"] = {}
 		payload["economy_initialized"] = false
+		payload["loaded_ammo"] = {}
 		var migrated_profile := build_profile(
 			str(raw_profile.get("campaign_id", "")),
 			str(raw_profile.get("slot_id", "slot_1")),
@@ -167,6 +200,7 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 		payload["currency_balances"] = {}
 		payload["merchant_stock"] = {}
 		payload["economy_initialized"] = false
+		payload["loaded_ammo"] = {}
 		var migrated_profile := build_profile(
 			str(raw_profile.get("campaign_id", "")),
 			str(raw_profile.get("slot_id", "slot_1")),
@@ -212,6 +246,7 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 			"currency_balances": {},
 			"merchant_stock": {},
 			"economy_initialized": false,
+			"loaded_ammo": {},
 			"companion_command": "follow",
 			"companion_hold_position": normalise_position(raw_profile.get("companion_position", raw_profile.get("companion", {})))
 		}
@@ -220,6 +255,7 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 		payload["currency_balances"] = {}
 		payload["merchant_stock"] = {}
 		payload["economy_initialized"] = false
+		payload["loaded_ammo"] = {}
 	var migrated := build_profile(campaign_id, slot_id, metadata, payload)
 	return {
 		"ok": true,
@@ -337,7 +373,7 @@ static func validate_payload(payload: Dictionary, errors: Array[String]) -> void
 			errors.append("Save payload %s must be positive." % field)
 	if int(payload.get("clock_shards", -1)) < 0:
 		errors.append("Save payload clock_shards cannot be negative.")
-	for field in ["inventory", "session_state", "quest_progress", "equipment", "currency_balances", "merchant_stock"]:
+	for field in ["inventory", "session_state", "quest_progress", "equipment", "currency_balances", "merchant_stock", "loaded_ammo"]:
 		if typeof(payload.get(field)) != TYPE_DICTIONARY:
 			errors.append("Save payload %s must be an object." % field)
 	if typeof(payload.get("unlocked_recipes")) != TYPE_ARRAY:
@@ -366,6 +402,8 @@ static func profile_summary(profile: Dictionary) -> Dictionary:
 	var balances: Dictionary = balances_value if typeof(balances_value) == TYPE_DICTIONARY else {}
 	var stock_value: Variant = payload.get("merchant_stock", {})
 	var stock: Dictionary = stock_value if typeof(stock_value) == TYPE_DICTIONARY else {}
+	var loaded_value: Variant = payload.get("loaded_ammo", {})
+	var loaded: Dictionary = loaded_value if typeof(loaded_value) == TYPE_DICTIONARY else {}
 	var active_quests := 0
 	var completed_quests := 0
 	for value in quests.values():
@@ -392,6 +430,7 @@ static func profile_summary(profile: Dictionary) -> Dictionary:
 		"equipment_slots": equipment.size(),
 		"currency_wallets": balances.size(),
 		"merchant_records": stock.size(),
+		"loaded_magazines": loaded.size(),
 		"active_quests": active_quests,
 		"completed_quests": completed_quests,
 		"state_keys": (payload.get("session_state", {}) as Dictionary).size() if typeof(payload.get("session_state")) == TYPE_DICTIONARY else 0

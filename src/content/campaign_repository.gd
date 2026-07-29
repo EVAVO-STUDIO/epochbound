@@ -248,7 +248,9 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 			{"item_id": "brass_scrap", "quantity": 2},
 			{"item_id": "trail_hook", "quantity": 1},
 			{"item_id": "field_coat", "quantity": 1},
-			{"item_id": "trail_lantern", "quantity": 1}
+			{"item_id": "trail_lantern", "quantity": 1},
+			{"item_id": "trail_dartcaster", "quantity": 1},
+			{"item_id": "trail_bolts", "quantity": 12}
 		],
 		"starting_recipes": ["field_salve_recipe"],
 		"starting_quests": [],

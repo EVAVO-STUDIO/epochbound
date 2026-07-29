@@ -14,7 +14,8 @@ const COMBAT_RUNTIME_PATHS := [
 	"res://src/story_runtime.gd",
 	"res://src/save_runtime.gd",
 	"res://src/equipment_runtime.gd",
-	"res://src/merchant_runtime.gd"
+	"res://src/merchant_runtime.gd",
+	"res://src/arsenal_runtime.gd"
 ]
 
 var failures: Array[String] = []
@@ -27,8 +28,8 @@ func _initialize() -> void:
 func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass catalog and placement validation.")
-	check(int(validation.get("definition_count", 0)) == 6, "Reference campaign must expose six reusable object definitions.")
-	check(int(validation.get("placement_count", 0)) == 11, "Reference campaign must expose eleven object placements.")
+	check(int(validation.get("definition_count", 0)) == 7, "Reference campaign must expose seven reusable object definitions.")
+	check(int(validation.get("placement_count", 0)) == 12, "Reference campaign must expose twelve object placements.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -87,7 +88,7 @@ func probe_runtime_scene() -> void:
 	var loaded_definitions: Variant = runtime.get("object_definitions")
 	check(typeof(loaded_definitions) == TYPE_DICTIONARY, "Runtime object definitions must be a dictionary.")
 	if typeof(loaded_definitions) == TYPE_DICTIONARY:
-		check((loaded_definitions as Dictionary).size() == 6, "Runtime must load the expanded campaign object catalog during ready.")
+		check((loaded_definitions as Dictionary).size() == 7, "Runtime must load the expanded campaign object catalog during ready.")
 	check(runtime.has_method("sync_runtime_entities"), "Runtime must expose entity synchronisation.")
 	check(runtime.has_method("perform_player_attack"), "Runtime must expose the player attack contract.")
 	if runtime.has_method("sync_runtime_entities"):

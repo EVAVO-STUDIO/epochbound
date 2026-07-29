@@ -18,7 +18,7 @@ func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass Companion Studio validation.")
 	check(int(validation.get("cue_count", 0)) == 4, "Reference campaign must expose four companion cues.")
-	check(int(validation.get("zone_count", 0)) == 2, "Companion validation must retain the two encounter zones.")
+	check(int(validation.get("zone_count", 0)) == 3, "Companion validation must retain the three encounter zones.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -61,7 +61,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"],
 			"Runtime scene must bind a companion-capable runtime."
 		)
 	root.add_child(runtime)

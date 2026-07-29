@@ -143,7 +143,7 @@ static func merchant_resells_player_goods(merchant_data: Dictionary) -> bool:
 
 static func accepted_kinds(merchant_data: Dictionary) -> PackedStringArray:
 	var output := PackedStringArray()
-	var value: Variant = merchant_data.get("accepted_kinds", ["consumable", "material", "equipment"])
+	var value: Variant = merchant_data.get("accepted_kinds", ["consumable", "material", "equipment", "ammunition"])
 	if typeof(value) != TYPE_ARRAY:
 		return output
 	for kind_value in value:
@@ -213,7 +213,7 @@ static func default_catalog() -> Dictionary:
 				"buy_multiplier": 1.0,
 				"sell_multiplier": 0.5,
 				"accepts_sales": true,
-				"accepted_kinds": ["consumable", "material", "equipment"],
+				"accepted_kinds": ["consumable", "material", "equipment", "ammunition"],
 				"refused_items": [],
 				"resell_player_goods": true,
 				"conditions": [],
@@ -247,7 +247,7 @@ static func default_merchant(merchant_id: String, display_name: String, currency
 		"buy_multiplier": 1.0,
 		"sell_multiplier": 0.5,
 		"accepts_sales": true,
-		"accepted_kinds": ["consumable", "material", "equipment"],
+		"accepted_kinds": ["consumable", "material", "equipment", "ammunition"],
 		"refused_items": [],
 		"resell_player_goods": true,
 		"conditions": [],

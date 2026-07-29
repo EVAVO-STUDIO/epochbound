@@ -19,8 +19,16 @@
 			"buy_multiplier": 1.0,
 			"sell_multiplier": 0.5,
 			"accepts_sales": true,
-			"accepted_kinds": ["consumable", "material", "equipment"],
-			"refused_items": ["clockglass_lens", "archivist_lens"],
+			"accepted_kinds": [
+				"consumable",
+				"material",
+				"equipment",
+				"ammunition"
+			],
+			"refused_items": [
+				"clockglass_lens",
+				"archivist_lens"
+			],
 			"resell_player_goods": true,
 			"conditions": [],
 			"stock": [
@@ -55,6 +63,14 @@
 					"buy_price": 35,
 					"sell_price": 15,
 					"conditions": []
+				},
+				{
+					"item_id": "archive_bolts",
+					"quantity": 24,
+					"unlimited": false,
+					"buy_price": 3,
+					"sell_price": 1,
+					"conditions": []
 				}
 			]
 		},
@@ -67,11 +83,22 @@
 			"buy_multiplier": 1.15,
 			"sell_multiplier": 0.65,
 			"accepts_sales": true,
-			"accepted_kinds": ["consumable", "material", "equipment"],
-			"refused_items": ["clockglass_lens", "archivist_lens"],
+			"accepted_kinds": [
+				"consumable",
+				"material",
+				"equipment",
+				"ammunition"
+			],
+			"refused_items": [
+				"clockglass_lens",
+				"archivist_lens"
+			],
 			"resell_player_goods": true,
 			"conditions": [
-				{"type": "has_capability", "capability_id": "illuminate_dark"}
+				{
+					"type": "has_capability",
+					"capability_id": "illuminate_dark"
+				}
 			],
 			"stock": [
 				{
@@ -89,7 +116,11 @@
 					"buy_price": 18,
 					"sell_price": 8,
 					"conditions": [
-						{"type": "quest_status", "quest_id": "the_missing_hour", "status": "active"}
+						{
+							"type": "quest_status",
+							"quest_id": "the_missing_hour",
+							"status": "active"
+						}
 					]
 				},
 				{
@@ -98,6 +129,14 @@
 					"unlimited": false,
 					"buy_price": 72,
 					"sell_price": 34,
+					"conditions": []
+				},
+				{
+					"item_id": "clockglass_dartcaster",
+					"quantity": 1,
+					"unlimited": false,
+					"buy_price": 58,
+					"sell_price": 30,
 					"conditions": []
 				}
 			]

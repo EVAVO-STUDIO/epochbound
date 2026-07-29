@@ -169,6 +169,54 @@
 				"move_speed_bonus": 4,
 				"capabilities": []
 			}
+		},
+		{
+			"id": "archive_bolts",
+			"display_name": "Archive Bolts",
+			"kind": "ammunition",
+			"description": "Short brass-fletched bolts stamped with accession numbers that change after impact.",
+			"stack_limit": 60,
+			"value": 2,
+			"use_effect": {
+				"type": "none"
+			},
+			"ammunition": {
+				"damage_bonus": 0,
+				"knockback_bonus": 2,
+				"projectile_color": "f3d27a"
+			}
+		},
+		{
+			"id": "clockglass_dartcaster",
+			"display_name": "Clockglass Dartcaster",
+			"kind": "equipment",
+			"description": "A museum pest-control launcher rebuilt around a clockglass guide rail. It rewards deliberate spacing rather than replacing the Brass Hook.",
+			"stack_limit": 1,
+			"value": 68,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "weapon",
+				"attack_bonus": 0,
+				"defense_bonus": 0,
+				"max_health_bonus": 0,
+				"move_speed_bonus": 0,
+				"capabilities": [],
+				"ranged": {
+					"ammo_item_id": "archive_bolts",
+					"magazine_size": 4,
+					"damage_bonus": 2,
+					"projectile_speed": 340,
+					"projectile_range": 280,
+					"projectile_radius": 4,
+					"fire_cooldown": 0.42,
+					"reload_time": 0.85,
+					"knockback_distance": 14,
+					"muzzle_offset": 15,
+					"projectile_color": "f3d27a"
+				}
+			}
 		}
 	]
 }

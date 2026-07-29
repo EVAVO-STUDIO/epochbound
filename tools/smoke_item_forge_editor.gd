@@ -25,7 +25,7 @@ func run_smoke_test() -> void:
 	check(starting_recipe_list_value is ItemList, "Item Forge must create its starting-recipe list.")
 
 	if item_list_value is ItemList:
-		check((item_list_value as ItemList).item_count == 11, "Item Forge must display all eleven reference inventory and equipment items.")
+		check((item_list_value as ItemList).item_count == 13, "Item Forge must display all thirteen reference inventory, equipment and ammunition items.")
 	if recipe_list_value is ItemList:
 		check((recipe_list_value as ItemList).item_count == 2, "Item Forge must display both reference recipes.")
 	if starting_recipe_list_value is ItemList:
@@ -39,7 +39,7 @@ func run_smoke_test() -> void:
 	check(not selected_recipe.is_empty(), "The initial Item Forge recipe must resolve from the shared catalog.")
 	if output_selector_value is OptionButton and not selected_recipe.is_empty():
 		var output_selector := output_selector_value as OptionButton
-		check(output_selector.item_count == 11, "Recipe output selector must contain every reference inventory and equipment item.")
+		check(output_selector.item_count == 13, "Recipe output selector must contain every reference inventory, equipment and ammunition item.")
 		check(output_selector.selected >= 0, "Recipe output selector must retain a selection.")
 		if output_selector.selected >= 0:
 			var actual_output_id := str(output_selector.get_item_metadata(output_selector.selected))

@@ -39,9 +39,12 @@ The repository now provides:
 29. Campaign-authored currencies, finite merchant stock and durable wallet state
 30. Atomic buy and sell transactions with stack, stock, balance and equipped-item protection
 31. Two conditionally available reference merchants bound to reusable NPC definitions
-32. Pause, resume and safe transition flow
+32. Inventory-backed ammunition, explicit reloads and deterministic moving projectiles
+33. Player and enemy ranged attacks that respect map collision, cover and existing combat feedback
+34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter
+35. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy, ammunition, projectile, reload and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -136,7 +139,7 @@ The reference campaign includes four companion discoveries across Bellweather Cr
 
 The **Items** main-screen editor authors the inventory and crafting layer. It can:
 
-- create consumable, material, key and equipment item definitions;
+- create consumable, material, key, equipment and ammunition item definitions;
 - author player-facing names and descriptions;
 - configure stack limits and reserved economy values;
 - configure supported active effects such as healing;
@@ -216,7 +219,7 @@ The Field Satchel Equipment tab cycles each slot through the empty state and eve
 
 The reference loadout includes the Brass Hook, Museum Field Coat and Museum Flashlight. Completing **The Missing Hour** grants the Archivist Lens. The flashlight and lens share the Tool slot: one permits entry into the dark Museum Underworks, while the other reveals its sealed catalogue. This creates an explicit spatial and narrative trade-off rather than an always-active collection of passive tools.
 
-Save schema 3 persists equipped item IDs alongside wallets and merchant stock. Schema-1 profiles migrate with empty equipment, while schema-2 profiles retain equipment and initialise the authored economy once; every restored slot, balance and stock record validates against current campaign definitions.
+Save schema 4 persists equipped item IDs, wallets, merchant stock and loaded ranged magazines. Schema-1 profiles migrate with empty equipment, while schema-2 profiles retain equipment and initialise the authored economy once; every restored slot, balance and stock record validates against current campaign definitions.
 
 
 ## Merchant & Economy Studio
@@ -239,6 +242,24 @@ Interacting with a merchant opens a paused Buy and Sell overlay. Purchases check
 
 The reference campaign uses **Archive Chits** and includes **Bellweather Provisions** plus the capability-gated **Underworks Exchange**. Quiet the Ash Hunt grants currency through the same Story Studio effect contract. Save schema 3 restores exact wallet balances, finite stock and dynamically resold goods, while State Studio exposes dedicated Wallet and Merchant Stock inspectors.
 
+## Arsenal Studio
+
+The **Arsenal** main-screen editor authors ranged weapons, ammunition, reload timing, projectile movement and reusable enemy projectile profiles while preserving Item Forge ownership, Loadout Studio equipment and Combat Director encounter direction. It can:
+
+- create ammunition items with stack, value, damage, knockback and projectile-colour records;
+- create ranged Weapon-slot equipment that references stable ammunition IDs;
+- configure magazine size, damage, speed, range, radius, cooldown, reload, knockback and muzzle offset;
+- enable and tune projectile attacks on reusable enemy definitions;
+- block ammunition deletion while a weapon still references it;
+- validate weapon, ammunition, enemy and loaded-magazine records before play.
+
+The active attack action fires a moving projectile when ranged equipment is selected and retains the existing melee attack when the Brass Hook or another close-range weapon is equipped. Reload transfers reserve Item Forge ammunition only when its authored interval completes. Switching weapons cancels reload without consuming reserve rounds. Fast projectiles use swept collision against map geometry, solid placed objects and the first valid target.
+
+The reference Arsenal includes **Archive Bolts**, the four-round **Clockglass Dartcaster**, and the Ashen-only **Underworks Sentinel**. Bellweather Provisions stocks reserve bolts, while Underworks Exchange carries one Dartcaster. Enemy shots use the existing Combat Director windup but apply damage only after the projectile reaches Eli or Morrow.
+
+Save schema 4 stores exact loaded rounds by stable weapon ID. Schema-3 profiles retain their previous durable state and migrate with empty magazines rather than guessing how reserve ammunition had been distributed. State Studio exposes a dedicated Loaded Ammo inspector.
+
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -256,6 +277,8 @@ Read:
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md) for equipment slots, derived stats, capabilities, gates and loadout-quality rules;
 - [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md) for currencies, shops, pricing, stock, transactions and economy-quality rules;
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;
+- [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md) for ammunition, ranged weapons, reloads, projectiles and ranged-combat quality rules;
+- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -268,7 +291,8 @@ Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 | Action | Keyboard | Controller |
 | --- | --- | --- |
 | Move | WASD or arrow keys | D-pad or left stick |
-| Attack | Space or C | East face button |
+| Attack or fire equipped weapon | Space or C | East face button |
+| Reload ranged weapon | G | Right trigger |
 | Confirm, interact or use entrance | E or Z | South face button |
 | Shift era | Q or X | West face button |
 | Cycle companion command | R | North face button |
@@ -298,7 +322,7 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all nine editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all ten editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
 3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock and transaction validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
@@ -317,7 +341,10 @@ The validation gate performs:
 17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests;
 18. executable merchant buy, sell, rollback, gated availability, story-currency and exact economy-restoration tests;
 19. executable Merchant & Economy Studio currency, merchant, stock, binding and source-parser tests;
-20. malformed currency, merchant, price, stock and saved-economy rejection tests.
+20. malformed currency, merchant, price, stock and saved-economy rejection tests;
+21. executable ranged firing, reload completion, cancellation, projectile collision, enemy shots and exact loaded-magazine restoration tests;
+22. executable Arsenal Studio weapon, ammunition and enemy-profile editor tests;
+23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests.
 
 ## Design pillars
 
@@ -339,6 +366,7 @@ The validation gate performs:
 - Save profiles that serialise those same stable IDs and durable outcomes instead of the live scene tree
 - Equipment choices that alter combat, movement, exploration and story through one shared capability contract
 - Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation
+- Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage
 
 ## Documentation
 
@@ -355,9 +383,11 @@ The validation gate performs:
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md): equipment, derived-stat and capability-gate production rules
 - [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md): currency, merchant, pricing, stock and transaction production rules
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review
+- [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md): ammunition, ranged weapon, projectile and save-state production rules
+- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: ranged attacks and ammunition, merchant restocking and regional scarcity, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: alternate ammunition, merchant restocking and regional scarcity, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.

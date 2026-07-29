@@ -1,5 +1,7 @@
 extends RefCounted
 
+# Ownership remains in Item Forge inventory. This model only derives the
+# campaign-authored loadout, modifiers and capabilities from owned item IDs.
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const EquipmentCatalog = preload("res://src/content/equipment_catalog.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")

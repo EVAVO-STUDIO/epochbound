@@ -43,6 +43,7 @@ func run_smoke_test() -> void:
 	root.add_child(runtime)
 	check(runtime.has_method("capture_save_profile"), "Runtime must expose deterministic profile capture.")
 	check(runtime.has_method("load_profile_from_slot"), "Runtime must expose slot restoration.")
+	check(runtime.has_method("activate_save_slot"), "Runtime must expose guarded slot activation.")
 	if not runtime.has_method("capture_save_profile"):
 		root.remove_child(runtime)
 		runtime.free()
@@ -89,6 +90,28 @@ func run_smoke_test() -> void:
 	var write_result: Dictionary = SaveProfileStore.write_profile(captured)
 	check(bool(write_result.get("ok", false)), "Captured profile must write atomically.")
 	check(FileAccess.file_exists(SaveProfileStore.slot_path(CAMPAIGN_ID, SLOT_ID)), "Save slot file must exist after writing.")
+
+	# Occupied manual slots require a second confirmation and empty load slots fail clearly.
+	runtime.call("refresh_save_slot_cache")
+	runtime.set("save_overlay_mode", 0)
+	var original_read: Dictionary = SaveProfileStore.read_profile(CAMPAIGN_ID, SLOT_ID)
+	var original_profile: Dictionary = original_read.get("profile", {})
+	var original_checksum := str(original_profile.get("checksum", ""))
+	var first_confirm: Variant = runtime.call("activate_save_slot", SLOT_ID)
+	check(not bool(first_confirm), "The first confirmation must not overwrite an occupied manual slot.")
+	check(str(runtime.get("pending_overwrite_slot")) == SLOT_ID, "The occupied slot must become the explicit pending overwrite target.")
+	var unchanged_read: Dictionary = SaveProfileStore.read_profile(CAMPAIGN_ID, SLOT_ID)
+	check(str((unchanged_read.get("profile", {}) as Dictionary).get("checksum", "")) == original_checksum, "First confirmation must leave the stored profile unchanged.")
+	var second_confirm: Variant = runtime.call("activate_save_slot", SLOT_ID)
+	check(bool(second_confirm), "A second confirmation within the window must overwrite the occupied slot.")
+	check(str(runtime.get("pending_overwrite_slot")) == "", "Successful overwrite must clear pending confirmation state.")
+	var overwritten_read: Dictionary = SaveProfileStore.read_profile(CAMPAIGN_ID, SLOT_ID)
+	var overwritten_metadata: Dictionary = (overwritten_read.get("profile", {}) as Dictionary).get("metadata", {})
+	check(str(overwritten_metadata.get("reason", "")) == "Manual save", "Confirmed overwrite must publish a manual-save reason.")
+	runtime.set("save_overlay_mode", 1)
+	var empty_load: Variant = runtime.call("activate_save_slot", "slot_1")
+	check(not bool(empty_load), "Loading an empty slot must fail without mutating runtime state.")
+	check("EMPTY" in str(runtime.get("save_notice")), "Empty-slot load feedback must be explicit.")
 
 	# Destroy the live state before loading so restoration proves every durable field.
 	runtime.set("player", Vector2(320, 224))
@@ -141,7 +164,7 @@ func run_smoke_test() -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save profile smoke test passed: capture, checksum, atomic write and exact runtime restoration are coherent.")
+		print("Save profile smoke test passed: capture, guarded overwrite, empty-slot feedback, atomic write and exact restoration are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -24,7 +24,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg")
+enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg", "res://addons/epochbound_item_forge/plugin.cfg")
 
 [rendering]
 
@@ -75,7 +75,15 @@ companion_command={
 }
 companion_recall={
 "deadzone": 0.2,
-"events": [Object(InputEventKey,"physical_keycode":70), Object(InputEventJoypadButton,"button_index":4)]
+"events": [Object(InputEventKey,"physical_keycode":70), Object(InputEventJoypadButton,"button_index":9)]
+}
+inventory_toggle={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":73), Object(InputEventJoypadButton,"button_index":4)]
+}
+quick_item={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":86), Object(InputEventJoypadButton,"button_index":10)]
 }
 pause_game={
 "deadzone": 0.2,

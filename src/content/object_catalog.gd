@@ -1,7 +1,6 @@
 @tool
 extends RefCounted
 
-const Repository = preload("res://src/content/campaign_repository.gd")
 const SCHEMA_VERSION := 1
 const ALLOWED_KINDS := ["prop", "npc", "enemy", "pickup"]
 const ALLOWED_SHAPES := ["crate", "person", "beast", "orb", "pillar", "marker"]
@@ -84,7 +83,7 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 			errors.append("Unsafe object catalog path: %s" % relative_path)
 			continue
 		var path := campaign_path.get_base_dir().path_join(relative_path)
-		var result := Repository.read_json(path)
+		var result := read_json(path)
 		if not result.get("ok", false):
 			append_messages(errors, result.get("errors", []))
 			continue
@@ -98,15 +97,15 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 			if typeof(definition_value) != TYPE_DICTIONARY:
 				errors.append("%s: object definitions must be objects." % path)
 				continue
-			var definition: Dictionary = definition_value
-			var object_id := String(definition.get("id", ""))
+			var definition_data: Dictionary = definition_value
+			var object_id := String(definition_data.get("id", ""))
 			if object_id.is_empty():
 				errors.append("%s: object definition is missing an id." % path)
 				continue
 			if definitions.has(object_id):
 				errors.append("Duplicate object definition id '%s'." % object_id)
 				continue
-			definitions[object_id] = definition
+			definitions[object_id] = definition_data
 			ordered_ids.append(object_id)
 	return {
 		"ok": errors.is_empty(),
@@ -175,11 +174,30 @@ static func default_placement(placement_id: String, object_id: String, position:
 	return {
 		"id": placement_id,
 		"object_id": object_id,
-		"position": Repository.vector_to_data(position),
+		"position": {"x": snappedf(position.x, 0.001), "y": snappedf(position.y, 0.001)},
 		"facing": "down",
 		"available_eras": [],
 		"state_key": ""
 	}
+
+
+static func read_json(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"ok": false, "data": {}, "errors": ["File does not exist: %s" % path]}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {"ok": false, "data": {}, "errors": ["Could not open file: %s" % path]}
+	var parser := JSON.new()
+	var error := parser.parse(file.get_as_text())
+	if error != OK:
+		return {
+			"ok": false,
+			"data": {},
+			"errors": ["%s:%d: %s" % [path, parser.get_error_line(), parser.get_error_message()]]
+		}
+	if typeof(parser.data) != TYPE_DICTIONARY:
+		return {"ok": false, "data": {}, "errors": ["Root value must be an object: %s" % path]}
+	return {"ok": true, "data": parser.data, "errors": []}
 
 
 static func safe_relative_json_path(path: String) -> bool:

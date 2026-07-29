@@ -2,6 +2,7 @@ extends SceneTree
 
 const ArsenalStudio = preload("res://addons/epochbound_arsenal_studio/arsenal_studio.gd")
 const ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")
+const Repository = preload("res://src/content/campaign_repository.gd")
 
 var failures: Array[String] = []
 
@@ -60,6 +61,49 @@ func run_smoke_test() -> void:
 		check((enabled_value as CheckBox).button_pressed, "Underworks Sentinel must expose its ranged profile.")
 	if range_value is SpinBox:
 		check(float((range_value as SpinBox).value) == 240.0, "Enemy form must preserve its projectile range.")
+
+	# Invalid item edits must restore both the file and in-memory catalogue.
+	var item_path := str(studio.get("active_item_path"))
+	var valid_item_read := Repository.read_json(item_path)
+	check(bool(valid_item_read.get("ok", false)), "Arsenal rollback test must read the valid item catalogue.")
+	var invalid_items: Dictionary = (studio.get("active_item_catalog") as Dictionary).duplicate(true)
+	for index in range((invalid_items.get("items", []) as Array).size()):
+		var candidate: Dictionary = (invalid_items.get("items", []) as Array)[index]
+		if str(candidate.get("id", "")) == "clockglass_dartcaster":
+			var equipment: Dictionary = candidate.get("equipment", {})
+			var ranged: Dictionary = equipment.get("ranged", {})
+			ranged["ammo_item_id"] = "missing_ammunition"
+			equipment["ranged"] = ranged
+			candidate["equipment"] = equipment
+			(invalid_items.get("items", []) as Array)[index] = candidate
+	studio.set("active_item_catalog", invalid_items)
+	check(not bool(studio.call("save_item_catalog")), "Invalid ranged item edit must be rejected.")
+	var restored_item_read := Repository.read_json(item_path)
+	check(bool(restored_item_read.get("ok", false)), "Rejected item edit must leave a readable catalogue.")
+	var restored_item_catalog: Dictionary = restored_item_read.get("data", {})
+	var restored_ammo_id := ""
+	for record_value in restored_item_catalog.get("items", []):
+		if typeof(record_value) == TYPE_DICTIONARY and str((record_value as Dictionary).get("id", "")) == "clockglass_dartcaster":
+			restored_ammo_id = str((((record_value as Dictionary).get("equipment", {}) as Dictionary).get("ranged", {}) as Dictionary).get("ammo_item_id", ""))
+	check(restored_ammo_id == "archive_bolts", "Invalid ranged item edit must restore the prior ammunition reference.")
+
+	# Invalid enemy profiles receive the same transactional rollback.
+	var object_path := str(studio.get("active_object_path"))
+	var invalid_objects: Dictionary = (studio.get("active_object_catalog") as Dictionary).duplicate(true)
+	for index in range((invalid_objects.get("objects", []) as Array).size()):
+		var candidate: Dictionary = (invalid_objects.get("objects", []) as Array)[index]
+		if str(candidate.get("id", "")) == "underworks_sentinel":
+			candidate["attack_radius"] = 500
+			(invalid_objects.get("objects", []) as Array)[index] = candidate
+	studio.set("active_object_catalog", invalid_objects)
+	check(not bool(studio.call("save_object_catalog")), "Invalid ranged enemy edit must be rejected.")
+	var restored_object_read := Repository.read_json(object_path)
+	check(bool(restored_object_read.get("ok", false)), "Rejected enemy edit must leave a readable catalogue.")
+	var restored_attack_radius := 0.0
+	for record_value in (restored_object_read.get("data", {}) as Dictionary).get("objects", []):
+		if typeof(record_value) == TYPE_DICTIONARY and str((record_value as Dictionary).get("id", "")) == "underworks_sentinel":
+			restored_attack_radius = float((record_value as Dictionary).get("attack_radius", 0.0))
+	check(restored_attack_radius == 160.0, "Invalid enemy edit must restore the prior attack radius.")
 
 	var default_ammo := ArsenalCatalog.default_ammunition("test_bolts", "Test Bolts")
 	check(ArsenalCatalog.is_ammunition(default_ammo), "Default ammunition helper must create a valid ammunition item.")

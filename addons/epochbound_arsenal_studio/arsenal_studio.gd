@@ -730,6 +730,11 @@ func item_usages(item_id: String) -> PackedStringArray:
 
 
 func save_item_catalog() -> bool:
+	var previous_result := Repository.read_json(active_item_path)
+	if not bool(previous_result.get("ok", false)):
+		set_status(format_messages(previous_result.get("errors", [])), true)
+		return false
+	var previous: Dictionary = (previous_result.get("data", {}) as Dictionary).duplicate(true)
 	var result := Repository.save_json(active_item_path, active_item_catalog)
 	if not bool(result.get("ok", false)):
 		set_status(format_messages(result.get("errors", [])), true)
@@ -737,12 +742,24 @@ func save_item_catalog() -> bool:
 	rescan_editor_files()
 	var report := ArsenalValidator.validate_campaign_path(active_campaign_path)
 	if not bool(report.get("ok", false)):
-		set_status(format_report(report), true)
+		var rollback := Repository.save_json(active_item_path, previous)
+		active_item_catalog = previous
+		rebuild_definitions()
+		rescan_editor_files()
+		if not bool(rollback.get("ok", false)):
+			set_status("Invalid Arsenal edit and rollback failed: %s" % format_messages(rollback.get("errors", [])), true)
+		else:
+			set_status("Invalid Arsenal item edit was rolled back. %s" % format_report(report), true)
 		return false
 	return true
 
 
 func save_object_catalog() -> bool:
+	var previous_result := Repository.read_json(active_object_path)
+	if not bool(previous_result.get("ok", false)):
+		set_status(format_messages(previous_result.get("errors", [])), true)
+		return false
+	var previous: Dictionary = (previous_result.get("data", {}) as Dictionary).duplicate(true)
 	var result := Repository.save_json(active_object_path, active_object_catalog)
 	if not bool(result.get("ok", false)):
 		set_status(format_messages(result.get("errors", [])), true)
@@ -750,7 +767,14 @@ func save_object_catalog() -> bool:
 	rescan_editor_files()
 	var report := ArsenalValidator.validate_campaign_path(active_campaign_path)
 	if not bool(report.get("ok", false)):
-		set_status(format_report(report), true)
+		var rollback := Repository.save_json(active_object_path, previous)
+		active_object_catalog = previous
+		rebuild_definitions()
+		rescan_editor_files()
+		if not bool(rollback.get("ok", false)):
+			set_status("Invalid enemy-profile edit and rollback failed: %s" % format_messages(rollback.get("errors", [])), true)
+		else:
+			set_status("Invalid enemy-profile edit was rolled back. %s" % format_report(report), true)
 		return false
 	return true
 

@@ -1,5 +1,7 @@
 extends SceneTree
 
+# Load every critical runtime, editor and resource entrypoint directly so CI
+# catches parser failures that Godot's bulk import command may only log.
 const TARGETS := [
 	"res://default_bus_layout.tres",
 	"res://src/app.gd",

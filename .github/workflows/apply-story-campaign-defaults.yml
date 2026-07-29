@@ -1,0 +1,67 @@
+name: Apply Story Studio campaign defaults
+
+on:
+  push:
+    branches:
+      - work/story-studio-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Add story catalogs to new campaign scaffolding
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/story-studio-foundation-20260729
+
+      - name: Apply exact campaign repository changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/content/campaign_repository.gd")
+          source = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  'const ItemCatalog = preload("res://src/content/item_catalog.gd")\n',
+                  'const ItemCatalog = preload("res://src/content/item_catalog.gd")\nconst StoryCatalog = preload("res://src/content/story_catalog.gd")\n',
+              ),
+              (
+                  '\tvar recipe_catalog_result := save_json(recipe_catalog_path, ItemCatalog.default_recipe_catalog())\n\tif not recipe_catalog_result.get("ok", false):\n\t\treturn recipe_catalog_result\n\tvar map_id := "first_crossing"\n',
+                  '\tvar recipe_catalog_result := save_json(recipe_catalog_path, ItemCatalog.default_recipe_catalog())\n\tif not recipe_catalog_result.get("ok", false):\n\t\treturn recipe_catalog_result\n\tvar story_catalog_path := campaign_directory.path_join("story").path_join("core.json")\n\tvar story_catalog_result := save_json(story_catalog_path, StoryCatalog.default_story_catalog())\n\tif not story_catalog_result.get("ok", false):\n\t\treturn story_catalog_result\n\tvar map_id := "first_crossing"\n',
+              ),
+              (
+                  '\t\t"recipe_catalog_path": recipe_catalog_path,\n\t\t"map_path": map_path,\n',
+                  '\t\t"recipe_catalog_path": recipe_catalog_path,\n\t\t"story_catalog_path": story_catalog_path,\n\t\t"map_path": map_path,\n',
+              ),
+              (
+                  '\t\t"recipe_files": ["recipes/core.json"],\n\t\t"starting_inventory": [\n',
+                  '\t\t"recipe_files": ["recipes/core.json"],\n\t\t"story_files": ["story/core.json"],\n\t\t"starting_inventory": [\n',
+              ),
+              (
+                  '\t\t"starting_recipes": ["field_salve_recipe"],\n\t\t"intro": [\n',
+                  '\t\t"starting_recipes": ["field_salve_recipe"],\n\t\t"starting_quests": [],\n\t\t"intro": [\n',
+              ),
+          ]
+          for old, new in replacements:
+              if source.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one reviewed occurrence of {old!r}, found {source.count(old)}")
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding="utf-8", newline="\n")
+          Path(".github/workflows/apply-story-campaign-defaults.yml").unlink()
+
+      - name: Commit campaign defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/campaign_repository.gd .github/workflows/apply-story-campaign-defaults.yml
+          git commit -m "feat: scaffold story catalogs for new campaigns"
+          git push origin HEAD:work/story-studio-foundation-20260729

@@ -1233,11 +1233,12 @@ func parse_json_lines(text: String, label: String) -> Dictionary:
 		var line := str(raw_line).strip_edges()
 		if line.is_empty() or line.begins_with("#"):
 			continue
-		var value: Variant = JSON.parse_string(line)
-		if typeof(value) != TYPE_DICTIONARY:
+		var parser := JSON.new()
+		var parse_error := parser.parse(line)
+		if parse_error != OK or typeof(parser.data) != TYPE_DICTIONARY:
 			errors.append("%s line %d must be one valid JSON object." % [label, line_number])
 			continue
-		entries.append(value)
+		entries.append(parser.data)
 	return {"ok": errors.is_empty(), "entries": entries, "errors": errors}
 
 
@@ -1256,10 +1257,11 @@ func parse_text_value(text: String, label: String) -> Dictionary:
 	if trimmed.is_empty():
 		return {"ok": false, "value": "", "errors": ["%s cannot be empty." % label]}
 	if trimmed.begins_with("{"):
-		var parsed: Variant = JSON.parse_string(trimmed)
-		if typeof(parsed) != TYPE_DICTIONARY:
+		var parser := JSON.new()
+		var parse_error := parser.parse(trimmed)
+		if parse_error != OK or typeof(parser.data) != TYPE_DICTIONARY:
 			return {"ok": false, "value": "", "errors": ["%s must be plain text or one valid JSON object." % label]}
-		return {"ok": true, "value": parsed, "errors": []}
+		return {"ok": true, "value": parser.data, "errors": []}
 	return {"ok": true, "value": text.strip_edges(), "errors": []}
 
 

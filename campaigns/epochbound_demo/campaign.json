@@ -26,7 +26,19 @@
 		},
 		"companion": {
 			"name": "MORROW",
-			"max_health": 24
+			"max_health": 24,
+			"commands": [
+				"follow",
+				"stay",
+				"seek",
+				"guard"
+			],
+			"follow_distance": 34,
+			"guard_distance": 24,
+			"recovery_distance": 300,
+			"seek_radius": 300,
+			"seek_speed": 148,
+			"guard_attack_range": 54
 		}
 	},
 	"ruleset": {

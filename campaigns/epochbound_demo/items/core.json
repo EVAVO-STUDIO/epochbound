@@ -1,0 +1,73 @@
+{
+	"schema_version": 1,
+	"items": [
+		{
+			"id": "museum_tonic",
+			"display_name": "Museum Tonic",
+			"kind": "consumable",
+			"description": "A sharp-smelling restorative from the museum first-aid cabinet. The label predates the bottle.",
+			"stack_limit": 9,
+			"value": 20,
+			"use_effect": {
+				"type": "heal",
+				"amount": 10
+			}
+		},
+		{
+			"id": "brass_filings",
+			"display_name": "Brass Filings",
+			"kind": "material",
+			"description": "Warm filings shed by Bellweather's impossible clockwork. They hold medicinal compounds unusually well.",
+			"stack_limit": 99,
+			"value": 4,
+			"use_effect": {
+				"type": "none"
+			}
+		},
+		{
+			"id": "ashen_resin",
+			"display_name": "Ashen Resin",
+			"kind": "material",
+			"description": "Black resin gathered beneath unburned roots in the Ashen Age. It becomes warm when mixed with brass.",
+			"stack_limit": 99,
+			"value": 8,
+			"use_effect": {
+				"type": "none"
+			}
+		},
+		{
+			"id": "ember_salve",
+			"display_name": "Ember Salve",
+			"kind": "consumable",
+			"description": "A field salve that carries steady warmth without flame.",
+			"stack_limit": 9,
+			"value": 36,
+			"use_effect": {
+				"type": "heal",
+				"amount": 18
+			}
+		},
+		{
+			"id": "clockglass_fragment",
+			"display_name": "Clockglass Fragment",
+			"kind": "material",
+			"description": "A clear fragment trapped inside a recovered clock shard. Different years move across its surface.",
+			"stack_limit": 9,
+			"value": 12,
+			"use_effect": {
+				"type": "none"
+			}
+		},
+		{
+			"id": "clockglass_lens",
+			"display_name": "Clockglass Lens",
+			"kind": "key",
+			"description": "A hand-set lens that reveals the hour beneath an object's remembered surface.",
+			"stack_limit": 1,
+			"value": 0,
+			"use_effect": {
+				"type": "none"
+			}
+		}
+	]
+}

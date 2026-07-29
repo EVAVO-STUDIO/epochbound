@@ -1,7 +1,9 @@
 @tool
 extends RefCounted
 
-const DEFAULT_ROOT := "res://campaigns"
+const BUILTIN_ROOT := "res://campaigns"
+const USER_ROOT := "user://campaigns"
+const DEFAULT_ROOT := BUILTIN_ROOT
 const SCHEMA_VERSION := 1
 
 static func normalise_id(raw_id: String) -> String:
@@ -68,8 +70,26 @@ static func scan_campaigns(root: String = DEFAULT_ROOT) -> Array:
 				"id": String(data.get("id", folder)),
 				"title": String(data.get("title", folder.capitalize())),
 				"path": campaign_path,
+				"source": "user" if root == USER_ROOT else "built_in",
 				"data": data
 			})
+	return campaigns
+
+static func scan_playable_campaigns() -> Array:
+	var by_id: Dictionary = {}
+	var ordered_ids := PackedStringArray()
+	for root in [BUILTIN_ROOT, USER_ROOT]:
+		for value in scan_campaigns(root):
+			var entry: Dictionary = value
+			var campaign_id := String(entry.get("id", ""))
+			if campaign_id.is_empty():
+				continue
+			if not by_id.has(campaign_id):
+				ordered_ids.append(campaign_id)
+			by_id[campaign_id] = entry
+	var campaigns: Array = []
+	for campaign_id in ordered_ids:
+		campaigns.append(by_id[campaign_id])
 	return campaigns
 
 static func create_campaign(raw_id: String, display_name: String = "") -> Dictionary:
@@ -145,7 +165,8 @@ static func vector_to_data(value: Vector2) -> Dictionary:
 static func data_to_vector(value: Variant, fallback: Vector2 = Vector2.ZERO) -> Vector2:
 	if typeof(value) != TYPE_DICTIONARY:
 		return fallback
-	return Vector2(float(value.get("x", fallback.x)), float(value.get("y", fallback.y)))
+	var data: Dictionary = value
+	return Vector2(float(data.get("x", fallback.x)), float(data.get("y", fallback.y)))
 
 static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 	return {

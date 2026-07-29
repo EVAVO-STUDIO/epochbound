@@ -42,6 +42,10 @@ jobs:
               'item_count == 11, "Recipe output selector must contain every reference item."',
               'item_count == 11, "Recipe output selector must contain every reference inventory and equipment item."'
           )
+          source = source.replace(
+              'Epochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio, Save & State Studio and Loadout Studio validation passed.',
+              'Epochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio, Save State and Loadout validation passed.'
+          )
           section = source.split('      - name: Apply exact regression updates', 1)[1]
           section = section.split('      - name: Commit validation suite', 1)[0]
           code = section.split('        run: |', 1)[1]

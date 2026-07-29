@@ -14,6 +14,8 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	test_legacy_migration()
+	test_default_policy_compatibility()
+	test_canonical_slot_discovery()
 	test_json_round_trip_checksum()
 	test_checksum_rejection()
 	test_future_schema_rejection()
@@ -55,6 +57,47 @@ func test_legacy_migration() -> void:
 	check(str(payload.get("map_id", "")) == "bellweather_crossing", "Legacy map must migrate into payload map_id.")
 	check(str(payload.get("era_id", "")) == "verdant", "Legacy era must migrate into payload era_id.")
 	check((payload.get("unlocked_recipes", []) as Array).has("ember_salve_recipe"), "Legacy recipe dictionary must migrate to a stable ID array.")
+
+
+func test_default_policy_compatibility() -> void:
+	var errors: Array[String] = []
+	var warnings: Array[String] = []
+	SaveValidator.validate_policy({}, "legacy_campaign", errors, warnings)
+	check(errors.is_empty(), "A campaign created before save_policy existed must inherit defaults without becoming invalid.")
+	check(contains_fragment(warnings, "default policy"), "Omitted save policy must produce a clear compatibility warning.")
+	var defaults := SaveProfile.policy({})
+	check(int(defaults.get("manual_slots", 0)) == 3, "The backwards-compatible policy must expose three manual slots.")
+	check(bool(defaults.get("autosave_enabled", false)), "The backwards-compatible policy must enable autosave.")
+
+	errors.clear()
+	warnings.clear()
+	SaveValidator.validate_policy({"save_policy": {"manual_slots": 4}}, "partial_policy", errors, warnings)
+	check(errors.is_empty(), "A partial save policy must inherit omitted boolean fields.")
+	check(SaveProfile.manual_slot_ids({"save_policy": {"manual_slots": 4}}).size() == 4, "Partial policy overrides must still control manual slot count.")
+
+
+func test_canonical_slot_discovery() -> void:
+	check(SaveProfile.valid_slot_id("slot_1"), "Canonical manual slot IDs must remain valid.")
+	check(not SaveProfile.valid_slot_id("slot_01"), "Leading-zero slot aliases must be rejected.")
+	check(not SaveProfile.valid_slot_id("slot_0"), "Slot zero must be rejected.")
+	check(not SaveProfile.valid_slot_id("checkpoint"), "Arbitrary save filenames must not become slots.")
+
+	var directory := SaveProfileStore.campaign_directory(CAMPAIGN_ID)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
+	var profile := valid_profile("Mismatched filename", 98)
+	var invalid_path := directory.path_join("slot_01.json")
+	var mismatched_path := directory.path_join("slot_1.json")
+	for path in [invalid_path, mismatched_path]:
+		var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+		check(file != null, "Slot discovery test must be able to create its fixture.")
+		if file != null:
+			file.store_string(JSON.stringify(SaveProfile.canonicalize(profile), "\t", true) + "\n")
+			file.close()
+	var records := SaveProfileStore.list_campaign_profiles(CAMPAIGN_ID)
+	check(records.is_empty(), "Continue discovery must ignore non-canonical filenames and filename/profile slot mismatches.")
+	for path in [invalid_path, mismatched_path]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func test_json_round_trip_checksum() -> void:
@@ -157,7 +200,7 @@ func contains_fragment(messages: Variant, fragment: String) -> bool:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save migration smoke test passed: legacy migration, JSON round trips, integrity rejection and backup recovery are coherent.")
+		print("Save migration smoke test passed: legacy migration, policy compatibility, canonical slots, JSON round trips, integrity rejection and backup recovery are coherent.")
 		quit(0)
 		return
 	for failure in failures:

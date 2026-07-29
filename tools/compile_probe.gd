@@ -37,6 +37,7 @@ const TARGETS := [
 	"res://tools/smoke_combat_director.gd",
 	"res://tools/smoke_companion_director.gd",
 	"res://tools/smoke_item_forge.gd",
+	"res://tools/smoke_item_forge_editor.gd",
 	"res://src/app.tscn"
 ]
 

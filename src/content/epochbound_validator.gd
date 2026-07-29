@@ -5,8 +5,10 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const BaseValidator = preload("res://src/content/campaign_validator.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const MapModel = preload("res://src/content/map_model.gd")
+
 const SUPPORTED_SCHEMA := 1
 const ALLOWED_FACING := ["up", "down", "left", "right"]
+const MAX_STATE_KEY_LENGTH := 160
 
 
 static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
@@ -17,9 +19,11 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	var definition_count := 0
 	var placement_count := 0
 	for value in Repository.scan_campaigns(root):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
 		var entry: Dictionary = value
 		campaign_count += 1
-		var report := validate_campaign_path(String(entry.get("path", "")))
+		var report := validate_campaign_path(str(entry.get("path", "")))
 		append_messages(errors, report.get("errors", []))
 		append_messages(warnings, report.get("warnings", []))
 		map_count += int(report.get("map_count", 0))
@@ -44,18 +48,27 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
 	append_messages(warnings, base_report.get("warnings", []))
+
 	var campaign_result := Repository.read_json(campaign_path)
 	if not campaign_result.get("ok", false):
 		append_messages(errors, campaign_result.get("errors", []))
 		return make_report(errors, warnings, int(base_report.get("map_count", 0)), 0, 0)
+
 	var campaign: Dictionary = campaign_result.get("data", {})
-	var campaign_id := String(campaign.get("id", campaign_path))
+	var campaign_id := str(campaign.get("id", campaign_path))
 	var object_files_value: Variant = campaign.get("object_files", [])
+	var object_files: Array = []
 	if typeof(object_files_value) != TYPE_ARRAY:
 		errors.append("%s: object_files must be an array of safe relative JSON paths." % campaign_id)
-		object_files_value = []
-	if Array(object_files_value).is_empty():
+	else:
+		object_files = object_files_value
+	if object_files.is_empty():
 		warnings.append("%s: no object catalog is declared; Encounter Studio has no reusable objects." % campaign_id)
+	for relative_value in object_files:
+		var relative_path := str(relative_value)
+		if not ObjectCatalog.safe_relative_json_path(relative_path):
+			errors.append("%s: unsafe object catalog path '%s'." % [campaign_id, relative_path])
+
 	var catalog_result := ObjectCatalog.load_catalogs(campaign_path, campaign)
 	append_messages(errors, catalog_result.get("errors", []))
 	var definitions: Dictionary = catalog_result.get("definitions", {})
@@ -67,19 +80,20 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 		var data: Dictionary = file_record.get("data", {})
 		validate_catalog_file(
 			data,
-			String(file_record.get("path", "object catalog")),
+			str(file_record.get("path", "object catalog")),
 			definitions,
 			definition_sources,
 			errors,
 			warnings
 		)
+
 	var used_definitions: Dictionary = {}
 	var state_keys: Dictionary = {}
 	var placement_count := 0
 	var map_files_value: Variant = campaign.get("map_files", [])
 	if typeof(map_files_value) == TYPE_ARRAY:
 		for relative_value in map_files_value:
-			var relative_path := String(relative_value)
+			var relative_path := str(relative_value)
 			if not ObjectCatalog.safe_relative_json_path(relative_path):
 				continue
 			var map_path := campaign_path.get_base_dir().path_join(relative_path)
@@ -91,27 +105,32 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 			append_messages(errors, placement_report.get("errors", []))
 			append_messages(warnings, placement_report.get("warnings", []))
 			placement_count += int(placement_report.get("placement_count", 0))
-			for object_id in placement_report.get("used_definitions", {}).keys():
-				used_definitions[String(object_id)] = true
+			var report_used: Dictionary = placement_report.get("used_definitions", {})
+			for object_id in report_used.keys():
+				used_definitions[str(object_id)] = true
 			for placement_value in map_data.get("object_placements", []):
 				if typeof(placement_value) != TYPE_DICTIONARY:
 					continue
 				var placement: Dictionary = placement_value
-				var key := ObjectCatalog.state_key(String(map_data.get("id", "map")), placement)
+				var map_id := str(map_data.get("id", "map"))
+				var key := ObjectCatalog.state_key(map_id, placement)
+				var placement_label := "%s/%s" % [map_id, placement.get("id", "placement")]
 				if state_keys.has(key):
 					errors.append(
-					"%s: object state key '%s' is shared by placements '%s' and '%s'." % [
-						campaign_id,
-						key,
-						state_keys[key],
-						placement.get("id", "placement")
-					]
-				)
+						"%s: object state key '%s' is shared by placements '%s' and '%s'." % [
+							campaign_id,
+							key,
+							state_keys[key],
+							placement_label
+						]
+					)
 				else:
-					state_keys[key] = "%s/%s" % [map_data.get("id", "map"), placement.get("id", "placement")]
+					state_keys[key] = placement_label
+
 	for object_id in definitions.keys():
 		if not used_definitions.has(object_id):
 			warnings.append("%s: object definition '%s' is not placed on any declared map." % [campaign_id, object_id])
+
 	return make_report(
 		errors,
 		warnings,
@@ -156,15 +175,16 @@ static func validate_catalog_file(
 	if typeof(objects_value) != TYPE_ARRAY:
 		errors.append("%s: objects must be an array." % path)
 		return
-	if Array(objects_value).is_empty():
+	var objects: Array = objects_value
+	if objects.is_empty():
 		warnings.append("%s: object catalog is empty." % path)
 	var local_ids: Dictionary = {}
-	for definition_value in objects_value:
+	for definition_value in objects:
 		if typeof(definition_value) != TYPE_DICTIONARY:
 			errors.append("%s: every object definition must be an object." % path)
 			continue
 		var definition_data: Dictionary = definition_value
-		var object_id := String(definition_data.get("id", ""))
+		var object_id := str(definition_data.get("id", ""))
 		var prefix := "%s/%s" % [path, object_id if not object_id.is_empty() else "object"]
 		if object_id.is_empty() or Repository.normalise_id(object_id) != object_id:
 			errors.append("%s: id must be a normalised lowercase identifier." % prefix)
@@ -172,10 +192,12 @@ static func validate_catalog_file(
 			errors.append("%s: duplicate definition id '%s'." % [path, object_id])
 		else:
 			local_ids[object_id] = true
+			if definition_sources.has(object_id) and definition_sources[object_id] != path:
+				errors.append("%s: definition id '%s' is also declared by %s." % [path, object_id, definition_sources[object_id]])
 			definition_sources[object_id] = path
-		if String(definition_data.get("display_name", "")).strip_edges().is_empty():
+		if str(definition_data.get("display_name", "")).strip_edges().is_empty():
 			errors.append("%s: display_name is required." % prefix)
-		var kind := String(definition_data.get("kind", ""))
+		var kind := str(definition_data.get("kind", ""))
 		if not ObjectCatalog.ALLOWED_KINDS.has(kind):
 			errors.append("%s: unsupported kind '%s'." % [prefix, kind])
 		validate_appearance(definition_data.get("appearance", {}), prefix, errors)
@@ -198,11 +220,10 @@ static func validate_catalog_file(
 			"pickup":
 				if int(definition_data.get("pickup_value", 0)) < 1:
 					errors.append("%s: pickup_value must be at least 1." % prefix)
-				if String(definition_data.get("pickup_label", "")).strip_edges().is_empty():
+				if str(definition_data.get("pickup_label", "")).strip_edges().is_empty():
 					errors.append("%s: pickup_label is required." % prefix)
 			"npc", "prop":
-				if String(definition_data.get("dialogue", "")).strip_edges().is_empty() and typeof(definition_data.get("dialogue", "")) == TYPE_STRING:
-					warnings.append("%s: interactive object has no dialogue." % prefix)
+				pass
 			_:
 				pass
 	if all_definitions.size() < local_ids.size():
@@ -218,7 +239,7 @@ static func validate_object_placements(
 	var warnings: Array[String] = []
 	var used_definitions: Dictionary = {}
 	var placements_value: Variant = map_data.get("object_placements", [])
-	var map_id := String(map_data.get("id", path))
+	var map_id := str(map_data.get("id", path))
 	if typeof(placements_value) != TYPE_ARRAY:
 		errors.append("%s: object_placements must be an array." % map_id)
 		return {
@@ -228,17 +249,19 @@ static func validate_object_placements(
 			"placement_count": 0,
 			"used_definitions": used_definitions
 		}
+	var placements: Array = placements_value
 	var canvas: Dictionary = map_data.get("canvas", {})
 	var width := float(canvas.get("width", 0.0))
 	var height := float(canvas.get("height", 0.0))
 	var era_ids := collect_ids(map_data.get("eras", []))
 	var ids: Dictionary = {}
-	for placement_value in placements_value:
+	var local_state_keys: Dictionary = {}
+	for placement_value in placements:
 		if typeof(placement_value) != TYPE_DICTIONARY:
 			errors.append("%s: object placement entries must be objects." % map_id)
 			continue
 		var placement: Dictionary = placement_value
-		var placement_id := String(placement.get("id", ""))
+		var placement_id := str(placement.get("id", ""))
 		var prefix := "%s/%s" % [map_id, placement_id if not placement_id.is_empty() else "placement"]
 		if placement_id.is_empty() or Repository.normalise_id(placement_id) != placement_id:
 			errors.append("%s: placement id must be a normalised lowercase identifier." % prefix)
@@ -246,30 +269,35 @@ static func validate_object_placements(
 			errors.append("%s: duplicate object placement id '%s'." % [map_id, placement_id])
 		else:
 			ids[placement_id] = true
-		var object_id := String(placement.get("object_id", ""))
+		var object_id := str(placement.get("object_id", ""))
 		if object_id.is_empty() or not definitions.has(object_id):
 			errors.append("%s: unknown object definition '%s'." % [prefix, object_id])
 		else:
 			used_definitions[object_id] = true
 		validate_position(placement.get("position"), prefix, width, height, errors)
-		var facing := String(placement.get("facing", "down"))
+		var facing := str(placement.get("facing", "down"))
 		if not ALLOWED_FACING.has(facing):
 			errors.append("%s: unsupported facing '%s'." % [prefix, facing])
 		validate_available_eras(placement, prefix, era_ids, errors)
-		var authored_state_key := String(placement.get("state_key", ""))
-		if authored_state_key.length() > 160:
-			errors.append("%s: state_key exceeds 160 characters." % prefix)
+		var authored_state_key := str(placement.get("state_key", "")).strip_edges()
+		if authored_state_key.length() > MAX_STATE_KEY_LENGTH:
+			errors.append("%s: state_key exceeds %d characters." % [prefix, MAX_STATE_KEY_LENGTH])
+		var resolved_state_key := ObjectCatalog.state_key(map_id, placement)
+		if local_state_keys.has(resolved_state_key):
+			errors.append("%s: state key '%s' is duplicated on this map." % [prefix, resolved_state_key])
+		else:
+			local_state_keys[resolved_state_key] = placement_id
 		if definitions.has(object_id):
 			var definition_data: Dictionary = definitions[object_id]
-			var kind := String(definition_data.get("kind", "prop"))
+			var kind := str(definition_data.get("kind", "prop"))
 			if kind == "enemy" and map_data.get("navigation_cells", []).is_empty():
 				warnings.append("%s: enemy is placed on a map without navigation cells." % prefix)
 			for era_id in applicable_eras(placement, era_ids):
-				var position := data_to_vector(placement.get("position"), Vector2.ZERO)
+				var position := Repository.data_to_vector(placement.get("position"), Vector2.ZERO)
 				if MapModel.is_position_blocked(
 					map_data,
 					position,
-					String(era_id),
+					str(era_id),
 					float(definition_data.get("collision_radius", 4.0))
 				):
 					warnings.append("%s: placement begins in blocked space during era '%s'." % [prefix, era_id])
@@ -277,7 +305,7 @@ static func validate_object_placements(
 		"ok": errors.is_empty(),
 		"errors": errors,
 		"warnings": warnings,
-		"placement_count": Array(placements_value).size(),
+		"placement_count": placements.size(),
 		"used_definitions": used_definitions
 	}
 
@@ -287,11 +315,11 @@ static func validate_appearance(value: Variant, prefix: String, errors: Array[St
 		errors.append("%s: appearance must be an object." % prefix)
 		return
 	var appearance: Dictionary = value
-	var shape := String(appearance.get("shape", ""))
+	var shape := str(appearance.get("shape", ""))
 	if not ObjectCatalog.ALLOWED_SHAPES.has(shape):
 		errors.append("%s: unsupported appearance shape '%s'." % [prefix, shape])
 	for color_key in ["color", "accent"]:
-		if not Color.html_is_valid(String(appearance.get(color_key, ""))):
+		if not Color.html_is_valid(str(appearance.get(color_key, ""))):
 			errors.append("%s: appearance %s is not a valid HTML colour." % [prefix, color_key])
 
 
@@ -303,7 +331,7 @@ static func validate_dialogue(
 	warnings: Array[String]
 ) -> void:
 	if typeof(value) == TYPE_STRING:
-		if String(value).strip_edges().is_empty() and kind in ["npc", "prop"]:
+		if str(value).strip_edges().is_empty() and kind in ["npc", "prop"]:
 			warnings.append("%s: dialogue is empty." % prefix)
 		return
 	if typeof(value) != TYPE_DICTIONARY:
@@ -311,8 +339,10 @@ static func validate_dialogue(
 			errors.append("%s: dialogue must be text or an era-keyed object." % prefix)
 		return
 	var by_era: Dictionary = value
+	if by_era.is_empty() and kind in ["npc", "prop"]:
+		warnings.append("%s: dialogue object is empty." % prefix)
 	for key in by_era.keys():
-		if String(by_era.get(key, "")).strip_edges().is_empty():
+		if str(by_era.get(key, "")).strip_edges().is_empty():
 			warnings.append("%s: dialogue for '%s' is empty." % [prefix, key])
 
 
@@ -355,7 +385,7 @@ static func validate_available_eras(
 		return
 	var seen: Dictionary = {}
 	for era_value in available_value:
-		var era_id := String(era_value)
+		var era_id := str(era_value)
 		if seen.has(era_id):
 			errors.append("%s: available_eras repeats '%s'." % [prefix, era_id])
 		elif not era_ids.has(era_id):
@@ -365,8 +395,10 @@ static func validate_available_eras(
 
 static func applicable_eras(placement: Dictionary, era_ids: Dictionary) -> Array:
 	var available_value: Variant = placement.get("available_eras", [])
-	if typeof(available_value) == TYPE_ARRAY and not Array(available_value).is_empty():
-		return Array(available_value)
+	if typeof(available_value) == TYPE_ARRAY:
+		var available: Array = available_value
+		if not available.is_empty():
+			return available
 	return era_ids.keys()
 
 
@@ -375,19 +407,13 @@ static func collect_ids(value: Variant) -> Dictionary:
 	if typeof(value) != TYPE_ARRAY:
 		return ids
 	for entry_value in value:
-		if typeof(entry_value) == TYPE_DICTIONARY:
-			var entry: Dictionary = entry_value
-			var entry_id := String(entry.get("id", ""))
-			if not entry_id.is_empty():
-				ids[entry_id] = true
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+		var entry: Dictionary = entry_value
+		var entry_id := str(entry.get("id", ""))
+		if not entry_id.is_empty():
+			ids[entry_id] = true
 	return ids
-
-
-static func data_to_vector(value: Variant, fallback: Vector2) -> Vector2:
-	if typeof(value) != TYPE_DICTIONARY:
-		return fallback
-	var data: Dictionary = value
-	return Vector2(float(data.get("x", fallback.x)), float(data.get("y", fallback.y)))
 
 
 static func make_report(
@@ -411,4 +437,4 @@ static func append_messages(target: Array[String], value: Variant) -> void:
 	if typeof(value) != TYPE_ARRAY:
 		return
 	for message in value:
-		target.append(String(message))
+		target.append(str(message))

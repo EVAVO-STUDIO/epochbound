@@ -26,10 +26,13 @@ The repository now provides:
 16. Data-driven items, stack limits, starting loadouts and persistent session inventory
 17. Consumable healing, quick-use items, recipe discovery and transactional crafting
 18. Pickup and companion-discovery item rewards protected from duplication
-19. Bidirectional travel between Bellweather Crossing and Clockwood Edge
-20. Pause, resume and safe transition flow
+19. Branching conversations with typed choices, conditions and effects
+20. Multi-stage quests driven by real inventory, map, era, world and encounter state
+21. Active-objective tracking and a keyboard/controller Journal
+22. Bidirectional travel between Bellweather Crossing and Clockwood Edge
+23. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -95,7 +98,7 @@ The **Combat** main-screen editor turns placed enemies into authored encounters 
 - undo and redo zone changes;
 - validate zones, enemy assignments and behaviour values before play.
 
-The runtime supports deterministic idle patrol, zone activation, pursuit, visible attack windup, stagger, directional knockback and return-to-spawn behaviour. Enemies stop pursuing outside their authored leash, while cleared encounters publish stable state keys for later save-profile persistence.
+The runtime supports deterministic idle patrol, zone activation, pursuit, visible attack windup, stagger, directional knockback and return-to-spawn behaviour. Enemies stop pursuing outside their authored leash, while cleared encounters publish stable state keys for quest progression and later save-profile persistence.
 
 Reference proofs include the Ashen-only **East Ash Hunt** in Bellweather Crossing and the two-enemy **Clockwood Hound Pair** in Clockwood Edge.
 
@@ -146,6 +149,29 @@ The reference campaign proves the complete loop:
 - a Clockwood clue teaches the Clockglass Lens recipe;
 - two fragments and remaining brass craft the Clockglass Lens key item.
 
+## Story Studio
+
+The **Story** main-screen editor authors branching conversations and multi-stage quests. It can:
+
+- create conversation graphs with stable IDs;
+- add line, choice and end nodes;
+- preview authored branches through Godot `GraphEdit` nodes and connections;
+- preserve draggable graph layout in source-controlled `editor_position` records;
+- author plain or era-keyed dialogue text;
+- author typed conditions against inventory, durable world state, quest status, quest stage, map, era and clock-shard totals;
+- author typed effects that start or advance quests, set state, grant or remove items, unlock recipes and grant clock shards;
+- create quests with objectives, deterministic completion conditions and rewards;
+- block unsafe deletion of referenced conversations, nodes, quests and stages;
+- roll back a story save that would invalidate the campaign;
+- validate graph reachability and every cross-system reference.
+
+The runtime presents filtered dialogue choices, applies effects in authored order, advances quest stages after meaningful world-state changes and prevents completed quest rewards from duplicating. Active objectives appear during play, while the **Journal** exposes Active and Completed quest tabs without introducing a second quest database.
+
+The reference campaign proves two arcs:
+
+- **The Missing Hour** begins through the Lost Archivist, consumes Morrow’s well discovery, requires crafting the Clockglass Lens, returns the lens through a gated response and grants one-time rewards;
+- **Quiet the Ash Hunt** begins in Ashen dialogue and completes from Combat Director’s stable `east_ash_hunt` clear-state key.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -158,6 +184,7 @@ Read:
 - [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md) for encounter zones, behaviour direction and combat-quality gates;
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md) for commands, scent cues, recovery and companion-quality gates;
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md) for item catalogs, inventory, crafting, rewards and item-quality gates;
+- [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md) for conversation graphs, typed conditions, quest stages, rewards and story-quality gates;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -174,12 +201,15 @@ Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 | Confirm, interact or use entrance | E or Z | South face button |
 | Shift era | Q or X | West face button |
 | Cycle companion command | R | North face button |
-| Recall companion | F | Left shoulder button |
+| Recall companion | F | Left stick click |
 | Open or close Field Satchel | I | Back / View button |
 | Quick-use restorative | V | Right shoulder button |
+| Open or close Journal | J | Right stick click |
 | Back, pause or skip | Escape | Start |
 
 Inside the Field Satchel, use Left and Right to change tabs, Up and Down to select, and E, Z, Space or C to use an item or craft a recipe.
+
+Inside the Journal, use Left and Right to change Active or Completed tabs and Up or Down to select a quest.
 
 ## Validate
 
@@ -192,14 +222,17 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all five editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all six editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object-catalog, placement, encounter-zone, companion-profile, cue, item and recipe validation;
+3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation and quest validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
 7. executable companion command, Stay, Seek, discovery, reward-idempotence, Guard and Recall smoke tests;
-8. executable item catalog, stack limit, pickup reward, companion reward, recipe unlock, crafting, healing and duplicate-protection smoke tests.
+8. executable item catalog, stack limit, pickup reward, companion reward, recipe unlock, crafting, healing and duplicate-protection smoke tests;
+9. executable branching dialogue, item-gated objectives, world-state objectives, quest rewards and Journal smoke tests;
+10. executable Story Studio graph and editor-state smoke tests;
+11. malformed conversation, condition, effect and quest-stage rejection tests.
 
 ## Design pillars
 
@@ -217,6 +250,7 @@ The validation gate performs:
 - Damage that follows readable timing and feedback instead of unexplained contact
 - Companion behaviour that communicates relationship and information rather than merely following the player
 - Items and recipes that connect exploration, combat and progression through one inspectable campaign contract
+- Conversations and quests that consume the same world, item, encounter and companion outcomes instead of parallel state
 
 ## Documentation
 
@@ -228,9 +262,10 @@ The validation gate performs:
 - [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md): directed combat and encounter production rules
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md): companion command and discovery production rules
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md): item, inventory and crafting production rules
+- [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md): branching dialogue and quest production rules
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: dialogue and quest graphs, deterministic world state, durable save profiles, equipment and capability gates, merchants, ranged attacks, bosses, cinematics, campaign packaging and automated reachability, economy, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: deterministic world-state inspection, durable save profiles and migrations, equipment and capability gates, merchants, ranged attacks, bosses, cinematics, campaign packaging, localisation, and automated quest-reachability, economy, companion-recovery, damage and softlock probes.

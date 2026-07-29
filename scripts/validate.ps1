@@ -81,7 +81,22 @@ try {
         "--script", "res://tools/smoke_item_validation_edges.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio and Item Forge validation passed."
+    Invoke-GodotStep "Smoke test Story Studio branching and quest progression" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_story_studio.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Story Studio editor graph and forms" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_story_studio_editor.gd"
+    )
+
+    Invoke-GodotStep "Smoke test malformed story graphs and quest records" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_story_validation_edges.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge and Story Studio validation passed."
 }
 finally {
     Pop-Location

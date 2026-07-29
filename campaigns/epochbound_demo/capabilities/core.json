@@ -1,0 +1,20 @@
+{
+	"schema_version": 1,
+	"capabilities": [
+		{
+			"id": "illuminate_dark",
+			"display_name": "Illuminate Darkness",
+			"description": "Allows Eli to enter and safely interpret spaces beyond ordinary ambient light."
+		},
+		{
+			"id": "cut_clockvines",
+			"display_name": "Cut Clockvines",
+			"description": "Allows a hooked or edged tool to cut fibrous growth hardened by displaced time."
+		},
+		{
+			"id": "clockglass_sight",
+			"display_name": "Clockglass Sight",
+			"description": "Reveals seams, inscriptions and mechanisms hidden beneath an object's remembered surface."
+		}
+	]
+}

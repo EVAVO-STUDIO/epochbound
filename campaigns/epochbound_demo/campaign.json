@@ -14,6 +14,25 @@
 	"object_files": [
 		"objects/core.json"
 	],
+	"item_files": [
+		"items/core.json"
+	],
+	"recipe_files": [
+		"recipes/core.json"
+	],
+	"starting_inventory": [
+		{
+			"item_id": "museum_tonic",
+			"quantity": 1
+		},
+		{
+			"item_id": "brass_filings",
+			"quantity": 1
+		}
+	],
+	"starting_recipes": [
+		"ember_salve_recipe"
+	],
 	"intro": [
 		"1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum.",
 		"Eli Vale entered with one flashlight,\none borrowed key, and his dog Morrow.",

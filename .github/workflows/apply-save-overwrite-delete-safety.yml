@@ -1,0 +1,171 @@
+name: Apply save overwrite and delete safety
+
+on:
+  push:
+    branches:
+      - work/save-state-studio-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Add destructive action confirmation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/save-state-studio-foundation-20260729
+
+      - name: Apply exact safety changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          runtime_path = Path("src/save_runtime.gd")
+          runtime = runtime_path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  'const SAVE_NOTICE_DURATION := 1.6\nconst SAVE_SLOT_ROWS := 5',
+                  'const SAVE_NOTICE_DURATION := 1.6\nconst SAVE_OVERWRITE_CONFIRM_DURATION := 2.5\nconst SAVE_SLOT_ROWS := 5'
+              ),
+              (
+                  'var save_slot_index := 0\nvar current_save_slot := ""\nvar save_notice := ""',
+                  'var save_slot_index := 0\nvar current_save_slot := ""\nvar pending_overwrite_slot := ""\nvar pending_overwrite_timer := 0.0\nvar save_notice := ""'
+              ),
+              (
+                  '\tsave_slot_index = 0\n\tcurrent_save_slot = ""\n\tsave_notice = ""',
+                  '\tsave_slot_index = 0\n\tcurrent_save_slot = ""\n\tpending_overwrite_slot = ""\n\tpending_overwrite_timer = 0.0\n\tsave_notice = ""'
+              ),
+              (
+                  'func update_game(delta: float) -> void:\n\tsave_notice_timer = maxf(0.0, save_notice_timer - delta)\n\tif save_notice_timer <= 0.0:\n\t\tsave_notice = ""',
+                  'func update_game(delta: float) -> void:\n\tsave_notice_timer = maxf(0.0, save_notice_timer - delta)\n\tpending_overwrite_timer = maxf(0.0, pending_overwrite_timer - delta)\n\tif pending_overwrite_timer <= 0.0:\n\t\tpending_overwrite_slot = ""\n\tif save_notice_timer <= 0.0:\n\t\tsave_notice = ""'
+              ),
+              (
+                  '\tsave_overlay_mode = 0\n\tsave_slot_index = 0\n\trefresh_save_slot_cache()',
+                  '\tsave_overlay_mode = 0\n\tsave_slot_index = 0\n\tpending_overwrite_slot = ""\n\tpending_overwrite_timer = 0.0\n\trefresh_save_slot_cache()'
+              ),
+              (
+                  'func close_save_overlay() -> void:\n\tsave_overlay_open = false\n\tsave_notice = ""',
+                  'func close_save_overlay() -> void:\n\tsave_overlay_open = false\n\tpending_overwrite_slot = ""\n\tpending_overwrite_timer = 0.0\n\tsave_notice = ""'
+              ),
+              (
+                  '\tif Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):\n\t\tsave_overlay_mode = 1 - save_overlay_mode\n\t\tsave_slot_index = 0',
+                  '\tif Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):\n\t\tsave_overlay_mode = 1 - save_overlay_mode\n\t\tsave_slot_index = 0\n\t\tpending_overwrite_slot = ""\n\t\tpending_overwrite_timer = 0.0'
+              ),
+              (
+                  '\tif Input.is_action_just_pressed("move_up"):\n\t\tsave_slot_index = posmod(save_slot_index - 1, slots.size())\n\telif Input.is_action_just_pressed("move_down"):\n\t\tsave_slot_index = posmod(save_slot_index + 1, slots.size())',
+                  '\tif Input.is_action_just_pressed("move_up"):\n\t\tsave_slot_index = posmod(save_slot_index - 1, slots.size())\n\t\tpending_overwrite_slot = ""\n\t\tpending_overwrite_timer = 0.0\n\telif Input.is_action_just_pressed("move_down"):\n\t\tsave_slot_index = posmod(save_slot_index + 1, slots.size())\n\t\tpending_overwrite_slot = ""\n\t\tpending_overwrite_timer = 0.0'
+              ),
+              (
+                  '''\tif confirm() or Input.is_action_just_pressed("attack"):
+          \t\tsave_slot_index = clampi(save_slot_index, 0, slots.size() - 1)
+          \t\tvar slot_id := str(slots[save_slot_index])
+          \t\tif save_overlay_mode == 0:
+          \t\t\tif slot_id == SaveProfile.AUTOSAVE_SLOT:
+          \t\t\t\tset_save_notice("Autosave is managed by the journey.")
+          \t\t\telse:
+          \t\t\t\tsave_current_profile(slot_id, "Manual save")
+          \t\telse:
+          \t\t\tload_profile_from_slot(str(campaign.get("id", "")), slot_id)
+          ''',
+                  '''\tif confirm() or Input.is_action_just_pressed("attack"):
+          \t\tsave_slot_index = clampi(save_slot_index, 0, slots.size() - 1)
+          \t\tactivate_save_slot(str(slots[save_slot_index]))
+          
+          
+          func activate_save_slot(slot_id: String) -> bool:
+          \tif save_overlay_mode == 0:
+          \t\tif slot_id == SaveProfile.AUTOSAVE_SLOT:
+          \t\t\tset_save_notice("Autosave is managed by the journey.")
+          \t\t\treturn false
+          \t\tif save_slot_cache.has(slot_id) and (
+          \t\t\tpending_overwrite_slot != slot_id or pending_overwrite_timer <= 0.0
+          \t\t):
+          \t\t\tpending_overwrite_slot = slot_id
+          \t\t\tpending_overwrite_timer = SAVE_OVERWRITE_CONFIRM_DURATION
+          \t\t\tset_save_notice("CONFIRM AGAIN TO OVERWRITE %s" % SaveProfile.slot_label(slot_id), SAVE_OVERWRITE_CONFIRM_DURATION)
+          \t\t\treturn false
+          \t\tpending_overwrite_slot = ""
+          \t\tpending_overwrite_timer = 0.0
+          \t\treturn save_current_profile(slot_id, "Manual save")
+          \tpending_overwrite_slot = ""
+          \tpending_overwrite_timer = 0.0
+          \tif not save_slot_cache.has(slot_id):
+          \t\tset_save_notice("%s IS EMPTY" % SaveProfile.slot_label(slot_id))
+          \t\treturn false
+          \treturn load_profile_from_slot(str(campaign.get("id", "")), slot_id)
+          '''
+              )
+          ]
+          for old, new in replacements:
+              count = runtime.count(old)
+              if count != 1:
+                  raise SystemExit(f"save_runtime.gd: expected one reviewed occurrence, found {count}: {old[:100]!r}")
+              runtime = runtime.replace(old, new, 1)
+          runtime_path.write_text(runtime, encoding="utf-8", newline="\n")
+
+          studio_path = Path("addons/epochbound_save_state_studio/save_state_studio.gd")
+          studio = studio_path.read_text(encoding="utf-8")
+          studio_replacements = [
+              (
+                  'var rewrite_button: Button\nvar delete_button: Button',
+                  'var rewrite_button: Button\nvar delete_button: Button\nvar delete_confirmation: ConfirmationDialog'
+              ),
+              (
+                  '\troot.add_child(status_label)\n\tset_profile_actions_enabled(false)',
+                  '\troot.add_child(status_label)\n\tdelete_confirmation = ConfirmationDialog.new()\n\tdelete_confirmation.title = "Delete Save Profile"\n\tdelete_confirmation.confirmed.connect(confirm_delete_selected_profile)\n\tadd_child(delete_confirmation)\n\tset_profile_actions_enabled(false)'
+              ),
+              (
+                  '''func delete_selected_profile() -> void:
+          \tif selected_slot_id.is_empty() or active_campaign_id.is_empty() or selected_profile.is_empty():
+          \t\treturn
+          \tvar deleted_slot := selected_slot_id
+          \tvar result: Dictionary = SaveProfileStore.delete_profile(active_campaign_id, deleted_slot)
+          \tif not bool(result.get("ok", false)):
+          \t\tset_status(format_messages(result.get("errors", [])), true)
+          \t\treturn
+          \trefresh_slots()
+          \tset_status("Deleted %s and its backup copy." % SaveProfile.slot_label(deleted_slot), false)
+          ''',
+                  '''func delete_selected_profile() -> void:
+          \tif selected_slot_id.is_empty() or active_campaign_id.is_empty() or selected_profile.is_empty():
+          \t\treturn
+          \tdelete_confirmation.dialog_text = "Delete %s and its backup copy? This cannot be undone from the editor." % SaveProfile.slot_label(selected_slot_id)
+          \tdelete_confirmation.popup_centered(Vector2i(500, 170))
+          
+          
+          func confirm_delete_selected_profile() -> void:
+          \tif selected_slot_id.is_empty() or active_campaign_id.is_empty() or selected_profile.is_empty():
+          \t\treturn
+          \tvar deleted_slot := selected_slot_id
+          \tvar result: Dictionary = SaveProfileStore.delete_profile(active_campaign_id, deleted_slot)
+          \tif not bool(result.get("ok", false)):
+          \t\tset_status(format_messages(result.get("errors", [])), true)
+          \t\treturn
+          \trefresh_slots()
+          \tset_status("Deleted %s and its backup copy." % SaveProfile.slot_label(deleted_slot), false)
+          '''
+              )
+          ]
+          for old, new in studio_replacements:
+              count = studio.count(old)
+              if count != 1:
+                  raise SystemExit(f"save_state_studio.gd: expected one reviewed occurrence, found {count}: {old[:100]!r}")
+              studio = studio.replace(old, new, 1)
+          studio_path.write_text(studio, encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-save-overwrite-delete-safety.yml").unlink()
+
+      - name: Commit destructive action safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/save_runtime.gd addons/epochbound_save_state_studio/save_state_studio.gd .github/workflows/apply-save-overwrite-delete-safety.yml
+          git commit -m "feat: confirm save overwrites and profile deletion"
+          git push origin HEAD:work/save-state-studio-foundation-20260729

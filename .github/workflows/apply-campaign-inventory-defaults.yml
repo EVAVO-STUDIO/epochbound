@@ -1,0 +1,105 @@
+name: Apply campaign inventory defaults
+
+on:
+  push:
+    branches:
+      - work/item-forge-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Extend campaign creation with item catalogs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/item-forge-foundation-20260729
+
+      - name: Apply exact repository changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/content/campaign_repository.gd")
+          source = path.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  'const ObjectCatalog = preload("res://src/content/object_catalog.gd")\n',
+                  'const ObjectCatalog = preload("res://src/content/object_catalog.gd")\nconst ItemCatalog = preload("res://src/content/item_catalog.gd")\n',
+              ),
+              (
+                  '''\tvar catalog_path := campaign_directory.path_join("objects").path_join("core.json")
+          \tvar catalog_result := save_json(catalog_path, ObjectCatalog.default_catalog())
+          \tif not catalog_result.get("ok", false):
+          \t\treturn catalog_result
+          \tvar map_id := "first_crossing"
+          ''',
+                  '''\tvar catalog_path := campaign_directory.path_join("objects").path_join("core.json")
+          \tvar catalog_result := save_json(catalog_path, ObjectCatalog.default_catalog())
+          \tif not catalog_result.get("ok", false):
+          \t\treturn catalog_result
+          \tvar item_catalog_path := campaign_directory.path_join("items").path_join("core.json")
+          \tvar item_catalog_result := save_json(item_catalog_path, ItemCatalog.default_item_catalog())
+          \tif not item_catalog_result.get("ok", false):
+          \t\treturn item_catalog_result
+          \tvar recipe_catalog_path := campaign_directory.path_join("recipes").path_join("core.json")
+          \tvar recipe_catalog_result := save_json(recipe_catalog_path, ItemCatalog.default_recipe_catalog())
+          \tif not recipe_catalog_result.get("ok", false):
+          \t\treturn recipe_catalog_result
+          \tvar map_id := "first_crossing"
+          ''',
+              ),
+              (
+                  '''\t\t"campaign_path": campaign_path,
+          \t\t"catalog_path": catalog_path,
+          \t\t"map_path": map_path,
+          ''',
+                  '''\t\t"campaign_path": campaign_path,
+          \t\t"catalog_path": catalog_path,
+          \t\t"item_catalog_path": item_catalog_path,
+          \t\t"recipe_catalog_path": recipe_catalog_path,
+          \t\t"map_path": map_path,
+          ''',
+              ),
+              (
+                  '''\t\t"map_files": ["maps/first_crossing.json"],
+          \t\t"object_files": ["objects/core.json"],
+          \t\t"intro": [
+          ''',
+                  '''\t\t"map_files": ["maps/first_crossing.json"],
+          \t\t"object_files": ["objects/core.json"],
+          \t\t"item_files": ["items/core.json"],
+          \t\t"recipe_files": ["recipes/core.json"],
+          \t\t"starting_inventory": [
+          \t\t\t{"item_id": "trail_tonic", "quantity": 1},
+          \t\t\t{"item_id": "brass_scrap", "quantity": 2}
+          \t\t],
+          \t\t"starting_recipes": ["field_salve_recipe"],
+          \t\t"intro": [
+          ''',
+              ),
+          ]
+
+          for old, new in replacements:
+              if source.count(old) != 1:
+                  raise SystemExit(f"Expected one reviewed campaign repository block, found {source.count(old)}")
+              source = source.replace(old, new, 1)
+
+          path.write_text(source, encoding="utf-8", newline="\n")
+          Path(".github/workflows/apply-campaign-inventory-defaults.yml").unlink()
+
+      - name: Commit campaign defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/campaign_repository.gd .github/workflows/apply-campaign-inventory-defaults.yml
+          git commit -m "feat: create item and recipe catalogs for new campaigns"
+          git push origin HEAD:work/item-forge-foundation-20260729

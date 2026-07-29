@@ -7,12 +7,18 @@ const TARGETS := [
 	"res://src/app.gd",
 	"res://src/game_runtime.gd",
 	"res://src/combat_runtime.gd",
+	"res://src/combat_director_runtime.gd",
+	"res://src/content/combat_director_validator.gd",
+	"res://src/game/encounter_zone_model.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio.gd",
 	"res://addons/epochbound_campaign_studio/world_builder_studio.gd",
 	"res://addons/epochbound_encounter_studio/encounter_canvas.gd",
 	"res://addons/epochbound_encounter_studio/encounter_studio.gd",
 	"res://addons/epochbound_encounter_studio/encounter_studio_controller.gd",
 	"res://addons/epochbound_encounter_studio/plugin.gd",
+	"res://addons/epochbound_combat_director/combat_director_canvas.gd",
+	"res://addons/epochbound_combat_director/combat_director_studio.gd",
+	"res://addons/epochbound_combat_director/plugin.gd",
 	"res://src/app.tscn"
 ]
 
@@ -30,7 +36,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime scenes, editor plugins and resources load cleanly.")
+		print("Compile probe passed: runtime scenes, campaign tools, encounter tools, Combat Director and resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

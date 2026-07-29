@@ -102,11 +102,14 @@ func probe_runtime_scene() -> void:
 		check(runtime_hound >= 0, "Runtime must expose an attackable Ash Hound.")
 		if runtime_hound >= 0:
 			var health_before := int((runtime_entities[runtime_hound] as Dictionary).get("health", 0))
+			var expected_damage := 4
+			if runtime.has_method("player_attack_damage_value"):
+				expected_damage = int(runtime.call("player_attack_damage_value"))
 			runtime.call("perform_player_attack")
 			var after_value: Variant = runtime.get("runtime_entities")
 			var after_entities: Array = after_value if typeof(after_value) == TYPE_ARRAY else []
 			var health_after := int((after_entities[runtime_hound] as Dictionary).get("health", 0)) if runtime_hound < after_entities.size() else health_before
-			check(health_after == health_before - 4, "Player attack must apply authored combat damage.")
+			check(health_after == health_before - expected_damage, "Player attack must apply the active combat runtime's derived damage.")
 	root.remove_child(runtime)
 	runtime.free()
 
@@ -120,7 +123,7 @@ func has_property(object: Object, property_name: String) -> bool:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Encounter smoke test passed: catalogs, placements, era scope, collision, persistence and runtime damage are coherent.")
+		print("Encounter smoke test passed: catalogs, placements, era scope, collision, persistence and derived runtime damage are coherent.")
 		quit(0)
 		return
 	for failure in failures:

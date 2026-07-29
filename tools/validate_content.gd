@@ -1,10 +1,10 @@
 extends SceneTree
 
-const EconomyValidator = preload("res://src/content/economy_validator.gd")
+const EquipmentValidator = preload("res://src/content/economy_validator.gd")
 
 
 func _initialize() -> void:
-	var report: Dictionary = EconomyValidator.validate_all()
+	var report: Dictionary = EquipmentValidator.validate_all()
 	for warning in report.get("warnings", []):
 		print_rich("[color=yellow]WARNING[/color] %s" % warning)
 	for error in report.get("errors", []):

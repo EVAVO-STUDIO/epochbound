@@ -14,6 +14,7 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	test_legacy_migration()
+	test_schema_two_economy_migration()
 	test_default_policy_compatibility()
 	test_canonical_slot_discovery()
 	test_json_round_trip_checksum()
@@ -57,6 +58,28 @@ func test_legacy_migration() -> void:
 	check(str(payload.get("map_id", "")) == "bellweather_crossing", "Legacy map must migrate into payload map_id.")
 	check(str(payload.get("era_id", "")) == "verdant", "Legacy era must migrate into payload era_id.")
 	check((payload.get("unlocked_recipes", []) as Array).has("ember_salve_recipe"), "Legacy recipe dictionary must migrate to a stable ID array.")
+
+
+func test_schema_two_economy_migration() -> void:
+	var legacy := valid_profile("Schema two economy migration", 82)
+	legacy["schema_version"] = 2
+	var payload: Dictionary = legacy.get("payload", {})
+	payload.erase("currency_balances")
+	payload.erase("merchant_stock")
+	payload.erase("economy_initialized")
+	legacy["payload"] = payload
+	SaveProfile.refresh_checksum(legacy)
+	var migration := SaveProfile.migrate(legacy)
+	check(bool(migration.get("ok", false)), "Schema 2 profile must migrate to the economy-aware schema.")
+	check(bool(migration.get("migrated", false)), "Schema 2 migration must report a change.")
+	check(int(migration.get("from_version", -1)) == 2, "Schema 2 migration must preserve the source version.")
+	var migrated: Dictionary = migration.get("profile", {})
+	var migrated_payload: Dictionary = migrated.get("payload", {})
+	check(int(migrated.get("schema_version", 0)) == SaveProfile.CURRENT_SCHEMA, "Schema 2 profile must migrate to the current schema.")
+	check(typeof(migrated_payload.get("currency_balances")) == TYPE_DICTIONARY, "Migration must add a wallet dictionary.")
+	check(typeof(migrated_payload.get("merchant_stock")) == TYPE_DICTIONARY, "Migration must add merchant stock state.")
+	check(not bool(migrated_payload.get("economy_initialized", true)), "Pre-economy saves must request authored defaults on first load.")
+	check(SaveProfile.checksum_valid(migrated), "Migrated schema 2 profile must receive a valid checksum.")
 
 
 func test_default_policy_compatibility() -> void:

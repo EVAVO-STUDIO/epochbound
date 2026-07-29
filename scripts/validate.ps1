@@ -126,7 +126,22 @@ try {
         "--script", "res://tools/smoke_equipment_validation_edges.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio, Save State and Loadout validation passed."
+    Invoke-GodotStep "Smoke test merchant transactions and durable economy" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_economy_runtime.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Merchant and Economy Studio editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_trade_studio.gd"
+    )
+
+    Invoke-GodotStep "Smoke test malformed currencies merchants stock and economy saves" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_economy_validation_edges.gd"
+    )
+
+    Write-Host "`nEpochbound project and all nine authoring systems passed complete merchant-aware validation."
 }
 finally {
     Pop-Location

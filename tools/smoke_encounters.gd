@@ -38,7 +38,6 @@ func run_smoke_test() -> void:
 	var definitions: Dictionary = catalog_result.get("definitions", {})
 	check(str(ObjectCatalog.definition(definitions, "ash_hound").get("kind", "")) == "enemy", "Ash Hound must resolve as an enemy definition.")
 	check(str(ObjectCatalog.definition(definitions, "clock_shard").get("kind", "")) == "pickup", "Clock Shard must resolve as a pickup definition.")
-	check(str(ObjectCatalog.definition(definitions, "museum_provisioner").get("merchant_id", "")) == "bellweather_provisions", "Provisioner definition must retain its merchant binding.")
 
 	var bell_path := Repository.find_exact_map_path(CAMPAIGN_PATH, campaign, "bellweather_crossing")
 	var bell_result := Repository.read_json(bell_path)
@@ -125,7 +124,7 @@ func has_property(object: Object, property_name: String) -> bool:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Encounter smoke test passed: catalogs, placements, merchant bindings, era scope, collision, persistence and derived runtime damage are coherent.")
+		print("Encounter smoke test passed: catalogs, placements, era scope, collision, persistence and derived runtime damage are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -1,0 +1,490 @@
+name: Apply Arsenal integration
+
+on:
+  push:
+    branches:
+      - work/arsenal-ranged-foundation-20260730
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    name: Wire Arsenal contracts through existing systems
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out working branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/arsenal-ranged-foundation-20260730
+          fetch-depth: 0
+
+      - name: Apply reviewed integration changes
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          def read(path_name: str) -> str:
+              return Path(path_name).read_text(encoding="utf-8")
+
+          def write(path_name: str, text: str) -> None:
+              Path(path_name).write_text(text, encoding="utf-8", newline="\n")
+
+          def replace_once(path_name: str, old: str, new: str) -> None:
+              text = read(path_name)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path_name}: expected one occurrence, found {count}: {old!r}")
+              write(path_name, text.replace(old, new, 1))
+
+          def replace_all(path_name: str, old: str, new: str, minimum: int = 1) -> None:
+              text = read(path_name)
+              count = text.count(old)
+              if count < minimum:
+                  raise SystemExit(f"{path_name}: expected at least {minimum} occurrence(s), found {count}: {old!r}")
+              write(path_name, text.replace(old, new))
+
+          def load_json(path_name: str):
+              return json.loads(read(path_name))
+
+          def save_json(path_name: str, data) -> None:
+              write(path_name, json.dumps(data, indent="\t", ensure_ascii=False) + "\n")
+
+          # Item Forge accepts ammunition as a first-class inventory kind.
+          replace_once(
+              "src/content/item_catalog.gd",
+              'const ALLOWED_ITEM_KINDS := ["consumable", "material", "key", "equipment"]',
+              'const ALLOWED_ITEM_KINDS := ["consumable", "material", "key", "equipment", "ammunition"]'
+          )
+          default_arsenal_items = '''\t\t\t{\n\t\t\t\t"id": "trail_bolts",\n\t\t\t\t"display_name": "Trail Bolts",\n\t\t\t\t"kind": "ammunition",\n\t\t\t\t"description": "Compact brass-fletched bolts for a field dartcaster.",\n\t\t\t\t"stack_limit": 60,\n\t\t\t\t"value": 2,\n\t\t\t\t"use_effect": {"type": "none"},\n\t\t\t\t"ammunition": {\n\t\t\t\t\t"damage_bonus": 0,\n\t\t\t\t\t"knockback_bonus": 1.0,\n\t\t\t\t\t"projectile_color": "f2c66d"\n\t\t\t\t}\n\t\t\t},\n\t\t\t{\n\t\t\t\t"id": "trail_dartcaster",\n\t\t\t\t"display_name": "Trail Dartcaster",\n\t\t\t\t"kind": "equipment",\n\t\t\t\t"description": "A compact spring-driven field weapon for controlled ranged attacks.",\n\t\t\t\t"stack_limit": 1,\n\t\t\t\t"value": 44,\n\t\t\t\t"use_effect": {"type": "none"},\n\t\t\t\t"equipment": {\n\t\t\t\t\t"slot": "weapon",\n\t\t\t\t\t"attack_bonus": 0,\n\t\t\t\t\t"defense_bonus": 0,\n\t\t\t\t\t"max_health_bonus": 0,\n\t\t\t\t\t"move_speed_bonus": 0,\n\t\t\t\t\t"capabilities": [],\n\t\t\t\t\t"ranged": {\n\t\t\t\t\t\t"ammo_item_id": "trail_bolts",\n\t\t\t\t\t\t"magazine_size": 4,\n\t\t\t\t\t\t"damage_bonus": 1,\n\t\t\t\t\t\t"projectile_speed": 340.0,\n\t\t\t\t\t\t"projectile_range": 270.0,\n\t\t\t\t\t\t"projectile_radius": 4.0,\n\t\t\t\t\t\t"fire_cooldown": 0.42,\n\t\t\t\t\t\t"reload_time": 0.85,\n\t\t\t\t\t\t"knockback_distance": 14.0,\n\t\t\t\t\t\t"muzzle_offset": 15.0,\n\t\t\t\t\t\t"projectile_color": "f2c66d"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n'''
+          replace_once(
+              "src/content/item_catalog.gd",
+              '\t\t]\n\t}\n\n\nstatic func default_recipe_catalog() -> Dictionary:',
+              ',\n' + default_arsenal_items + '\t\t]\n\t}\n\n\nstatic func default_recipe_catalog() -> Dictionary:'
+          )
+
+          # Default campaigns own, but do not initially equip, a starter ranged option.
+          replace_once(
+              "src/content/campaign_repository.gd",
+              '\t\t\t{"item_id": "trail_lantern", "quantity": 1}\n\t\t],',
+              '\t\t\t{"item_id": "trail_lantern", "quantity": 1},\n\t\t\t{"item_id": "trail_dartcaster", "quantity": 1},\n\t\t\t{"item_id": "trail_bolts", "quantity": 12}\n\t\t],'
+          )
+
+          # Generated and authored merchants can buy and sell ammunition.
+          replace_all(
+              "src/content/economy_catalog.gd",
+              '["consumable", "material", "equipment"]',
+              '["consumable", "material", "equipment", "ammunition"]',
+              2
+          )
+
+          # Register the tenth editor plugin and an explicit keyboard/controller reload action.
+          project_path = "project.godot"
+          project = read(project_path)
+          project = project.replace(
+              '"res://addons/epochbound_trade_studio/plugin.cfg")',
+              '"res://addons/epochbound_trade_studio/plugin.cfg", "res://addons/epochbound_arsenal_studio/plugin.cfg")',
+              1
+          )
+          reload_record = '''reload_weapon={\n"deadzone": 0.2,\n"events": [Object(InputEventKey,"physical_keycode":71), Object(InputEventJoypadMotion,"axis":5,"axis_value":1.0)]\n}\n'''
+          marker = 'pause_game={\n'
+          if project.count(marker) != 1:
+              raise SystemExit("project.godot: pause input marker not found exactly once")
+          project = project.replace(marker, reload_record + marker, 1)
+          write(project_path, project)
+
+          replace_once(
+              "src/app.tscn",
+              'res://src/merchant_runtime.gd',
+              'res://src/arsenal_runtime.gd'
+          )
+
+          # Save schema 4 adds deterministic loaded-magazine state.
+          save_path = "src/content/save_profile.gd"
+          save = read(save_path)
+          save = save.replace("const CURRENT_SCHEMA := 3", "const CURRENT_SCHEMA := 4", 1)
+          save = save.replace(
+              '''\tif typeof(normalised_payload.get("economy_initialized")) != TYPE_BOOL:\n\t\tnormalised_payload["economy_initialized"] = false\n\tvar profile := {\n''',
+              '''\tif typeof(normalised_payload.get("economy_initialized")) != TYPE_BOOL:\n\t\tnormalised_payload["economy_initialized"] = false\n\tif typeof(normalised_payload.get("loaded_ammo")) != TYPE_DICTIONARY:\n\t\tnormalised_payload["loaded_ammo"] = {}\n\tvar profile := {\n''',
+              1
+          )
+          existing_economy_false = '\t\tpayload["economy_initialized"] = false\n'
+          if save.count(existing_economy_false) < 3:
+              raise SystemExit("save_profile.gd: expected legacy economy migration assignments")
+          save = save.replace(
+              existing_economy_false,
+              existing_economy_false + '\t\tpayload["loaded_ammo"] = {}\n'
+          )
+          save = save.replace(
+              '\t\t\t"economy_initialized": false,\n\t\t\t"companion_command": "follow",',
+              '\t\t\t"economy_initialized": false,\n\t\t\t"loaded_ammo": {},\n\t\t\t"companion_command": "follow",',
+              1
+          )
+          version_three = '''\n\tif version == 3:\n\t\tif not checksum_valid(raw_profile):\n\t\t\treturn {\n\t\t\t\t"ok": false,\n\t\t\t\t"profile": {},\n\t\t\t\t"migrated": false,\n\t\t\t\t"from_version": version,\n\t\t\t\t"errors": ["Legacy schema 3 checksum is missing or invalid."]\n\t\t\t}\n\t\tvar metadata := dictionary_or_empty(raw_profile.get("metadata", {}))\n\t\tvar payload := dictionary_or_empty(raw_profile.get("payload", {}))\n\t\tpayload["equipment"] = dictionary_or_empty(payload.get("equipment", {}))\n\t\tpayload["currency_balances"] = dictionary_or_empty(payload.get("currency_balances", {}))\n\t\tpayload["merchant_stock"] = dictionary_or_empty(payload.get("merchant_stock", {}))\n\t\tpayload["economy_initialized"] = bool(payload.get("economy_initialized", false))\n\t\tpayload["loaded_ammo"] = {}\n\t\tvar migrated_profile := build_profile(\n\t\t\tstr(raw_profile.get("campaign_id", "")),\n\t\t\tstr(raw_profile.get("slot_id", "slot_1")),\n\t\t\tmetadata,\n\t\t\tpayload\n\t\t)\n\t\treturn {\n\t\t\t"ok": true,\n\t\t\t"profile": migrated_profile,\n\t\t\t"migrated": true,\n\t\t\t"from_version": version,\n\t\t\t"errors": []\n\t\t}\n'''
+          if save.count('\n\tif version == 2:\n') != 1:
+              raise SystemExit("save_profile.gd: schema 2 migration marker not found")
+          save = save.replace('\n\tif version == 2:\n', version_three + '\n\tif version == 2:\n', 1)
+          save = save.replace(
+              'for field in ["inventory", "session_state", "quest_progress", "equipment", "currency_balances", "merchant_stock"]:',
+              'for field in ["inventory", "session_state", "quest_progress", "equipment", "currency_balances", "merchant_stock", "loaded_ammo"]:',
+              1
+          )
+          save = save.replace(
+              '''\tvar stock_value: Variant = payload.get("merchant_stock", {})\n\tvar stock: Dictionary = stock_value if typeof(stock_value) == TYPE_DICTIONARY else {}\n\tvar active_quests := 0\n''',
+              '''\tvar stock_value: Variant = payload.get("merchant_stock", {})\n\tvar stock: Dictionary = stock_value if typeof(stock_value) == TYPE_DICTIONARY else {}\n\tvar loaded_value: Variant = payload.get("loaded_ammo", {})\n\tvar loaded: Dictionary = loaded_value if typeof(loaded_value) == TYPE_DICTIONARY else {}\n\tvar active_quests := 0\n''',
+              1
+          )
+          save = save.replace(
+              '''\t\t"merchant_records": stock.size(),\n\t\t"active_quests": active_quests,\n''',
+              '''\t\t"merchant_records": stock.size(),\n\t\t"loaded_magazines": loaded.size(),\n\t\t"active_quests": active_quests,\n''',
+              1
+          )
+          write(save_path, save)
+
+          # Item Forge deletion protection follows ammunition references.
+          replace_once(
+              "addons/epochbound_item_forge/item_forge_studio.gd",
+              'const EconomyCatalog = preload("res://src/content/economy_catalog.gd")\n',
+              'const EconomyCatalog = preload("res://src/content/economy_catalog.gd")\nconst ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")\n'
+          )
+          replace_once(
+              "addons/epochbound_item_forge/item_forge_studio.gd",
+              '''\tvar object_result := ObjectCatalog.load_catalogs(active_campaign_path, active_campaign)\n''',
+              '''\tfor weapon_id in ArsenalCatalog.ranged_weapon_ids(item_definitions):\n\t\tif ArsenalCatalog.weapon_ammunition_id(ItemCatalog.item(item_definitions, weapon_id)) == item_id:\n\t\t\tusages.append("ranged weapon %s ammunition" % weapon_id)\n\tvar object_result := ObjectCatalog.load_catalogs(active_campaign_path, active_campaign)\n'''
+          )
+
+          # Save & State Studio inspects and validates loaded magazines.
+          state_path = "addons/epochbound_save_state_studio/save_state_studio.gd"
+          state = read(state_path)
+          state = state.replace(
+              'const EquipmentValidator = preload("res://src/content/economy_validator.gd")',
+              'const EquipmentValidator = preload("res://src/content/arsenal_validator.gd")',
+              1
+          )
+          state = state.replace(
+              'const EconomyCatalog = preload("res://src/content/economy_catalog.gd")\n',
+              'const EconomyCatalog = preload("res://src/content/economy_catalog.gd")\nconst ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")\n',
+              1
+          )
+          state = state.replace(
+              'var equipment_list: ItemList\nvar wallet_list: ItemList\n',
+              'var equipment_list: ItemList\nvar loaded_ammo_list: ItemList\nvar wallet_list: ItemList\n',
+              1
+          )
+          state = state.replace(
+              '''\tequipment_list = ItemList.new()\n\tequipment_list.name = "Equipment"\n\tequipment_list.select_mode = ItemList.SELECT_SINGLE\n\ttabs.add_child(equipment_list)\n\n\twallet_list = ItemList.new()\n''',
+              '''\tequipment_list = ItemList.new()\n\tequipment_list.name = "Equipment"\n\tequipment_list.select_mode = ItemList.SELECT_SINGLE\n\ttabs.add_child(equipment_list)\n\n\tloaded_ammo_list = ItemList.new()\n\tloaded_ammo_list.name = "Loaded Ammo"\n\tloaded_ammo_list.select_mode = ItemList.SELECT_SINGLE\n\ttabs.add_child(loaded_ammo_list)\n\n\twallet_list = ItemList.new()\n''',
+              1
+          )
+          state = state.replace(
+              'Equipped slots  %d\\nWallets  %d',
+              'Equipped slots  %d\\nLoaded magazines  %d\\nWallets  %d',
+              1
+          )
+          state = state.replace(
+              'int(summary.get("inventory_stacks", 0)), int(summary.get("equipment_slots", 0)), int(summary.get("currency_wallets", 0))',
+              'int(summary.get("inventory_stacks", 0)), int(summary.get("equipment_slots", 0)), int(summary.get("loaded_magazines", 0)), int(summary.get("currency_wallets", 0))',
+              1
+          )
+          state = state.replace(
+              '''\tif equipment_list.item_count == 0:\n\t\tequipment_list.add_item("No equipment is stored.")\n\twallet_list.clear()\n''',
+              '''\tif equipment_list.item_count == 0:\n\t\tequipment_list.add_item("No equipment is stored.")\n\tloaded_ammo_list.clear()\n\tfor row_value in sections.get("loaded_ammo", []):\n\t\tloaded_ammo_list.add_item(str(row_value))\n\tif loaded_ammo_list.item_count == 0:\n\t\tloaded_ammo_list.add_item("No loaded magazines are stored.")\n\twallet_list.clear()\n''',
+              1
+          )
+          state = state.replace(
+              '''\tvar wallet_rows: Array[String] = []\n''',
+              '''\tvar loaded_ammo_rows: Array[String] = []\n\tvar loaded_value: Variant = payload.get("loaded_ammo", {})\n\tif typeof(loaded_value) == TYPE_DICTIONARY:\n\t\tvar loaded: Dictionary = loaded_value\n\t\tvar weapon_ids: Array[String] = []\n\t\tfor weapon_key in loaded.keys():\n\t\t\tweapon_ids.append(str(weapon_key))\n\t\tweapon_ids.sort()\n\t\tfor weapon_id in weapon_ids:\n\t\t\tvar weapon_data := ItemCatalog.item(items, weapon_id)\n\t\t\tvar weapon_name := ItemCatalog.item_name(weapon_data, weapon_id)\n\t\t\tloaded_ammo_rows.append("%s   %d / %d   [%s]" % [weapon_name, int(loaded.get(weapon_id, 0)), ArsenalCatalog.magazine_size(weapon_data), weapon_id])\n\tvar wallet_rows: Array[String] = []\n''',
+              1
+          )
+          state = state.replace(
+              'return {"summary": summary, "inventory": inventory_rows, "equipment": equipment_rows, "wallet": wallet_rows, "merchant_stock": merchant_rows, "quests": quest_rows, "state": state_rows}',
+              'return {"summary": summary, "inventory": inventory_rows, "equipment": equipment_rows, "loaded_ammo": loaded_ammo_rows, "wallet": wallet_rows, "merchant_stock": merchant_rows, "quests": quest_rows, "state": state_rows}',
+              1
+          )
+          state = state.replace(
+              '''\tequipment_list.clear()\n\twallet_list.clear()\n''',
+              '''\tequipment_list.clear()\n\tloaded_ammo_list.clear()\n\twallet_list.clear()\n''',
+              1
+          )
+          write(state_path, state)
+
+          # Reference ammunition, weapon and ranged enemy content.
+          items_path = "campaigns/epochbound_demo/items/core.json"
+          items_data = load_json(items_path)
+          if not any(item.get("id") == "archive_bolts" for item in items_data["items"]):
+              items_data["items"].append({
+                  "id": "archive_bolts",
+                  "display_name": "Archive Bolts",
+                  "kind": "ammunition",
+                  "description": "Short brass-fletched bolts stamped with accession numbers that change after impact.",
+                  "stack_limit": 60,
+                  "value": 2,
+                  "use_effect": {"type": "none"},
+                  "ammunition": {
+                      "damage_bonus": 0,
+                      "knockback_bonus": 2,
+                      "projectile_color": "f3d27a"
+                  }
+              })
+          if not any(item.get("id") == "clockglass_dartcaster" for item in items_data["items"]):
+              items_data["items"].append({
+                  "id": "clockglass_dartcaster",
+                  "display_name": "Clockglass Dartcaster",
+                  "kind": "equipment",
+                  "description": "A museum pest-control launcher rebuilt around a clockglass guide rail. It rewards deliberate spacing rather than replacing the Brass Hook.",
+                  "stack_limit": 1,
+                  "value": 68,
+                  "use_effect": {"type": "none"},
+                  "equipment": {
+                      "slot": "weapon",
+                      "attack_bonus": 0,
+                      "defense_bonus": 0,
+                      "max_health_bonus": 0,
+                      "move_speed_bonus": 0,
+                      "capabilities": [],
+                      "ranged": {
+                          "ammo_item_id": "archive_bolts",
+                          "magazine_size": 4,
+                          "damage_bonus": 2,
+                          "projectile_speed": 340,
+                          "projectile_range": 280,
+                          "projectile_radius": 4,
+                          "fire_cooldown": 0.42,
+                          "reload_time": 0.85,
+                          "knockback_distance": 14,
+                          "muzzle_offset": 15,
+                          "projectile_color": "f3d27a"
+                      }
+                  }
+              })
+          save_json(items_path, items_data)
+
+          objects_path = "campaigns/epochbound_demo/objects/core.json"
+          object_data = load_json(objects_path)
+          if not any(record.get("id") == "underworks_sentinel" for record in object_data["objects"]):
+              object_data["objects"].append({
+                  "id": "underworks_sentinel",
+                  "display_name": "Underworks Sentinel",
+                  "kind": "enemy",
+                  "appearance": {"shape": "pillar", "color": "4d4d55", "accent": "e4674d"},
+                  "solid": True,
+                  "collision_radius": 10,
+                  "interaction_radius": 0,
+                  "max_health": 18,
+                  "move_speed": 30,
+                  "awareness_radius": 220,
+                  "attack_radius": 160,
+                  "attack_damage": 3,
+                  "attack_cooldown": 1.4,
+                  "attack_windup": 0.45,
+                  "patrol_radius": 18,
+                  "leash_radius": 0,
+                  "return_speed_multiplier": 0.9,
+                  "target_memory": 1.0,
+                  "stagger_duration": 0.18,
+                  "knockback_distance": 16,
+                  "contact_knockback": 12,
+                  "ranged_attack": {
+                      "projectile_speed": 210,
+                      "projectile_range": 240,
+                      "projectile_radius": 4,
+                      "knockback_distance": 18,
+                      "projectile_color": "e4674d"
+                  },
+                  "reward": 3
+              })
+          save_json(objects_path, object_data)
+
+          underworks_path = "campaigns/epochbound_demo/maps/museum_underworks.json"
+          underworks = load_json(underworks_path)
+          placements = underworks.setdefault("object_placements", [])
+          if not any(record.get("id") == "underworks_sentinel" for record in placements):
+              placements.append({
+                  "id": "underworks_sentinel",
+                  "object_id": "underworks_sentinel",
+                  "position": {"x": 470, "y": 224},
+                  "facing": "left",
+                  "available_eras": ["ashen"],
+                  "state_key": "underworks:sentinel"
+              })
+          zones = underworks.setdefault("encounter_zones", [])
+          if not any(record.get("id") == "underworks_gallery_watch" for record in zones):
+              zones.append({
+                  "id": "underworks_gallery_watch",
+                  "display_name": "Underworks Gallery Watch",
+                  "position": {"x": 470, "y": 224},
+                  "radius": 100,
+                  "activation_radius": 176,
+                  "leash_padding": 42,
+                  "enemy_placements": ["underworks_sentinel"],
+                  "available_eras": ["ashen"],
+                  "clear_state_key": "underworks:zone:gallery_watch"
+              })
+          save_json(underworks_path, underworks)
+
+          economy_path = "campaigns/epochbound_demo/economy/core.json"
+          economy = load_json(economy_path)
+          for merchant in economy.get("merchants", []):
+              kinds = merchant.setdefault("accepted_kinds", [])
+              if "ammunition" not in kinds:
+                  kinds.append("ammunition")
+              stock = merchant.setdefault("stock", [])
+              if merchant.get("id") == "bellweather_provisions" and not any(entry.get("item_id") == "archive_bolts" for entry in stock):
+                  stock.append({
+                      "item_id": "archive_bolts",
+                      "quantity": 24,
+                      "unlimited": False,
+                      "buy_price": 3,
+                      "sell_price": 1,
+                      "conditions": []
+                  })
+              if merchant.get("id") == "underworks_exchange" and not any(entry.get("item_id") == "clockglass_dartcaster" for entry in stock):
+                  stock.append({
+                      "item_id": "clockglass_dartcaster",
+                      "quantity": 1,
+                      "unlimited": False,
+                      "buy_price": 58,
+                      "sell_price": 30,
+                      "conditions": []
+                  })
+          save_json(economy_path, economy)
+
+          # Inherited executable tests now target the Arsenal runtime and expanded catalogues.
+          replace_once(
+              "tools/smoke_encounters.gd",
+              '\t"res://src/merchant_runtime.gd"\n]',
+              '\t"res://src/merchant_runtime.gd",\n\t"res://src/arsenal_runtime.gd"\n]'
+          )
+          replace_once("tools/smoke_encounters.gd", '== 6, "Reference campaign must expose six reusable object definitions."', '== 7, "Reference campaign must expose seven reusable object definitions."')
+          replace_once("tools/smoke_encounters.gd", '== 11, "Reference campaign must expose eleven object placements."', '== 12, "Reference campaign must expose twelve object placements."')
+          replace_once("tools/smoke_encounters.gd", '.size() == 6, "Runtime must load the expanded campaign object catalog during ready."', '.size() == 7, "Runtime must load the expanded campaign object catalog during ready."')
+
+          replace_once("tools/smoke_combat_director.gd", '== 2, "Reference campaign must expose two encounter zones."', '== 3, "Reference campaign must expose three encounter zones."')
+          replace_once("tools/smoke_combat_director.gd", '== 6, "Reference object catalog must retain six definitions."', '== 7, "Reference object catalog must retain seven definitions."')
+          replace_once("tools/smoke_combat_director.gd", '== 11, "Reference campaign must retain eleven placements."', '== 12, "Reference campaign must retain twelve placements."')
+          replace_once("tools/smoke_combat_director.gd", '"res://src/merchant_runtime.gd"]', '"res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"]')
+
+          replace_once("tools/smoke_companion_director.gd", '== 2, "Companion validation must retain the two encounter zones."', '== 3, "Companion validation must retain the three encounter zones."')
+          replace_once("tools/smoke_companion_director.gd", '"res://src/merchant_runtime.gd"]', '"res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"]')
+
+          replace_once("tools/smoke_item_forge.gd", '== 11, "Reference campaign must expose eleven inventory and equipment item definitions."', '== 13, "Reference campaign must expose thirteen inventory, equipment and ammunition item definitions."')
+          replace_once("tools/smoke_item_forge.gd", '"res://src/merchant_runtime.gd"]', '"res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"]')
+          replace_once("tools/smoke_item_forge_editor.gd", 'item_count == 11, "Item Forge must display all eleven reference inventory and equipment items."', 'item_count == 13, "Item Forge must display all thirteen reference inventory, equipment and ammunition items."')
+          replace_once("tools/smoke_item_forge_editor.gd", 'item_count == 11, "Recipe output selector must contain every reference inventory and equipment item."', 'item_count == 13, "Recipe output selector must contain every reference inventory, equipment and ammunition item."')
+
+          replace_once("tools/smoke_story_studio.gd", '"res://src/merchant_runtime.gd"]', '"res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"]')
+          replace_once("tools/smoke_save_profiles.gd", '== "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant-aware save runtime."', '== "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal-aware save runtime."')
+          replace_once("tools/smoke_loadout_runtime.gd", '== 5, "Reference campaign must expose five equipment items."', '== 6, "Reference campaign must expose six equipment items."')
+          replace_once("tools/smoke_loadout_runtime.gd", '== "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant-aware runtime."', '== "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal-aware runtime."')
+          replace_once("tools/smoke_loadout_studio.gd", 'item_count == 5, "Reference campaign must expose five equipment items in the editor."', 'item_count == 6, "Reference campaign must expose six equipment items in the editor."')
+          replace_once("tools/smoke_economy_runtime.gd", '== 7, "Reference merchants must expose seven authored stock entries."', '== 9, "Reference merchants must expose nine authored stock entries."')
+          replace_once("tools/smoke_economy_runtime.gd", '== "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant runtime."', '== "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal runtime."')
+          replace_once("tools/smoke_trade_studio.gd", '== 7, "Trade Studio validator must count every authored stock record."', '== 9, "Trade Studio validator must count every authored stock record."')
+
+          # Save migration proves schema 3 -> 4 without guessing loaded rounds.
+          migration_path = "tools/smoke_save_migrations.gd"
+          migration = read(migration_path)
+          migration = migration.replace(
+              '\ttest_schema_two_economy_migration()\n',
+              '\ttest_schema_two_economy_migration()\n\ttest_schema_three_arsenal_migration()\n',
+              1
+          )
+          migration_test = '''\n\nfunc test_schema_three_arsenal_migration() -> void:\n\tvar legacy := valid_profile("Schema three Arsenal migration", 83)\n\tlegacy["schema_version"] = 3\n\tvar payload: Dictionary = legacy.get("payload", {})\n\tpayload.erase("loaded_ammo")\n\tlegacy["payload"] = payload\n\tSaveProfile.refresh_checksum(legacy)\n\tvar migration := SaveProfile.migrate(legacy)\n\tcheck(bool(migration.get("ok", false)), "Schema 3 profile must migrate to the Arsenal-aware schema.")\n\tcheck(bool(migration.get("migrated", false)), "Schema 3 Arsenal migration must report a change.")\n\tcheck(int(migration.get("from_version", -1)) == 3, "Schema 3 migration must preserve the source version.")\n\tvar migrated: Dictionary = migration.get("profile", {})\n\tvar migrated_payload: Dictionary = migrated.get("payload", {})\n\tcheck(int(migrated.get("schema_version", 0)) == SaveProfile.CURRENT_SCHEMA, "Schema 3 profile must migrate to the current schema.")\n\tcheck(typeof(migrated_payload.get("loaded_ammo")) == TYPE_DICTIONARY, "Migration must add loaded-magazine state.")\n\tcheck((migrated_payload.get("loaded_ammo", {}) as Dictionary).is_empty(), "Pre-Arsenal saves must not guess loaded rounds.")\n\tcheck(SaveProfile.checksum_valid(migrated), "Migrated schema 3 profile must receive a valid checksum.")\n'''
+          marker = '\n\nfunc test_default_policy_compatibility() -> void:\n'
+          if migration.count(marker) != 1:
+              raise SystemExit("smoke_save_migrations.gd: default policy marker not found")
+          migration = migration.replace(marker, migration_test + marker, 1)
+          write(migration_path, migration)
+
+          # Save State Studio test covers owned ammunition and a loaded magazine.
+          state_test_path = "tools/smoke_save_state_studio.gd"
+          state_test = read(state_test_path)
+          state_test = state_test.replace(
+              'var equipment_list_value: Variant = studio.get("equipment_list")\n',
+              'var equipment_list_value: Variant = studio.get("equipment_list")\n\tvar loaded_ammo_list_value: Variant = studio.get("loaded_ammo_list")\n',
+              1
+          )
+          state_test = state_test.replace(
+              'check(equipment_list_value is ItemList, "Save State Studio must create an equipment inspector.")\n',
+              'check(equipment_list_value is ItemList, "Save State Studio must create an equipment inspector.")\n\tcheck(loaded_ammo_list_value is ItemList, "Save State Studio must create a loaded-ammunition inspector.")\n',
+              1
+          )
+          state_test = state_test.replace(
+              'check((inventory_list_value as ItemList).item_count == 3, "Inventory inspector must expose all stored item stacks including owned equipment.")',
+              'check((inventory_list_value as ItemList).item_count == 5, "Inventory inspector must expose all stored item stacks including ranged equipment and reserve ammunition.")',
+              1
+          )
+          state_test = state_test.replace(
+              'check((equipment_list_value as ItemList).item_count == 1, "Equipment inspector must expose the stored loadout.")',
+              'check((equipment_list_value as ItemList).item_count == 2, "Equipment inspector must expose the stored loadout.")\n\tif loaded_ammo_list_value is ItemList:\n\t\tcheck((loaded_ammo_list_value as ItemList).item_count == 1, "Loaded-ammunition inspector must expose the stored magazine.")',
+              1
+          )
+          state_test = state_test.replace(
+              'check((sections.get("inventory", []) as Array).size() == 3, "Static profile sections must expose owned equipment within inventory rows.")',
+              'check((sections.get("inventory", []) as Array).size() == 5, "Static profile sections must expose ranged ownership and reserve ammunition.")',
+              1
+          )
+          state_test = state_test.replace(
+              'check((sections.get("equipment", []) as Array).size() == 1, "Static profile sections must expose equipment rows without editor state.")',
+              'check((sections.get("equipment", []) as Array).size() == 2, "Static profile sections must expose equipment rows without editor state.")\n\tcheck((sections.get("loaded_ammo", []) as Array).size() == 1, "Static profile sections must expose loaded-magazine rows.")',
+              1
+          )
+          state_test = state_test.replace(
+              '"inventory": {"museum_tonic": 1, "brass_filings": 2, "museum_flashlight": 1},',
+              '"inventory": {"museum_tonic": 1, "brass_filings": 2, "museum_flashlight": 1, "clockglass_dartcaster": 1, "archive_bolts": 7},',
+              1
+          )
+          state_test = state_test.replace(
+              '"equipment": {"tool": "museum_flashlight"},',
+              '"equipment": {"tool": "museum_flashlight", "weapon": "clockglass_dartcaster"},\n\t\t"loaded_ammo": {"clockglass_dartcaster": 2},',
+              1
+          )
+          write(state_test_path, state_test)
+
+          # Compile, content and local-validation entrypoints include Arsenal.
+          probe_path = "tools/compile_probe.gd"
+          probe = read(probe_path)
+          probe = probe.replace('\t"res://src/merchant_runtime.gd",\n', '\t"res://src/merchant_runtime.gd",\n\t"res://src/arsenal_runtime.gd",\n', 1)
+          probe = probe.replace('\t"res://src/content/economy_validator.gd",\n', '\t"res://src/content/economy_validator.gd",\n\t"res://src/content/arsenal_catalog.gd",\n\t"res://src/content/arsenal_validator.gd",\n', 1)
+          probe = probe.replace('\t"res://src/game/economy_model.gd",\n', '\t"res://src/game/economy_model.gd",\n\t"res://src/game/projectile_model.gd",\n', 1)
+          probe = probe.replace('\t"res://addons/epochbound_trade_studio/plugin.gd",\n', '\t"res://addons/epochbound_trade_studio/plugin.gd",\n\t"res://addons/epochbound_arsenal_studio/arsenal_studio.gd",\n\t"res://addons/epochbound_arsenal_studio/plugin.gd",\n', 1)
+          probe = probe.replace('\t"res://tools/smoke_economy_validation_edges.gd",\n', '\t"res://tools/smoke_economy_validation_edges.gd",\n\t"res://tools/smoke_arsenal_runtime.gd",\n\t"res://tools/smoke_arsenal_studio.gd",\n\t"res://tools/smoke_arsenal_validation_edges.gd",\n', 1)
+          probe = probe.replace('all nine editors', 'all ten editors', 1)
+          write(probe_path, probe)
+
+          validate_path = "tools/validate_content.gd"
+          validate = read(validate_path)
+          validate = validate.replace('const EquipmentValidator = preload("res://src/content/economy_validator.gd")', 'const EquipmentValidator = preload("res://src/content/arsenal_validator.gd")', 1)
+          validate = validate.replace(
+              '%d stock entry(s), %d warning(s), %d error(s).',
+              '%d stock entry(s), %d ammunition type(s), %d ranged weapon(s), %d ranged enemy profile(s), %d warning(s), %d error(s).',
+              1
+          )
+          validate = validate.replace(
+              '\t\t\treport.get("merchant_stock_count", 0),\n\t\t\treport.get("warnings", []).size(),',
+              '\t\t\treport.get("merchant_stock_count", 0),\n\t\t\treport.get("ammunition_count", 0),\n\t\t\treport.get("ranged_weapon_count", 0),\n\t\t\treport.get("ranged_enemy_count", 0),\n\t\t\treport.get("warnings", []).size(),',
+              1
+          )
+          write(validate_path, validate)
+
+          ps_path = "scripts/validate.ps1"
+          ps = read(ps_path)
+          marker = '    Write-Host "`nEpochbound project and all nine authoring systems passed complete merchant-aware validation."\n'
+          addition = '''    Invoke-GodotStep "Smoke test Arsenal ranged combat and durable magazines" @(\n        "--headless", "--path", $ProjectRoot,\n        "--script", "res://tools/smoke_arsenal_runtime.gd"\n    )\n\n    Invoke-GodotStep "Smoke test Arsenal Studio editor state" @(\n        "--headless", "--path", $ProjectRoot,\n        "--script", "res://tools/smoke_arsenal_studio.gd"\n    )\n\n    Invoke-GodotStep "Smoke test malformed ranged weapons ammunition enemies and saves" @(\n        "--headless", "--path", $ProjectRoot,\n        "--script", "res://tools/smoke_arsenal_validation_edges.gd"\n    )\n\n    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."\n'''
+          if ps.count(marker) != 1:
+              raise SystemExit("scripts/validate.ps1: final validation marker not found")
+          ps = ps.replace(marker, addition, 1)
+          write(ps_path, ps)
+
+      - name: Commit integrated Arsenal slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A ':!.github/workflows/apply-arsenal-integration.yml'
+          git commit -m "feat: integrate Arsenal runtime editor content and saves"
+          git push origin HEAD:work/arsenal-ranged-foundation-20260730

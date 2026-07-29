@@ -1,0 +1,134 @@
+name: Apply reference boss data
+
+on:
+  push:
+    branches: [work/boss-phase-foundation-20260730]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/boss-phase-foundation-20260730
+      - name: Author boss and reinforcement records
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          runtime = Path("src/boss_runtime.gd")
+          text = runtime.read_text(encoding="utf-8")
+          old = "var boundary_health := maxi(1, int(ceil(float(maximum) * threshold)))"
+          if text.count(old) != 1:
+              raise SystemExit("Boss phase boundary marker missing")
+          runtime.write_text(text.replace(old, "var boundary_health := maxi(1, int(floor(float(maximum) * threshold)))"), encoding="utf-8", newline="\n")
+
+          objects_path = Path("campaigns/epochbound_demo/objects/core.json")
+          data = json.loads(objects_path.read_text(encoding="utf-8"))
+          sentinel = next(x for x in data["objects"] if x["id"] == "underworks_sentinel")
+          sentinel.update({
+              "max_health": 54,
+              "move_speed": 32,
+              "awareness_radius": 230,
+              "attack_radius": 160,
+              "attack_damage": 4,
+              "attack_cooldown": 1.45,
+              "attack_windup": 0.58,
+              "patrol_radius": 18,
+              "leash_radius": 0,
+              "return_speed_multiplier": 0.9,
+              "target_memory": 1.1,
+              "stagger_duration": 0.16,
+              "knockback_distance": 12,
+              "contact_knockback": 14,
+              "ranged_attack": {"projectile_speed": 210, "projectile_range": 260, "projectile_radius": 4, "knockback_distance": 18, "projectile_color": "e4674d"},
+              "reward": 3,
+              "boss": {
+                  "enabled": True,
+                  "arena_zone_id": "underworks_gallery_watch",
+                  "outcome_state_key": "underworks:boss:sentinel",
+                  "intro_message": "The Underworks Sentinel closes the catalogue and seals the gallery.",
+                  "defeat_message": "The Sentinel releases the missing accession and the gallery breathes again.",
+                  "lock_connection_ids": ["west_to_bellweather"],
+                  "allow_era_shift": True,
+                  "arena_bounds": {"left": 280, "right": 590, "top": 112, "bottom": 312},
+                  "defeat_effects": [
+                      {"type": "grant_clock_shards", "amount": 5},
+                      {"type": "grant_currency", "currency_id": "archive_chits", "amount": 15},
+                      {"type": "set_state", "key": "underworks:boss:archive_released", "value": True}
+                  ],
+                  "phases": [
+                      {
+                          "id": "catalogue_measure", "display_name": "Catalogue Measure", "health_ratio_at_or_below": 1.0,
+                          "available_eras": ["verdant"], "on_enter_message": "The Sentinel indexes every living movement.",
+                          "transition_duration": 0.55, "move_speed_multiplier": 0.78, "attack_cooldown_multiplier": 1.0,
+                          "attack_damage_multiplier": 1.0, "attack_windup": 0.58, "reinforcement_placements": [],
+                          "ranged_attack_override": {"projectile_speed": 190, "projectile_color": "d6c879"},
+                          "attack_pattern": [
+                              {"type": "aimed_shot", "count": 1, "damage_multiplier": 1.0},
+                              {"type": "pause", "duration": 0.5},
+                              {"type": "fan_shot", "count": 3, "spread_degrees": 28, "damage_multiplier": 0.85},
+                              {"type": "pause", "duration": 0.5}
+                          ]
+                      },
+                      {
+                          "id": "cinder_measure", "display_name": "Cinder Measure", "health_ratio_at_or_below": 1.0,
+                          "available_eras": ["ashen"], "on_enter_message": "The burned catalogue remembers how the gallery ended.",
+                          "transition_duration": 0.55, "move_speed_multiplier": 0.92, "attack_cooldown_multiplier": 0.92,
+                          "attack_damage_multiplier": 1.0, "attack_windup": 0.55, "reinforcement_placements": [],
+                          "ranged_attack_override": {"projectile_speed": 220, "projectile_color": "e4674d"},
+                          "attack_pattern": [
+                              {"type": "fan_shot", "count": 3, "spread_degrees": 34, "damage_multiplier": 0.9},
+                              {"type": "pause", "duration": 0.5},
+                              {"type": "aimed_shot", "count": 1, "damage_multiplier": 1.1},
+                              {"type": "pause", "duration": 0.45}
+                          ]
+                      },
+                      {
+                          "id": "last_accession", "display_name": "Last Accession", "health_ratio_at_or_below": 0.55,
+                          "available_eras": [], "on_enter_message": "Two curator echoes step out of the missing hour.",
+                          "transition_duration": 0.7, "move_speed_multiplier": 1.15, "attack_cooldown_multiplier": 0.82,
+                          "attack_damage_multiplier": 1.15, "attack_windup": 0.48,
+                          "reinforcement_placements": ["curator_echo_west", "curator_echo_east"],
+                          "ranged_attack_override": {"projectile_speed": 250, "projectile_range": 280, "projectile_color": "f08a56"},
+                          "attack_pattern": [
+                              {"type": "fan_shot", "count": 5, "spread_degrees": 52, "damage_multiplier": 0.82},
+                              {"type": "pause", "duration": 0.55},
+                              {"type": "radial_burst", "count": 8, "spread_degrees": 360, "damage_multiplier": 0.72},
+                              {"type": "pause", "duration": 0.65}
+                          ]
+                      }
+                  ]
+              }
+          })
+          objects_path.write_text(json.dumps(data, indent="\t", ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+          map_path = Path("campaigns/epochbound_demo/maps/museum_underworks.json")
+          map_data = json.loads(map_path.read_text(encoding="utf-8"))
+          placements = map_data["object_placements"]
+          sentinel_placement = next(x for x in placements if x["id"] == "underworks_sentinel")
+          sentinel_placement["available_eras"] = []
+          placements[:] = [x for x in placements if x.get("id") not in {"curator_echo_west", "curator_echo_east"}]
+          placements.extend([
+              {"id": "curator_echo_west", "object_id": "ash_hound", "position": {"x": 400, "y": 224}, "facing": "right", "available_eras": [], "state_key": "underworks:curator_echo_west", "boss_reinforcement": {"boss_placement_id": "underworks_sentinel", "phase_id": "last_accession"}},
+              {"id": "curator_echo_east", "object_id": "ash_hound", "position": {"x": 435, "y": 224}, "facing": "left", "available_eras": [], "state_key": "underworks:curator_echo_east", "boss_reinforcement": {"boss_placement_id": "underworks_sentinel", "phase_id": "last_accession"}}
+          ])
+          zone = next(x for x in map_data["encounter_zones"] if x["id"] == "underworks_gallery_watch")
+          zone.update({"display_name": "Underworks Sentinel Gallery", "position": {"x": 455, "y": 224}, "radius": 150, "activation_radius": 190, "leash_padding": 34, "enemy_placements": ["underworks_sentinel", "curator_echo_west", "curator_echo_east"], "available_eras": [], "clear_state_key": "underworks:zone:gallery_watch"})
+          map_path.write_text(json.dumps(map_data, indent="\t", ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-boss-data.yml").unlink()
+      - name: Commit reference boss data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: author Underworks Sentinel boss phases"
+          git push origin HEAD:work/boss-phase-foundation-20260730

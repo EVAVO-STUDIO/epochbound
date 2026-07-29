@@ -180,10 +180,13 @@ func interact() -> void:
 	var best_index := nearest_story_entity_index()
 	if best_index >= 0:
 		var entity: Dictionary = runtime_entities[best_index]
+		var definition_data: Dictionary = entity.get("definition", {})
+		if not authored_requirements_met(definition_data):
+			dialogue = authored_blocked_message(definition_data)
+			return
 		if StoryEncounterModel.kind(entity) == "pickup":
 			collect_pickup(best_index)
 			return
-		var definition_data: Dictionary = entity.get("definition", {})
 		var conversation_id := str(definition_data.get("conversation_id", "")).strip_edges()
 		if not conversation_id.is_empty() and start_conversation(conversation_id):
 			apply_story_effects(StoryCatalog.effects(definition_data, "story_effects"), false)
@@ -197,6 +200,9 @@ func interact() -> void:
 			dialogue = "%s sniffs the wind, then looks toward the nearest unfinished story." % companion_name().capitalize()
 		else:
 			dialogue = "Nothing answers yet."
+		return
+	if not authored_requirements_met(interaction):
+		dialogue = authored_blocked_message(interaction)
 		return
 	if not StoryModel.conditions_met(StoryCatalog.conditions(interaction, "story_conditions"), story_context()):
 		dialogue = str(interaction.get("blocked_dialogue", "Nothing changes yet."))

@@ -252,7 +252,7 @@ func update_game(delta: float) -> void:
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if direction.length_squared() > 0.01:
 		facing = direction.normalized()
-		move_actor("player", player + facing * PLAYER_SPEED * delta)
+		move_actor("player", player + facing * player_move_speed_value() * delta)
 	if companion_enabled():
 		update_companion(delta)
 	if transition_lock <= 0.0:
@@ -348,6 +348,9 @@ func shift_to_next_era() -> void:
 func travel_through(connection: Dictionary) -> bool:
 	if transition_lock > 0.0:
 		return false
+	if not authored_requirements_met(connection):
+		dialogue = authored_blocked_message(connection)
+		return false
 	var target_map := String(connection.get("target_map", ""))
 	var target_entry := String(connection.get("target_entry", ""))
 	var target_era := String(connection.get("target_era", "same"))
@@ -374,7 +377,22 @@ func interact() -> void:
 		else:
 			dialogue = "Nothing answers yet."
 	else:
-		dialogue = dialogue_for(closest)
+		if authored_requirements_met(closest):
+			dialogue = dialogue_for(closest)
+		else:
+			dialogue = authored_blocked_message(closest)
+
+
+func player_move_speed_value() -> float:
+	return PLAYER_SPEED
+
+
+func authored_requirements_met(_record: Dictionary) -> bool:
+	return true
+
+
+func authored_blocked_message(record: Dictionary) -> String:
+	return str(record.get("blocked_dialogue", "You cannot use this yet."))
 
 
 func dialogue_for(interaction: Dictionary) -> String:

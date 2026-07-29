@@ -6,6 +6,7 @@ const ALLOWED_NODE_KINDS := ["line", "choice", "end"]
 const ALLOWED_CONDITION_TYPES := [
 	"always",
 	"has_item",
+	"has_capability",
 	"state_equals",
 	"quest_status",
 	"quest_stage",

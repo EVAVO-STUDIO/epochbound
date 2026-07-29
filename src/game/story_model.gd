@@ -106,6 +106,11 @@ static func condition_met(condition: Dictionary, context: Dictionary) -> bool:
 		"has_item":
 			var inventory: Dictionary = context.get("inventory", {})
 			return InventoryModel.count(inventory, str(condition.get("item_id", ""))) >= maxi(1, int(condition.get("quantity", 1)))
+		"has_capability":
+			var capabilities_value: Variant = context.get("capabilities", [])
+			if typeof(capabilities_value) not in [TYPE_ARRAY, TYPE_PACKED_STRING_ARRAY]:
+				return false
+			return capabilities_value.has(str(condition.get("capability_id", "")))
 		"state_equals":
 			var state: Dictionary = context.get("session_state", {})
 			var key := str(condition.get("key", ""))

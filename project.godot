@@ -24,7 +24,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg", "res://addons/epochbound_item_forge/plugin.cfg", "res://addons/epochbound_story_studio/plugin.cfg", "res://addons/epochbound_save_state_studio/plugin.cfg")
+enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg", "res://addons/epochbound_item_forge/plugin.cfg", "res://addons/epochbound_story_studio/plugin.cfg", "res://addons/epochbound_save_state_studio/plugin.cfg", "res://addons/epochbound_loadout_studio/plugin.cfg")
 
 [rendering]
 

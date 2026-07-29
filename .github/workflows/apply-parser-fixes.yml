@@ -1,0 +1,70 @@
+name: Apply targeted Godot parser fixes
+
+on:
+  push:
+    branches:
+      - work/encounter-studio-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Apply and remove one-time parser patch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/encounter-studio-foundation-20260729
+
+      - name: Apply exact source transformations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app_path = Path("src/app.gd")
+          app = app_path.read_text(encoding="utf-8")
+          old_count = app.count("draw_multiline(")
+          if old_count != 2:
+              raise SystemExit(f"Expected exactly 2 custom draw_multiline occurrences, found {old_count}.")
+          app = app.replace("draw_multiline(", "draw_text_lines(")
+          app_path.write_text(app, encoding="utf-8", newline="\n")
+
+          studio_path = Path("addons/epochbound_encounter_studio/encounter_studio.gd")
+          studio = studio_path.read_text(encoding="utf-8")
+          old = '''\tfor selector in [placement_object_selector, placement_definition_selector]:
+          \t\tselector.clear()
+          \t\tfor object_id in ordered_definition_ids:
+          \t\t\tvar definition_data := ObjectCatalog.definition(definitions, object_id)
+          \t\t\tvar index := selector.item_count
+          \t\t\tselector.add_item(String(definition_data.get("display_name", object_id)))
+          \t\t\tselector.set_item_metadata(index, object_id)
+          '''
+          new = '''\tfor selector_value in [placement_object_selector, placement_definition_selector]:
+          \t\tvar selector: OptionButton = selector_value
+          \t\tselector.clear()
+          \t\tfor object_id in ordered_definition_ids:
+          \t\t\tvar definition_data := ObjectCatalog.definition(definitions, object_id)
+          \t\t\tvar index: int = selector.item_count
+          \t\t\tselector.add_item(str(definition_data.get("display_name", object_id)))
+          \t\t\tselector.set_item_metadata(index, object_id)
+          '''
+          if old not in studio:
+              raise SystemExit("Encounter Studio selector block did not match the reviewed source.")
+          studio = studio.replace(old, new, 1)
+          studio_path.write_text(studio, encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-parser-fixes.yml").unlink()
+
+      - name: Commit targeted fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.gd addons/epochbound_encounter_studio/encounter_studio.gd .github/workflows/apply-parser-fixes.yml
+          git commit -m "fix: resolve Godot 4.6 parser conflicts"
+          git push origin HEAD:work/encounter-studio-foundation-20260729

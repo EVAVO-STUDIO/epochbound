@@ -24,7 +24,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg")
+enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg")
 
 [rendering]
 
@@ -60,6 +60,10 @@ move_down={
 interact={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":69), Object(InputEventKey,"physical_keycode":90), Object(InputEventJoypadButton,"button_index":0)]
+}
+attack={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":32), Object(InputEventKey,"physical_keycode":67), Object(InputEventJoypadButton,"button_index":1)]
 }
 era_shift={
 "deadzone": 0.2,

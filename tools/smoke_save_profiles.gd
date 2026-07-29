@@ -39,7 +39,7 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/equipment_runtime.gd", "Runtime scene must bind the equipment-aware save runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant-aware save runtime.")
 	root.add_child(runtime)
 	check(runtime.has_method("capture_save_profile"), "Runtime must expose deterministic profile capture.")
 	check(runtime.has_method("load_profile_from_slot"), "Runtime must expose slot restoration.")

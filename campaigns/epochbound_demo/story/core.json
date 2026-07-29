@@ -338,6 +338,11 @@
 				{
 					"type": "grant_clock_shards",
 					"amount": 1
+				},
+				{
+					"type": "grant_currency",
+					"currency_id": "archive_chits",
+					"amount": 12
 				}
 			]
 		}

@@ -131,6 +131,9 @@ static func condition_met(condition: Dictionary, context: Dictionary) -> bool:
 			return str(context.get("era_id", "")) == str(condition.get("era_id", ""))
 		"clock_shards_at_least":
 			return int(context.get("clock_shards", 0)) >= maxi(0, int(condition.get("amount", 0)))
+		"currency_at_least":
+			var balances: Dictionary = context.get("currency_balances", {})
+			return int(balances.get(str(condition.get("currency_id", "")), 0)) >= maxi(0, int(condition.get("amount", 0)))
 		_:
 			return false
 

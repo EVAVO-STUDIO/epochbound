@@ -13,7 +13,8 @@ const COMBAT_RUNTIME_PATHS := [
 	"res://src/inventory_runtime.gd",
 	"res://src/story_runtime.gd",
 	"res://src/save_runtime.gd",
-	"res://src/equipment_runtime.gd"
+	"res://src/equipment_runtime.gd",
+	"res://src/merchant_runtime.gd"
 ]
 
 var failures: Array[String] = []
@@ -26,8 +27,8 @@ func _initialize() -> void:
 func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass catalog and placement validation.")
-	check(int(validation.get("definition_count", 0)) == 4, "Reference campaign must expose four reusable object definitions.")
-	check(int(validation.get("placement_count", 0)) == 9, "Reference campaign must expose nine object placements.")
+	check(int(validation.get("definition_count", 0)) == 6, "Reference campaign must expose six reusable object definitions.")
+	check(int(validation.get("placement_count", 0)) == 11, "Reference campaign must expose eleven object placements.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -45,8 +46,8 @@ func run_smoke_test() -> void:
 	var session_state: Dictionary = {}
 	var verdant_entities := EncounterModel.instantiate_entities(bell, definitions, "verdant", session_state)
 	var ashen_entities := EncounterModel.instantiate_entities(bell, definitions, "ashen", session_state)
-	check(verdant_entities.size() == 3, "Verdant Bellweather must instantiate the crate, archivist and shard.")
-	check(ashen_entities.size() == 2, "Ashen Bellweather must instantiate the crate and Ash Hound.")
+	check(verdant_entities.size() == 4, "Verdant Bellweather must instantiate the crate, archivist, provisioner and shard.")
+	check(ashen_entities.size() == 3, "Ashen Bellweather must instantiate the crate, provisioner and Ash Hound.")
 	var crate_index := EncounterModel.nearest_entity_index(verdant_entities, Vector2(368, 248), ["prop"], 8.0)
 	check(crate_index >= 0, "Placed crate must be discoverable by kind and position.")
 	check(EncounterModel.position_is_blocked_by_entities(verdant_entities, Vector2(368, 248), 7.0), "Solid placed props must block actors.")
@@ -55,7 +56,7 @@ func run_smoke_test() -> void:
 	var shard_key := "bellweather:clock_shard"
 	session_state[shard_key] = "collected"
 	var collected_entities := EncounterModel.instantiate_entities(bell, definitions, "verdant", session_state)
-	check(collected_entities.size() == 2, "Collected pickups must not respawn from the same persistent state key.")
+	check(collected_entities.size() == 3, "Collected pickups must not respawn while persistent merchant NPCs remain.")
 
 	probe_runtime_scene()
 	finish()
@@ -86,7 +87,7 @@ func probe_runtime_scene() -> void:
 	var loaded_definitions: Variant = runtime.get("object_definitions")
 	check(typeof(loaded_definitions) == TYPE_DICTIONARY, "Runtime object definitions must be a dictionary.")
 	if typeof(loaded_definitions) == TYPE_DICTIONARY:
-		check((loaded_definitions as Dictionary).size() == 4, "Runtime must load the campaign object catalog during ready.")
+		check((loaded_definitions as Dictionary).size() == 6, "Runtime must load the expanded campaign object catalog during ready.")
 	check(runtime.has_method("sync_runtime_entities"), "Runtime must expose entity synchronisation.")
 	check(runtime.has_method("perform_player_attack"), "Runtime must expose the player attack contract.")
 	if runtime.has_method("sync_runtime_entities"):
@@ -94,7 +95,7 @@ func probe_runtime_scene() -> void:
 		runtime.call("sync_runtime_entities", false)
 	var runtime_entities_value: Variant = runtime.get("runtime_entities")
 	var runtime_entities: Array = runtime_entities_value if typeof(runtime_entities_value) == TYPE_ARRAY else []
-	check(runtime_entities.size() == 2, "Runtime must resolve era-scoped Bellweather entities.")
+	check(runtime_entities.size() == 3, "Runtime must resolve era-scoped Bellweather entities including the provisioner.")
 	if runtime.has_method("perform_player_attack"):
 		runtime.set("player", Vector2(380, 216))
 		runtime.set("facing", Vector2.RIGHT)

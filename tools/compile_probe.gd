@@ -13,6 +13,7 @@ const TARGETS := [
 	"res://src/story_runtime.gd",
 	"res://src/save_runtime.gd",
 	"res://src/equipment_runtime.gd",
+	"res://src/merchant_runtime.gd",
 	"res://src/content/combat_director_validator.gd",
 	"res://src/content/companion_validator.gd",
 	"res://src/content/item_catalog.gd",
@@ -24,11 +25,14 @@ const TARGETS := [
 	"res://src/content/save_validator.gd",
 	"res://src/content/equipment_catalog.gd",
 	"res://src/content/equipment_validator.gd",
+	"res://src/content/economy_catalog.gd",
+	"res://src/content/economy_validator.gd",
 	"res://src/game/encounter_zone_model.gd",
 	"res://src/game/companion_model.gd",
 	"res://src/game/inventory_model.gd",
 	"res://src/game/story_model.gd",
 	"res://src/game/equipment_model.gd",
+	"res://src/game/economy_model.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio.gd",
 	"res://addons/epochbound_campaign_studio/world_builder_studio.gd",
 	"res://addons/epochbound_encounter_studio/encounter_canvas.gd",
@@ -49,6 +53,8 @@ const TARGETS := [
 	"res://addons/epochbound_save_state_studio/plugin.gd",
 	"res://addons/epochbound_loadout_studio/loadout_studio.gd",
 	"res://addons/epochbound_loadout_studio/plugin.gd",
+	"res://addons/epochbound_trade_studio/trade_studio.gd",
+	"res://addons/epochbound_trade_studio/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
@@ -66,6 +72,9 @@ const TARGETS := [
 	"res://tools/smoke_loadout_runtime.gd",
 	"res://tools/smoke_loadout_studio.gd",
 	"res://tools/smoke_equipment_validation_edges.gd",
+	"res://tools/smoke_economy_runtime.gd",
+	"res://tools/smoke_trade_studio.gd",
+	"res://tools/smoke_economy_validation_edges.gd",
 	"res://src/app.tscn"
 ]
 
@@ -83,7 +92,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, all eight editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: runtime, all nine editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

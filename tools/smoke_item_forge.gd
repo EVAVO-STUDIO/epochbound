@@ -18,7 +18,7 @@ func _initialize() -> void:
 func run_smoke_test() -> void:
 	var validation := ItemValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass item and recipe validation.")
-	check(int(validation.get("item_count", 0)) == 10, "Reference campaign must expose ten inventory and equipment item definitions.")
+	check(int(validation.get("item_count", 0)) == 11, "Reference campaign must expose eleven inventory and equipment item definitions.")
 	check(int(validation.get("recipe_count", 0)) == 2, "Reference campaign must expose two recipe definitions.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
@@ -74,7 +74,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd"],
 			"Runtime scene must bind an inventory-capable runtime."
 		)
 	root.add_child(runtime)

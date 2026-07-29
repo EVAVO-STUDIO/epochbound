@@ -20,8 +20,8 @@ func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass Combat Director validation.")
 	check(int(validation.get("zone_count", 0)) == 2, "Reference campaign must expose two encounter zones.")
-	check(int(validation.get("definition_count", 0)) == 4, "Reference object catalog must retain four definitions.")
-	check(int(validation.get("placement_count", 0)) == 9, "Reference campaign must retain nine placements.")
+	check(int(validation.get("definition_count", 0)) == 6, "Reference object catalog must retain six definitions.")
+	check(int(validation.get("placement_count", 0)) == 11, "Reference campaign must retain eleven placements.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -75,7 +75,7 @@ func probe_runtime_scene() -> void:
 	if script_value is GDScript:
 		var runtime_path := str((script_value as GDScript).resource_path)
 		check(
-			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"],
+			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd"],
 			"Runtime scene must bind a Combat Director-capable runtime."
 		)
 	root.add_child(runtime)

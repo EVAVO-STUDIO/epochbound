@@ -146,18 +146,24 @@ static func create_map(campaign_path: String, raw_id: String, display_name: Stri
 		return save_result
 	return {"ok": true, "map_path": map_path, "errors": []}
 
-static func find_map_path(campaign_path: String, campaign: Dictionary, map_id: String) -> String:
-	var first_path := ""
+static func find_exact_map_path(campaign_path: String, campaign: Dictionary, map_id: String) -> String:
 	for relative_path in campaign.get("map_files", []):
 		var candidate := campaign_path.get_base_dir().path_join(String(relative_path))
-		if first_path.is_empty():
-			first_path = candidate
 		var result := read_json(candidate)
-		if result.get("ok", false):
-			var map_data: Dictionary = result.get("data", {})
-			if String(map_data.get("id", "")) == map_id:
-				return candidate
-	return first_path
+		if not result.get("ok", false):
+			continue
+		var map_data: Dictionary = result.get("data", {})
+		if String(map_data.get("id", "")) == map_id:
+			return candidate
+	return ""
+
+static func find_map_path(campaign_path: String, campaign: Dictionary, map_id: String) -> String:
+	var exact := find_exact_map_path(campaign_path, campaign, map_id)
+	if not exact.is_empty():
+		return exact
+	for relative_path in campaign.get("map_files", []):
+		return campaign_path.get_base_dir().path_join(String(relative_path))
+	return ""
 
 static func vector_to_data(value: Vector2) -> Dictionary:
 	return {"x": snappedf(value.x, 0.001), "y": snappedf(value.y, 0.001)}
@@ -236,10 +242,51 @@ static func default_map(map_id: String, display_name: String) -> Dictionary:
 				]
 			}
 		],
+		"terrain_palette": [
+			{
+				"id": "grass",
+				"display_name": "Grass",
+				"colors": {"default": "4f6550", "verdant": "5f7958", "ashen": "55483d"},
+				"blocked": false
+			},
+			{
+				"id": "path",
+				"display_name": "Path",
+				"colors": {"default": "8a7657", "verdant": "9b865f", "ashen": "75604c"},
+				"blocked": false
+			},
+			{
+				"id": "water",
+				"display_name": "Water",
+				"colors": {"default": "365a68", "verdant": "3f7180", "ashen": "493f49"},
+				"blocked": true
+			},
+			{
+				"id": "cliff",
+				"display_name": "Cliff",
+				"colors": {"default": "343c3b", "verdant": "45534a", "ashen": "3e3331"},
+				"blocked": true
+			}
+		],
+		"terrain_cells": [],
+		"collision_cells": [],
+		"navigation_cells": [],
+		"recovery_anchors": [
+			{"id": "start_recovery", "position": {"x": 280, "y": 232}, "available_eras": []}
+		],
+		"entry_points": [
+			{
+				"id": "start",
+				"player": {"x": 320, "y": 224},
+				"companion": {"x": 280, "y": 232},
+				"available_eras": []
+			}
+		],
 		"layers": [
 			{"id": "ground", "type": "terrain", "z_index": 0, "visible": true, "locked": false},
 			{"id": "objects", "type": "objects", "z_index": 10, "visible": true, "locked": false},
-			{"id": "collision", "type": "collision", "z_index": 20, "visible": true, "locked": false}
+			{"id": "collision", "type": "collision", "z_index": 20, "visible": true, "locked": false},
+			{"id": "navigation", "type": "navigation", "z_index": 30, "visible": true, "locked": false}
 		],
 		"interactions": [],
 		"connections": []

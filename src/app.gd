@@ -1,16 +1,21 @@
 extends Node2D
 
-# Phase 2: the playable reference slice is driven by the same campaign data
-# that the editor creates and validates.
+# The playable runtime consumes exactly the same campaign and world records as
+# Campaign Studio. Placeholder drawing keeps every gameplay contract testable
+# before final pixel art is introduced.
 
 const CampaignRepository = preload("res://src/content/campaign_repository.gd")
 const CampaignValidator = preload("res://src/content/campaign_validator.gd")
+const MapModel = preload("res://src/content/map_model.gd")
 const DEFAULT_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const VIEW := Vector2(640, 360)
 const PLAYER_SPEED := 105.0
 const COMPANION_SPEED := 132.0
 const COMPANION_FOLLOW_DISTANCE := 34.0
 const COMPANION_RECOVERY_DISTANCE := 300.0
+const PLAYER_RADIUS := 7.0
+const COMPANION_RADIUS := 6.0
+
 
 enum Flow { SPLASH, TITLE, CAMPAIGN_SELECT, INTRO, GAME, PAUSED }
 
@@ -24,6 +29,7 @@ var companion := Vector2(270, 230)
 var facing := Vector2.DOWN
 var dialogue := ""
 var shift_lock := 0.0
+var transition_lock := 0.0
 var campaign_path := DEFAULT_CAMPAIGN_PATH
 var campaign: Dictionary = {}
 var map_data: Dictionary = {}
@@ -31,15 +37,18 @@ var current_era_id := ""
 var campaign_catalog: Array = []
 var load_error := ""
 
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	refresh_campaign_catalog()
 	load_campaign(DEFAULT_CAMPAIGN_PATH)
 	queue_redraw()
 
+
 func refresh_campaign_catalog() -> void:
 	campaign_catalog = CampaignRepository.scan_playable_campaigns()
 	selected_campaign_index = clampi(selected_campaign_index, 0, maxi(0, campaign_catalog.size() - 1))
+
 
 func load_campaign(path: String) -> bool:
 	var validation := CampaignValidator.validate_campaign_path(path)
@@ -56,26 +65,20 @@ func load_campaign(path: String) -> bool:
 		if campaign.is_empty():
 			load_fallback_campaign()
 		return false
-	var next_campaign: Dictionary = campaign_result.get("data", {})
-	var start_map := String(next_campaign.get("start_map", ""))
-	var map_path := CampaignRepository.find_map_path(path, next_campaign, start_map)
-	var map_result := CampaignRepository.read_json(map_path)
-	if not map_result.get("ok", false):
-		load_error = format_errors(map_result.get("errors", []))
-		push_error("Map load failed: %s" % load_error)
-		if campaign.is_empty():
+	campaign_path = path
+	campaign = campaign_result.get("data", {})
+	var start_map := String(campaign.get("start_map", ""))
+	var start_era := String(campaign.get("start_era", ""))
+	if not activate_map(start_map, "", start_era, false):
+		load_error = "Start map '%s' could not be loaded." % start_map
+		push_error(load_error)
+		if map_data.is_empty():
 			load_fallback_campaign()
 		return false
-	campaign_path = path
-	campaign = next_campaign
-	map_data = map_result.get("data", {})
-	current_era_id = String(campaign.get("start_era", first_era_id()))
-	if current_era_id.is_empty():
-		current_era_id = first_era_id()
 	intro_page = 0
 	load_error = ""
-	reset_actor_positions()
 	return true
+
 
 func load_fallback_campaign() -> void:
 	campaign_path = ""
@@ -84,6 +87,60 @@ func load_fallback_campaign() -> void:
 	current_era_id = first_era_id()
 	reset_actor_positions()
 
+
+func activate_map(
+	map_id: String,
+	entry_id: String = "",
+	requested_era: String = "same",
+	use_transition: bool = true
+) -> bool:
+	var path := CampaignRepository.find_exact_map_path(campaign_path, campaign, map_id)
+	if path.is_empty():
+		return false
+	var result := CampaignRepository.read_json(path)
+	if not result.get("ok", false):
+		return false
+	var next_map: Dictionary = result.get("data", {})
+	var previous_era := current_era_id
+	var next_era := requested_era
+	if next_era.is_empty() or next_era == "same":
+		next_era = previous_era if map_has_era(next_map, previous_era) else first_era_id_for(next_map)
+	elif not map_has_era(next_map, next_era):
+		next_era = first_era_id_for(next_map)
+	map_data = next_map
+	current_era_id = next_era
+	reset_actor_positions(entry_id)
+	dialogue = ""
+	transition_lock = 0.8 if use_transition else 0.0
+	return true
+
+
+func reset_actor_positions(entry_id: String = "") -> void:
+	var spawns: Dictionary = map_data.get("spawns", {})
+	var player_fallback := CampaignRepository.data_to_vector(spawns.get("player"), Vector2(312, 220))
+	var companion_fallback := CampaignRepository.data_to_vector(spawns.get("companion"), Vector2(270, 230))
+	if not entry_id.is_empty():
+		var entry := MapModel.find_entry_point(map_data, entry_id, current_era_id)
+		if not entry.is_empty():
+			player = MapModel.entry_position(entry, "player", player_fallback)
+			companion = MapModel.entry_position(entry, "companion", companion_fallback)
+		else:
+			player = player_fallback
+			companion = companion_fallback
+	else:
+		player = player_fallback
+		companion = companion_fallback
+	player = recover_if_blocked(player, player_fallback, PLAYER_RADIUS)
+	companion = recover_if_blocked(companion, companion_fallback, COMPANION_RADIUS)
+
+
+func recover_if_blocked(position: Vector2, fallback: Vector2, radius: float) -> Vector2:
+	if not MapModel.is_position_blocked(map_data, position, current_era_id, radius):
+		return clamp_point_to_bounds(position, radius)
+	var recovered := MapModel.nearest_recovery_point(map_data, position, current_era_id, fallback)
+	return clamp_point_to_bounds(recovered, radius)
+
+
 func format_errors(value: Variant) -> String:
 	var lines := PackedStringArray()
 	if typeof(value) == TYPE_ARRAY:
@@ -91,14 +148,11 @@ func format_errors(value: Variant) -> String:
 			lines.append(String(message))
 	return " | ".join(lines)
 
-func reset_actor_positions() -> void:
-	var spawns: Dictionary = map_data.get("spawns", {})
-	player = CampaignRepository.data_to_vector(spawns.get("player"), Vector2(312, 220))
-	companion = CampaignRepository.data_to_vector(spawns.get("companion"), Vector2(270, 230))
 
 func _process(delta: float) -> void:
 	elapsed += delta
 	shift_lock = maxf(0.0, shift_lock - delta)
+	transition_lock = maxf(0.0, transition_lock - delta)
 	match flow:
 		Flow.SPLASH:
 			if elapsed > 2.4 or confirm():
@@ -116,17 +170,21 @@ func _process(delta: float) -> void:
 				change_flow(Flow.GAME)
 	queue_redraw()
 
+
 func change_flow(next_flow: int) -> void:
 	flow = next_flow
 	elapsed = 0.0
 	if next_flow != Flow.GAME:
 		dialogue = ""
 
+
 func confirm() -> bool:
 	return Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("ui_accept")
 
+
 func title_menu() -> Array[String]:
 	return ["NEW JOURNEY", "CAMPAIGNS", "QUICK START", "QUIT"]
+
 
 func update_title() -> void:
 	var menu := title_menu()
@@ -147,6 +205,7 @@ func update_title() -> void:
 			3:
 				get_tree().quit()
 
+
 func update_campaign_select() -> void:
 	if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("pause_game"):
 		change_flow(Flow.TITLE)
@@ -162,6 +221,7 @@ func update_campaign_select() -> void:
 		if load_campaign(String(entry.get("path", ""))):
 			change_flow(Flow.INTRO)
 
+
 func update_intro() -> void:
 	if Input.is_action_just_pressed("ui_cancel"):
 		begin_game()
@@ -170,6 +230,7 @@ func update_intro() -> void:
 		if intro_page >= intro_pages().size():
 			begin_game()
 
+
 func begin_game() -> void:
 	reset_actor_positions()
 	current_era_id = String(campaign.get("start_era", first_era_id()))
@@ -177,9 +238,12 @@ func begin_game() -> void:
 		current_era_id = first_era_id()
 	change_flow(Flow.GAME)
 
+
 func update_game(delta: float) -> void:
 	if Input.is_action_just_pressed("pause_game"):
 		change_flow(Flow.PAUSED)
+		return
+	if transition_lock > 0.45:
 		return
 	if not dialogue.is_empty():
 		if confirm() or Input.is_action_just_pressed("ui_cancel"):
@@ -188,10 +252,18 @@ func update_game(delta: float) -> void:
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if direction.length_squared() > 0.01:
 		facing = direction.normalized()
-		player += facing * PLAYER_SPEED * delta
-		clamp_actor_to_map("player")
+		move_actor("player", player + facing * PLAYER_SPEED * delta)
 	if companion_enabled():
 		update_companion(delta)
+	if transition_lock <= 0.0:
+		var touch_connection := MapModel.find_connection_near(
+			map_data,
+			player,
+			current_era_id,
+			"touch"
+		)
+		if not touch_connection.is_empty() and travel_through(touch_connection):
+			return
 	if (
 		Input.is_action_just_pressed("era_shift")
 		and shift_lock <= 0.0
@@ -199,29 +271,59 @@ func update_game(delta: float) -> void:
 	):
 		shift_to_next_era()
 	if Input.is_action_just_pressed("interact"):
+		var connection := MapModel.find_connection_near(
+			map_data,
+			player,
+			current_era_id,
+			"interact"
+		)
+		if not connection.is_empty() and travel_through(connection):
+			return
 		interact()
+
+
+func move_actor(actor_id: String, desired_position: Vector2) -> void:
+	var radius := PLAYER_RADIUS if actor_id == "player" else COMPANION_RADIUS
+	var current := player if actor_id == "player" else companion
+	var target := clamp_point_to_bounds(desired_position, radius)
+	var horizontal := Vector2(target.x, current.y)
+	if not MapModel.is_position_blocked(map_data, horizontal, current_era_id, radius):
+		current.x = horizontal.x
+	var vertical := Vector2(current.x, target.y)
+	if not MapModel.is_position_blocked(map_data, vertical, current_era_id, radius):
+		current.y = vertical.y
+	if actor_id == "player":
+		player = current
+	else:
+		companion = current
+
+
+func clamp_point_to_bounds(position: Vector2, radius: float) -> Vector2:
+	var bounds: Dictionary = map_data.get("bounds", {})
+	var left := float(bounds.get("left", 32.0)) + radius
+	var right := float(bounds.get("right", VIEW.x - 32.0)) - radius
+	var top := float(bounds.get("top", 96.0)) + radius
+	var bottom := float(bounds.get("bottom", VIEW.y - 32.0)) - radius
+	return Vector2(clampf(position.x, left, right), clampf(position.y, top, bottom))
+
 
 func update_companion(delta: float) -> void:
 	var offset := player - companion
 	if offset.length() > COMPANION_RECOVERY_DISTANCE:
-		companion = player - facing * COMPANION_FOLLOW_DISTANCE
-		clamp_actor_to_map("companion")
-	elif offset.length() > COMPANION_FOLLOW_DISTANCE:
-		companion += offset.normalized() * minf(
-			COMPANION_SPEED * delta,
-			offset.length() - COMPANION_FOLLOW_DISTANCE
-		)
-		clamp_actor_to_map("companion")
+		var fallback := player - facing * COMPANION_FOLLOW_DISTANCE
+		companion = MapModel.nearest_recovery_point(map_data, player, current_era_id, fallback)
+		companion = recover_if_blocked(companion, fallback, COMPANION_RADIUS)
+		return
+	if offset.length() <= COMPANION_FOLLOW_DISTANCE:
+		return
+	var desired_follow := player - facing * COMPANION_FOLLOW_DISTANCE
+	var navigation_target := MapModel.navigation_step(map_data, companion, desired_follow, current_era_id)
+	var direction := companion.direction_to(navigation_target)
+	if direction.length_squared() <= 0.001:
+		return
+	var distance := minf(COMPANION_SPEED * delta, companion.distance_to(navigation_target))
+	move_actor("companion", companion + direction * distance)
 
-func clamp_actor_to_map(actor_id: String) -> void:
-	var bounds: Dictionary = map_data.get("bounds", {})
-	var position := player if actor_id == "player" else companion
-	position.x = clampf(position.x, float(bounds.get("left", 32.0)), float(bounds.get("right", VIEW.x - 32.0)))
-	position.y = clampf(position.y, float(bounds.get("top", 96.0)), float(bounds.get("bottom", VIEW.y - 32.0)))
-	if actor_id == "player":
-		player = position
-	else:
-		companion = position
 
 func shift_to_next_era() -> void:
 	var era_ids := all_era_ids()
@@ -230,13 +332,36 @@ func shift_to_next_era() -> void:
 	var index := era_ids.find(current_era_id)
 	current_era_id = String(era_ids[(index + 1) % era_ids.size()])
 	shift_lock = 0.65
+	var spawns: Dictionary = map_data.get("spawns", {})
+	player = recover_if_blocked(
+		player,
+		CampaignRepository.data_to_vector(spawns.get("player"), player),
+		PLAYER_RADIUS
+	)
+	companion = recover_if_blocked(
+		companion,
+		CampaignRepository.data_to_vector(spawns.get("companion"), companion),
+		COMPANION_RADIUS
+	)
+
+
+func travel_through(connection: Dictionary) -> bool:
+	if transition_lock > 0.0:
+		return false
+	var target_map := String(connection.get("target_map", ""))
+	var target_entry := String(connection.get("target_entry", ""))
+	var target_era := String(connection.get("target_era", "same"))
+	return activate_map(target_map, target_entry, target_era, true)
+
 
 func interact() -> void:
 	var closest: Dictionary = {}
-	var closest_distance := 999999.0
+	var closest_distance := INF
 	for value in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
 		var interaction: Dictionary = value
-		if not interaction_is_available(interaction):
+		if not MapModel.available_in_era(interaction, current_era_id):
 			continue
 		var position := CampaignRepository.data_to_vector(interaction.get("position"))
 		var distance := player.distance_to(position)
@@ -251,9 +376,6 @@ func interact() -> void:
 	else:
 		dialogue = dialogue_for(closest)
 
-func interaction_is_available(interaction: Dictionary) -> bool:
-	var available: Array = interaction.get("available_eras", [])
-	return available.is_empty() or available.has(current_era_id)
 
 func dialogue_for(interaction: Dictionary) -> String:
 	var value: Variant = interaction.get("dialogue", "")
@@ -264,65 +386,95 @@ func dialogue_for(interaction: Dictionary) -> String:
 		return String(dialogue_by_era.get(current_era_id, dialogue_by_era.get("default", "...")))
 	return "..."
 
+
 func intro_pages() -> Array:
 	var pages: Variant = campaign.get("intro", [])
-	if typeof(pages) == TYPE_ARRAY and not pages.is_empty():
+	if typeof(pages) == TYPE_ARRAY and not Array(pages).is_empty():
 		return pages
 	return ["A journey begins beyond the edge of the authored world."]
+
 
 func ruleset() -> Dictionary:
 	return campaign.get("ruleset", {})
 
+
 func companion_enabled() -> bool:
 	return bool(ruleset().get("companion_enabled", true))
+
 
 func era_shifting_enabled() -> bool:
 	return bool(ruleset().get("era_shifting_enabled", true))
 
+
 func first_era_id() -> String:
-	for value in map_data.get("eras", []):
-		var era: Dictionary = value
-		return String(era.get("id", ""))
+	return first_era_id_for(map_data)
+
+
+func first_era_id_for(data: Dictionary) -> String:
+	for value in data.get("eras", []):
+		if typeof(value) == TYPE_DICTIONARY:
+			var era: Dictionary = value
+			return String(era.get("id", ""))
 	return ""
+
+
+func map_has_era(data: Dictionary, era_id: String) -> bool:
+	if era_id.is_empty():
+		return false
+	for value in data.get("eras", []):
+		if typeof(value) == TYPE_DICTIONARY and String(Dictionary(value).get("id", "")) == era_id:
+			return true
+	return false
+
 
 func all_era_ids() -> Array:
 	var ids: Array = []
 	for value in map_data.get("eras", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
 		var era: Dictionary = value
 		var era_id := String(era.get("id", ""))
 		if not era_id.is_empty():
 			ids.append(era_id)
 	return ids
 
+
 func current_era() -> Dictionary:
 	for value in map_data.get("eras", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
 		var era: Dictionary = value
 		if String(era.get("id", "")) == current_era_id:
 			return era
 	for value in map_data.get("eras", []):
-		var fallback: Dictionary = value
-		return fallback
+		if typeof(value) == TYPE_DICTIONARY:
+			return value
 	return {}
+
 
 func palette_color(key: String, fallback: String) -> Color:
 	var era_data := current_era()
 	var palette: Dictionary = era_data.get("palette", {})
 	return Color.from_string(String(palette.get(key, fallback)), Color.from_string(fallback, Color.WHITE))
 
+
 func player_name() -> String:
 	var actors: Dictionary = campaign.get("actors", {})
 	var actor: Dictionary = actors.get("player", {})
 	return String(actor.get("name", "HERO"))
+
 
 func companion_name() -> String:
 	var actors: Dictionary = campaign.get("actors", {})
 	var actor: Dictionary = actors.get("companion", {})
 	return String(actor.get("name", "COMPANION"))
 
+
 func actor_health(actor_id: String, fallback: int) -> int:
 	var actors: Dictionary = campaign.get("actors", {})
 	var actor: Dictionary = actors.get(actor_id, {})
 	return int(actor.get("max_health", fallback))
+
 
 func camera_offset() -> Vector2:
 	var canvas: Dictionary = map_data.get("canvas", {})
@@ -331,6 +483,7 @@ func camera_offset() -> Vector2:
 		clampf(player.x - VIEW.x * 0.5, 0.0, maxf(0.0, world_size.x - VIEW.x)),
 		clampf(player.y - VIEW.y * 0.5, 0.0, maxf(0.0, world_size.y - VIEW.y))
 	)
+
 
 func _draw() -> void:
 	match flow:
@@ -348,11 +501,13 @@ func _draw() -> void:
 			draw_game()
 			draw_pause()
 
+
 func draw_splash() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("070a0f"))
 	var pulse := 0.84 + sin(elapsed * 3.0) * 0.12
 	draw_centered("EVAVO STUDIO", 148, 28, Color(0.91, 0.93, 0.96, pulse))
 	draw_centered("PRESENTS", 190, 12, Color("788598"))
+
 
 func draw_title() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("0b1017"))
@@ -371,25 +526,10 @@ func draw_title() -> void:
 	var menu := title_menu()
 	for index in range(menu.size()):
 		var active := index == selected_menu
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(205, 152 + index * 27),
-			"◆" if active else "",
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			14,
-			Color("e7c66b")
-		)
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(229, 152 + index * 27),
-			menu[index],
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			16,
-			Color("fff2c9") if active else Color("76858b")
-		)
+		draw_string(ThemeDB.fallback_font, Vector2(205, 152 + index * 27), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("e7c66b"))
+		draw_string(ThemeDB.fallback_font, Vector2(229, 152 + index * 27), menu[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("fff2c9") if active else Color("76858b"))
 	draw_centered("E / Z / A  CONFIRM     ARROWS  SELECT", 336, 10, Color("58656b"))
+
 
 func draw_campaign_select() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("0a0e14"))
@@ -408,37 +548,14 @@ func draw_campaign_select() -> void:
 		var y := 104 + row * 30
 		if active:
 			draw_rect(Rect2(90, y - 20, 460, 26), Color("1f2a2f"))
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(108, y),
-			"◆" if active else "",
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			13,
-			Color("e7c66b")
-		)
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(132, y),
-			String(entry.get("title", entry.get("id", "Campaign"))),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			300,
-			15,
-			Color("fff2c9") if active else Color("9aa7aa")
-		)
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(455, y),
-			"CUSTOM" if entry.get("source", "built_in") == "user" else "BUILT-IN",
-			HORIZONTAL_ALIGNMENT_LEFT,
-			90,
-			9,
-			Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c")
-		)
+		draw_string(ThemeDB.fallback_font, Vector2(108, y), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e7c66b"))
+		draw_string(ThemeDB.fallback_font, Vector2(132, y), String(entry.get("title", entry.get("id", "Campaign"))), HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("fff2c9") if active else Color("9aa7aa"))
+		draw_string(ThemeDB.fallback_font, Vector2(455, y), "CUSTOM" if entry.get("source", "built_in") == "user" else "BUILT-IN", HORIZONTAL_ALIGNMENT_LEFT, 90, 9, Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c"))
 	if not load_error.is_empty():
 		draw_centered("SELECTED CAMPAIGN COULD NOT BE LOADED", 319, 10, Color("d78f84"))
 	else:
 		draw_centered("CONFIRM TO BEGIN   •   ESC TO RETURN", 329, 10, Color("68747e"))
+
 
 func draw_intro() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("05070a"))
@@ -446,14 +563,12 @@ func draw_intro() -> void:
 	draw_rect(Rect2(58, 52, 524, 242), Color("7b6a4f"), false, 2.0)
 	draw_circle(Vector2(320, 142), 66, Color("26343a"))
 	draw_circle(Vector2(320, 142), 39, Color("d7b666"), false, 3.0)
-	draw_line(
-		Vector2(320, 142),
-		Vector2(320 + cos(elapsed) * 29, 142 + sin(elapsed) * 29),
-		Color("f2df9b"),
-		2.0
-	)
-	draw_multiline_centered(String(intro_pages()[intro_page]), 226, 15, Color("e8e3d5"))
+	draw_line(Vector2(320, 142), Vector2(320 + cos(elapsed) * 29, 142 + sin(elapsed) * 29), Color("f2df9b"), 2.0)
+	var pages := intro_pages()
+	var page_index := clampi(intro_page, 0, maxi(0, pages.size() - 1))
+	draw_multiline_centered(String(pages[page_index]), 226, 15, Color("e8e3d5"))
 	draw_centered("CONFIRM TO CONTINUE   •   ESC TO SKIP", 330, 10, Color("68747e"))
+
 
 func draw_game() -> void:
 	var era_data: Dictionary = current_era()
@@ -466,9 +581,11 @@ func draw_game() -> void:
 	var bounds: Dictionary = map_data.get("bounds", {})
 	var ground_top := float(bounds.get("top", 96.0))
 	draw_rect(Rect2(0, ground_top, width, height - ground_top), palette_color("ground", "4f6550"))
+	draw_terrain_cells()
 	for value in era_data.get("landmarks", []):
-		var landmark: Dictionary = value
-		draw_landmark(landmark)
+		if typeof(value) == TYPE_DICTIONARY:
+			draw_landmark(value)
+	draw_connections()
 	if companion_enabled():
 		draw_companion()
 	draw_player()
@@ -478,6 +595,42 @@ func draw_game() -> void:
 		draw_centered("MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X", 348, 9, Color("d7d0bd"))
 	else:
 		draw_dialogue()
+	if transition_lock > 0.0:
+		var alpha := clampf((transition_lock - 0.12) / 0.68, 0.0, 0.9)
+		draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0.03, 0.04, 0.05, alpha))
+
+
+func draw_terrain_cells() -> void:
+	var ground_fallback := palette_color("ground", "4f6550")
+	for value in MapModel.resolved_cells(map_data, MapModel.TERRAIN_CELLS, current_era_id):
+		var record: Dictionary = value
+		var cell := Vector2i(int(record.get("x", -1)), int(record.get("y", -1)))
+		var tile_id := String(record.get("tile", ""))
+		var rect := MapModel.cell_rect(map_data, cell)
+		var color := MapModel.terrain_color(map_data, tile_id, current_era_id, ground_fallback)
+		draw_rect(rect, color)
+		if tile_id == "water":
+			draw_line(rect.position + Vector2(2, rect.size.y * 0.38), rect.position + Vector2(rect.size.x - 2, rect.size.y * 0.38), color.lightened(0.18), 1.0)
+			draw_line(rect.position + Vector2(3, rect.size.y * 0.68), rect.position + Vector2(rect.size.x - 3, rect.size.y * 0.68), color.lightened(0.1), 1.0)
+		elif tile_id == "cliff":
+			draw_rect(rect.grow(-2.0), color.darkened(0.2), false, 2.0)
+
+
+func draw_connections() -> void:
+	for value in map_data.get("connections", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var connection: Dictionary = value
+		if not MapModel.available_in_era(connection, current_era_id):
+			continue
+		var position := CampaignRepository.data_to_vector(connection.get("position"))
+		var radius := float(connection.get("radius", 24.0))
+		var pulse := 0.55 + sin(elapsed * 3.5) * 0.18
+		draw_circle(position, maxf(7.0, radius * 0.32), Color(0.91, 0.78, 0.35, pulse), false, 2.0)
+		draw_line(position + Vector2(-5, 0), position + Vector2(5, 0), Color("f0d889"), 2.0)
+		draw_line(position + Vector2(2, -3), position + Vector2(5, 0), Color("f0d889"), 2.0)
+		draw_line(position + Vector2(2, 3), position + Vector2(5, 0), Color("f0d889"), 2.0)
+
 
 func draw_landmark(landmark: Dictionary) -> void:
 	var position := CampaignRepository.data_to_vector(landmark.get("position"))
@@ -504,60 +657,33 @@ func draw_landmark(landmark: Dictionary) -> void:
 		_:
 			draw_circle(position, maxf(4.0, size_value * 0.25), accent)
 
+
 func draw_companion() -> void:
 	draw_circle(companion + Vector2(0, -4), 10, Color("3b2a24"))
 	draw_circle(companion + Vector2(9, -9), 6, Color("5a3d2e"))
 	draw_line(companion + Vector2(-7, -6), companion + Vector2(-14, -12), Color("3b2a24"), 3.0)
+
 
 func draw_player() -> void:
 	draw_circle(player + Vector2(0, -13), 8, Color("e2b38a"))
 	draw_rect(Rect2(player + Vector2(-8, -6), Vector2(16, 22)), Color("334b68"))
 	draw_line(player + Vector2(0, 6), player + facing * 18.0, Color("e8d69a"), 3.0)
 
+
 func draw_hud(era_data: Dictionary) -> void:
 	draw_rect(Rect2(10, 9, 236, 46), Color(0.03, 0.04, 0.05, 0.86))
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(21, 29),
-		"%s  %d / %d" % [player_name(), actor_health("player", 32), actor_health("player", 32)],
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		13,
-		Color("f0e5c7")
-	)
+	draw_string(ThemeDB.fallback_font, Vector2(21, 29), "%s  %d / %d" % [player_name(), actor_health("player", 32), actor_health("player", 32)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("f0e5c7"))
 	if companion_enabled():
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(21, 47),
-			"%s  %d / %d" % [companion_name(), actor_health("companion", 24), actor_health("companion", 24)],
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			12,
-			Color("c8b998")
-		)
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(472, 24),
-		String(era_data.get("display_name", current_era_id.capitalize())).to_upper(),
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		11,
-		Color("f3df9b")
-	)
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(472, 42),
-		String(map_data.get("display_name", "MAP")).to_upper(),
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		9,
-		Color("d2c8aa")
-	)
+		draw_string(ThemeDB.fallback_font, Vector2(21, 47), "%s  %d / %d" % [companion_name(), actor_health("companion", 24), actor_health("companion", 24)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c8b998"))
+	draw_string(ThemeDB.fallback_font, Vector2(472, 24), String(era_data.get("display_name", current_era_id.capitalize())).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("f3df9b"))
+	draw_string(ThemeDB.fallback_font, Vector2(472, 42), String(map_data.get("display_name", "MAP")).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("d2c8aa"))
+
 
 func draw_dialogue() -> void:
 	draw_rect(Rect2(24, 270, 592, 72), Color("10151b"))
 	draw_rect(Rect2(24, 270, 592, 72), Color("d0b978"), false, 2.0)
 	draw_multiline(dialogue, Vector2(43, 295), 15, Color("f1ead8"))
+
 
 func draw_pause() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0, 0, 0, 0.62))
@@ -565,23 +691,18 @@ func draw_pause() -> void:
 	draw_centered("JOURNEY PAUSED", 159, 22, Color("f0dfad"))
 	draw_centered("ESC / START TO RETURN", 207, 11, Color("87949b"))
 
+
 func draw_centered(text: String, y: float, size: int, color: Color) -> void:
 	draw_string(ThemeDB.fallback_font, Vector2(0, y), text, HORIZONTAL_ALIGNMENT_CENTER, int(VIEW.x), size, color)
+
 
 func draw_multiline_centered(text: String, y: float, size: int, color: Color) -> void:
 	var lines := text.split("\n")
 	for index in range(lines.size()):
 		draw_centered(lines[index], y + index * (size + 5), size, color)
 
+
 func draw_multiline(text: String, start: Vector2, size: int, color: Color) -> void:
 	var lines := text.split("\n")
 	for index in range(lines.size()):
-		draw_string(
-			ThemeDB.fallback_font,
-			start + Vector2(0, index * (size + 5)),
-			lines[index],
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			size,
-			color
-		)
+		draw_string(ThemeDB.fallback_font, start + Vector2(0, index * (size + 5)), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)

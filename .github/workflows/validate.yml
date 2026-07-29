@@ -43,3 +43,7 @@ jobs:
       - name: Validate campaign content
         shell: bash
         run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd
+
+      - name: Smoke test world model and traversal contracts
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_world_model.gd

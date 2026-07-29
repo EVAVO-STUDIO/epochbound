@@ -438,8 +438,8 @@ func format_report(report: Dictionary) -> String:
 	var lines := PackedStringArray()
 	var errors_value: Variant = report.get("errors", [])
 	var warnings_value: Variant = report.get("warnings", [])
-	var error_count := errors_value.size() if typeof(errors_value) == TYPE_ARRAY else 0
-	var warning_count := warnings_value.size() if typeof(warnings_value) == TYPE_ARRAY else 0
+	var error_count: int = errors_value.size() if typeof(errors_value) == TYPE_ARRAY else 0
+	var warning_count: int = warnings_value.size() if typeof(warnings_value) == TYPE_ARRAY else 0
 	lines.append("Validation completed with %d warning(s) and %d error(s)." % [warning_count, error_count])
 	if typeof(warnings_value) == TYPE_ARRAY:
 		for warning in warnings_value:

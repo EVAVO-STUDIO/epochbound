@@ -90,11 +90,12 @@ static func capability_name(definitions: Dictionary, capability_id: String) -> S
 static func slot_records(campaign: Dictionary) -> Array:
 	var output: Array = []
 	var value: Variant = campaign.get("equipment_slots", [])
-	if typeof(value) != TYPE_ARRAY:
-		return output
-	for slot_value in value:
-		if typeof(slot_value) == TYPE_DICTIONARY:
-			output.append(slot_value)
+	if typeof(value) == TYPE_ARRAY:
+		for slot_value in value:
+			if typeof(slot_value) == TYPE_DICTIONARY:
+				output.append(slot_value)
+	if output.is_empty():
+		return default_slots()
 	return output
 
 

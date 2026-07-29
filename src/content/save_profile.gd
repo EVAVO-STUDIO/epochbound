@@ -201,14 +201,18 @@ static func canonicalize(value: Variant) -> Variant:
 		TYPE_PACKED_INT32_ARRAY, TYPE_PACKED_INT64_ARRAY, TYPE_PACKED_FLOAT32_ARRAY, TYPE_PACKED_FLOAT64_ARRAY:
 			var output: Array = []
 			for item in value:
-				output.append(item)
+				output.append(float(item))
 			return output
 		TYPE_VECTOR2:
 			var vector: Vector2 = value
 			return {"x": snappedf(vector.x, 0.001), "y": snappedf(vector.y, 0.001)}
 		TYPE_VECTOR2I:
 			var vector: Vector2i = value
-			return {"x": vector.x, "y": vector.y}
+			return {"x": float(vector.x), "y": float(vector.y)}
+		TYPE_INT, TYPE_FLOAT:
+			# Godot's JSON parser returns JSON numbers as floats. Normalising both
+			# numeric variants before hashing keeps checksums stable after a disk round trip.
+			return float(value)
 		_:
 			return value
 

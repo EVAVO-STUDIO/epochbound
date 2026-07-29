@@ -72,7 +72,7 @@ func run_validation_edges() -> void:
 	var enemy_ranged: Dictionary = bad_enemy.get("ranged_attack", {})
 	enemy_ranged["projectile_range"] = 80
 	enemy_ranged["projectile_speed"] = 0
-	enemy_ranged["projectile_color"] = "bad"
+	enemy_ranged["projectile_color"] = "not-a-colour"
 	bad_enemy["ranged_attack"] = enemy_ranged
 	bad_enemy["attack_radius"] = 160
 	ArsenalValidator.validate_enemy_ranged_attack(bad_enemy, "bad_enemy", errors, warnings)

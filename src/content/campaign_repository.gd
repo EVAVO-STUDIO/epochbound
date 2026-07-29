@@ -199,7 +199,17 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		],
 		"actors": {
 			"player": {"name": "HERO", "max_health": 32},
-			"companion": {"name": "COMPANION", "max_health": 24}
+			"companion": {
+				"name": "COMPANION",
+				"max_health": 24,
+				"commands": ["follow", "stay", "seek", "guard"],
+				"follow_distance": 34,
+				"guard_distance": 24,
+				"recovery_distance": 300,
+				"seek_radius": 280,
+				"seek_speed": 145,
+				"guard_attack_range": 52
+			}
 		},
 		"ruleset": {
 			"combat_model": "action",
@@ -296,6 +306,8 @@ static func default_map(map_id: String, display_name: String) -> Dictionary:
 			{"id": "navigation", "type": "navigation", "z_index": 30, "visible": true, "locked": false}
 		],
 		"object_placements": [],
+		"encounter_zones": [],
+		"companion_cues": [],
 		"interactions": [],
 		"connections": []
 	}

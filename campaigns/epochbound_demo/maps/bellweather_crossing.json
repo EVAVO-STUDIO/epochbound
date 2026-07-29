@@ -704,5 +704,39 @@
 			],
 			"clear_state_key": "bellweather:zone:east_ash_hunt"
 		}
+	],
+	"companion_cues": [
+		{
+			"id": "well_name_scent",
+			"kind": "clue",
+			"position": {
+				"x": 148,
+				"y": 216
+			},
+			"reveal_radius": 22,
+			"message": "Morrow circles the old stones, then paws at a name cut beneath the moss: VALE, dated seventy years too early.",
+			"reward": 1,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"verdant"
+			],
+			"state_key": "bellweather:companion:well_name_scent"
+		},
+		{
+			"id": "hot_brass_warning",
+			"kind": "warning",
+			"position": {
+				"x": 448,
+				"y": 200
+			},
+			"reveal_radius": 24,
+			"message": "Morrow's hackles rise. Fresh heat runs through the suspended brass ahead, and something in the ash is following its rhythm.",
+			"reward": 0,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"ashen"
+			],
+			"state_key": "bellweather:companion:hot_brass_warning"
+		}
 	]
 }

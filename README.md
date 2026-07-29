@@ -240,7 +240,7 @@ The **Trade** main-screen editor authors currencies, merchant stock, prices, ava
 
 Interacting with a merchant opens a paused Buy and Sell overlay. Purchases check availability, stock, stack capacity and the complete wallet cost before mutation. Sales reject equipped or refused items and confirm that the wallet can receive the complete payment before removing inventory. Any failed transaction leaves wallet, inventory and stock unchanged.
 
-The reference campaign uses **Archive Chits** and includes **Bellweather Provisions** plus the capability-gated **Underworks Exchange**. Quiet the Ash Hunt grants currency through the same Story Studio effect contract. Save schema 3 restores exact wallet balances, finite stock and dynamically resold goods, while State Studio exposes dedicated Wallet and Merchant Stock inspectors.
+The reference campaign uses **Archive Chits** and includes **Bellweather Provisions** plus the capability-gated **Underworks Exchange**. Quiet the Ash Hunt grants currency through the same Story Studio effect contract. Save schema 4 restores exact wallet balances, finite stock, dynamically resold goods and loaded magazines, while State Studio exposes dedicated Wallet, Merchant Stock and Loaded Ammo inspectors.
 
 ## Arsenal Studio
 

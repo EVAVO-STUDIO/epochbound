@@ -9,7 +9,8 @@ const RUNTIME_SCENE := "res://src/app.tscn"
 const COMBAT_RUNTIME_PATHS := [
 	"res://src/combat_runtime.gd",
 	"res://src/combat_director_runtime.gd",
-	"res://src/companion_runtime.gd"
+	"res://src/companion_runtime.gd",
+	"res://src/inventory_runtime.gd"
 ]
 
 var failures: Array[String] = []

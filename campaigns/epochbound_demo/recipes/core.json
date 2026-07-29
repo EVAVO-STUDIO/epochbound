@@ -1,0 +1,45 @@
+{
+	"schema_version": 1,
+	"recipes": [
+		{
+			"id": "ember_salve_recipe",
+			"display_name": "Mix Ember Salve",
+			"description": "Bind Ashen resin with warm brass filings until the mixture carries heat without burning.",
+			"ingredients": [
+				{
+					"item_id": "brass_filings",
+					"quantity": 2
+				},
+				{
+					"item_id": "ashen_resin",
+					"quantity": 1
+				}
+			],
+			"output": {
+				"item_id": "ember_salve",
+				"quantity": 1
+			},
+			"unlocked_by_default": false
+		},
+		{
+			"id": "clockglass_lens_recipe",
+			"display_name": "Set Clockglass Lens",
+			"description": "Brace two clockglass fragments inside a hand-shaped brass ring without letting their years touch.",
+			"ingredients": [
+				{
+					"item_id": "clockglass_fragment",
+					"quantity": 2
+				},
+				{
+					"item_id": "brass_filings",
+					"quantity": 1
+				}
+			],
+			"output": {
+				"item_id": "clockglass_lens",
+				"quantity": 1
+			},
+			"unlocked_by_default": false
+		}
+	]
+}

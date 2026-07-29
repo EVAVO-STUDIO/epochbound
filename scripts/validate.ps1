@@ -66,7 +66,12 @@ try {
         "--script", "res://tools/smoke_companion_director.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director and Companion Studio validation passed."
+    Invoke-GodotStep "Smoke test Item Forge inventory and crafting" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_item_forge.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio and Item Forge validation passed."
 }
 finally {
     Pop-Location

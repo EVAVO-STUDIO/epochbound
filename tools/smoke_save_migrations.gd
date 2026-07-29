@@ -14,6 +14,7 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	test_legacy_migration()
+	test_json_round_trip_checksum()
 	test_checksum_rejection()
 	test_future_schema_rejection()
 	test_backup_recovery()
@@ -54,6 +55,18 @@ func test_legacy_migration() -> void:
 	check(str(payload.get("map_id", "")) == "bellweather_crossing", "Legacy map must migrate into payload map_id.")
 	check(str(payload.get("era_id", "")) == "verdant", "Legacy era must migrate into payload era_id.")
 	check((payload.get("unlocked_recipes", []) as Array).has("ember_salve_recipe"), "Legacy recipe dictionary must migrate to a stable ID array.")
+
+
+func test_json_round_trip_checksum() -> void:
+	var profile := valid_profile("JSON round trip", 99)
+	var encoded := JSON.stringify(SaveProfile.canonicalize(profile), "\t", true)
+	var decoded_value: Variant = JSON.parse_string(encoded)
+	check(typeof(decoded_value) == TYPE_DICTIONARY, "Canonical profile JSON must parse back into an object.")
+	if typeof(decoded_value) != TYPE_DICTIONARY:
+		return
+	var decoded: Dictionary = decoded_value
+	check(SaveProfile.checksum_valid(decoded), "A canonical JSON round trip must preserve the profile checksum.")
+	check(SaveProfile.canonical_json(profile) == SaveProfile.canonical_json(decoded), "Canonical JSON must be identical before and after parsing.")
 
 
 func test_checksum_rejection() -> void:
@@ -144,7 +157,7 @@ func contains_fragment(messages: Variant, fragment: String) -> bool:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save migration smoke test passed: legacy migration, integrity rejection and backup recovery are coherent.")
+		print("Save migration smoke test passed: legacy migration, JSON round trips, integrity rejection and backup recovery are coherent.")
 		quit(0)
 		return
 	for failure in failures:

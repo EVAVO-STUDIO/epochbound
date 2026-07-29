@@ -1,0 +1,63 @@
+; Engine configuration file.
+; Epochbound — Godot 4.6.2
+
+config_version=5
+
+[application]
+
+config/name="Epochbound"
+run/main_scene="res://src/app.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+boot_splash/bg_color=Color(0.015, 0.02, 0.027, 1)
+boot_splash/show_image=false
+
+[display]
+
+window/size/viewport_width=640
+window/size/viewport_height=360
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
+
+audio/default_bus_layout="res://default_bus_layout.tres"
+
+[input]
+
+move_left={
+"deadzone": 0.25,
+"events": [Object(InputEventKey,"physical_keycode":65), Object(InputEventKey,"physical_keycode":4194311), Object(InputEventJoypadButton,"button_index":13)]
+}
+move_right={
+"deadzone": 0.25,
+"events": [Object(InputEventKey,"physical_keycode":68), Object(InputEventKey,"physical_keycode":4194313), Object(InputEventJoypadButton,"button_index":14)]
+}
+move_up={
+"deadzone": 0.25,
+"events": [Object(InputEventKey,"physical_keycode":87), Object(InputEventKey,"physical_keycode":4194320), Object(InputEventJoypadButton,"button_index":11)]
+}
+move_down={
+"deadzone": 0.25,
+"events": [Object(InputEventKey,"physical_keycode":83), Object(InputEventKey,"physical_keycode":4194322), Object(InputEventJoypadButton,"button_index":12)]
+}
+interact={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":69), Object(InputEventKey,"physical_keycode":90), Object(InputEventJoypadButton,"button_index":0)]
+}
+era_shift={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":81), Object(InputEventKey,"physical_keycode":88), Object(InputEventJoypadButton,"button_index":2)]
+}
+pause_game={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194305), Object(InputEventJoypadButton,"button_index":6)]
+}

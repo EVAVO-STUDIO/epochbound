@@ -55,6 +55,14 @@
 			"attack_radius": 20,
 			"attack_damage": 4,
 			"attack_cooldown": 1.05,
+			"attack_windup": 0.28,
+			"patrol_radius": 34,
+			"leash_radius": 0,
+			"return_speed_multiplier": 0.92,
+			"target_memory": 0.9,
+			"stagger_duration": 0.2,
+			"knockback_distance": 24,
+			"contact_knockback": 22,
 			"reward": 2
 		},
 		{

@@ -19,9 +19,11 @@ The repository now provides:
 9. Named map entries and validated cross-map connections
 10. Reusable props, NPCs, enemies and pickups authored outside engine code
 11. Solid placed objects and persistent session state
-12. Player action attacks, enemy pursuit and damage, Morrow assistance and defeat recovery
-13. Bidirectional travel between Bellweather Crossing and Clockwood Edge
-14. Pause, resume and safe transition flow
+12. Player action attacks, telegraphed enemy attacks, damage, stagger and knockback
+13. Authored encounter zones with activation, patrol, pursuit, leash return and clearing
+14. Morrow combat assistance, hurt recovery and shared encounter activation
+15. Bidirectional travel between Bellweather Crossing and Clockwood Edge
+16. Pause, resume and safe transition flow
 
 The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter and interaction contracts for the future pixel-art pipeline.
 
@@ -74,6 +76,25 @@ The separate **Encounter** main-screen editor works on the same campaign and map
 
 Campaign object types are stored in catalog files such as `objects/core.json`. Maps reference them through `object_placements`, so one authored type can be reused across the entire campaign without copying its rules.
 
+## Combat Director
+
+The **Combat** main-screen editor turns placed enemies into authored encounters rather than independent chase agents. It can:
+
+- place and select encounter zones visually;
+- set combat, activation and leash radii;
+- assign stable enemy placements to a zone;
+- scope zones to particular eras;
+- author persistent encounter-clear keys;
+- tune enemy patrol radius and explicit leash overrides;
+- tune attack windup, target memory and return speed;
+- tune stagger, knockback and contact response;
+- undo and redo zone changes;
+- validate zones, enemy assignments and behaviour values before play.
+
+The runtime now supports deterministic idle patrol, zone activation, pursuit, visible attack windup, stagger, directional knockback and return-to-spawn behaviour. Enemies stop pursuing outside their authored leash, while cleared encounters publish stable state keys for later save-profile persistence.
+
+Reference proofs include the Ashen-only **East Ash Hunt** in Bellweather Crossing and the two-enemy **Clockwood Hound Pair** in Clockwood Edge.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -82,7 +103,8 @@ Read:
 
 - [`docs/CAMPAIGN_STUDIO.md`](docs/CAMPAIGN_STUDIO.md) for the map editor workflow;
 - [`docs/WORLD_BUILDER.md`](docs/WORLD_BUILDER.md) for map-production and quality rules;
-- [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md) for reusable objects, placements and combat authoring;
+- [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md) for reusable objects and placement authoring;
+- [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md) for encounter zones, behaviour direction and combat-quality gates;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -111,10 +133,12 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. headless Godot import and parsing for the game and both editor plugins;
-2. complete campaign, map, object-catalog and placement validation;
-3. executable terrain, collision, navigation, recovery and cross-map smoke tests;
-4. executable object-catalog, placement, persistence and combat smoke tests.
+1. direct loading and compilation of the runtime, critical resources and all three editor plugins;
+2. headless project import with logged parser errors treated as failures;
+3. complete campaign, map, object-catalog, placement and encounter-zone validation;
+4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
+5. executable object-catalog, placement, persistence and base-combat smoke tests;
+6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests.
 
 ## Design pillars
 
@@ -128,7 +152,8 @@ The validation gate performs:
 - Authentic low-resolution presentation with modern accessibility and reliability
 - Campaign creation that remains portable, inspectable and safe to validate
 - Level design that treats collision, companion routes, entrances and recovery as one authored system
-- Encounters built from reusable definitions and stable map instances rather than hard-coded scenes
+- Encounters built from reusable definitions, stable map instances and explicit spatial direction
+- Damage that follows readable timing and feedback instead of unexplained contact
 
 ## Documentation
 
@@ -136,10 +161,11 @@ The validation gate performs:
 - [`docs/GAME_DESIGN_RESEARCH.md`](docs/GAME_DESIGN_RESEARCH.md): research synthesis and map-quality rubric
 - [`docs/CAMPAIGN_STUDIO.md`](docs/CAMPAIGN_STUDIO.md): editor workflow and authoring surfaces
 - [`docs/WORLD_BUILDER.md`](docs/WORLD_BUILDER.md): terrain, navigation and connection production rules
-- [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md): object, placement and encounter production rules
+- [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md): object and placement production rules
+- [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md): directed combat and encounter production rules
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: directional hit reactions, enemy behaviours and encounter zones, companion commands, items and inventory, crafting, dialogue and quest graphs, deterministic world state, save profiles, bosses, cinematics, campaign packaging and automated softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: companion commands, items and inventory, crafting, dialogue and quest graphs, deterministic world state, save profiles, ranged attacks, bosses, cinematics, campaign packaging and automated reachability, damage and softlock probes.

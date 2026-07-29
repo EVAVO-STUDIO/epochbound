@@ -5,29 +5,63 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
+function Invoke-GodotStep {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Description,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    Write-Host "`n==> $Description"
+    $output = & $GodotExecutable @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $output | ForEach-Object { Write-Host $_ }
+
+    if ($exitCode -ne 0) {
+        throw "$Description failed with exit code $exitCode."
+    }
+
+    $combined = $output -join "`n"
+    if ($combined -match "SCRIPT ERROR:" -or $combined -match "(?m)^ERROR:") {
+        throw "$Description emitted a Godot parser or runtime error despite returning exit code 0."
+    }
+}
+
 Push-Location $ProjectRoot
 try {
-    & $GodotExecutable --headless --path $ProjectRoot --import
-    if ($LASTEXITCODE -ne 0) {
-        throw "Godot import or script parsing failed with exit code $LASTEXITCODE."
-    }
+    Invoke-GodotStep "Compile runtime scenes and editor plugins" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/compile_probe.gd"
+    )
 
-    & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/validate_content.gd"
-    if ($LASTEXITCODE -ne 0) {
-        throw "Campaign content validation failed with exit code $LASTEXITCODE."
-    }
+    Invoke-GodotStep "Import project" @(
+        "--headless", "--path", $ProjectRoot,
+        "--import"
+    )
 
-    & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/smoke_world_model.gd"
-    if ($LASTEXITCODE -ne 0) {
-        throw "World-model smoke testing failed with exit code $LASTEXITCODE."
-    }
+    Invoke-GodotStep "Validate campaign content" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/validate_content.gd"
+    )
 
-    & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/smoke_encounters.gd"
-    if ($LASTEXITCODE -ne 0) {
-        throw "Encounter Studio and combat smoke testing failed with exit code $LASTEXITCODE."
-    }
+    Invoke-GodotStep "Smoke test world model and traversal" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_world_model.gd"
+    )
 
-    Write-Host "Epochbound project, campaign, world-model and encounter validation passed."
+    Invoke-GodotStep "Smoke test Encounter Studio and base combat" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_encounters.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Combat Director zones and behaviour" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_combat_director.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter and Combat Director validation passed."
 }
 finally {
     Pop-Location

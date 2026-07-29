@@ -743,12 +743,13 @@ func rebuild_definitions_from_files() -> void:
 func refresh_object_selectors() -> void:
 	var placement_choice := selected_option_metadata(placement_object_selector)
 	var inspector_choice := selected_option_metadata(placement_definition_selector)
-	for selector in [placement_object_selector, placement_definition_selector]:
+	for selector_value in [placement_object_selector, placement_definition_selector]:
+		var selector: OptionButton = selector_value
 		selector.clear()
 		for object_id in ordered_definition_ids:
 			var definition_data := ObjectCatalog.definition(definitions, object_id)
-			var index := selector.item_count
-			selector.add_item(String(definition_data.get("display_name", object_id)))
+			var index: int = selector.item_count
+			selector.add_item(str(definition_data.get("display_name", object_id)))
 			selector.set_item_metadata(index, object_id)
 	select_option_metadata(placement_object_selector, placement_choice)
 	select_option_metadata(placement_definition_selector, inspector_choice)

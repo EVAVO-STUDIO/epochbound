@@ -682,7 +682,7 @@ func draw_hud(era_data: Dictionary) -> void:
 func draw_dialogue() -> void:
 	draw_rect(Rect2(24, 270, 592, 72), Color("10151b"))
 	draw_rect(Rect2(24, 270, 592, 72), Color("d0b978"), false, 2.0)
-	draw_multiline(dialogue, Vector2(43, 295), 15, Color("f1ead8"))
+	draw_text_lines(dialogue, Vector2(43, 295), 15, Color("f1ead8"))
 
 
 func draw_pause() -> void:
@@ -702,7 +702,7 @@ func draw_multiline_centered(text: String, y: float, size: int, color: Color) ->
 		draw_centered(lines[index], y + index * (size + 5), size, color)
 
 
-func draw_multiline(text: String, start: Vector2, size: int, color: Color) -> void:
+func draw_text_lines(text: String, start: Vector2, size: int, color: Color) -> void:
 	var lines := text.split("\n")
 	for index in range(lines.size()):
 		draw_string(ThemeDB.fallback_font, start + Vector2(0, index * (size + 5)), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)

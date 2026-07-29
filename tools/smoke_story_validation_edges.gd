@@ -151,6 +151,7 @@ func _initialize() -> void:
 	check(contains_fragment(errors, "missing_initial"), "Validation must reject an unknown initial quest stage.")
 	check(contains_fragment(errors, "missing_next"), "Validation must reject an unknown next quest stage.")
 	check(contains_fragment(errors, "missing_stage"), "Validation must reject unknown quest-stage conditions.")
+	check(contains_fragment(errors, "description is required"), "Validation must inspect nested fields even when a stage ID is malformed.")
 	check(contains_fragment(errors, "missing_item"), "Validation must reject unknown story reward items.")
 	check(contains_fragment(errors, "auto_start must be boolean"), "Validation must enforce boolean auto_start records.")
 

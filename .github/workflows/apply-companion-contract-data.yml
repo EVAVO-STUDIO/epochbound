@@ -1,0 +1,136 @@
+name: Apply companion contract data
+
+on:
+  push:
+    branches:
+      - work/companion-director-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Update campaign defaults and reference companion cues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/companion-director-foundation-20260729
+
+      - name: Apply exact repository and JSON transformations
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          repository_path = Path("src/content/campaign_repository.gd")
+          source = repository_path.read_text(encoding="utf-8")
+          old_profile = '''\t\t"actors": {
+          \t\t\t"player": {"name": "HERO", "max_health": 32},
+          \t\t\t"companion": {"name": "COMPANION", "max_health": 24}
+          \t\t},
+          '''
+          new_profile = '''\t\t"actors": {
+          \t\t\t"player": {"name": "HERO", "max_health": 32},
+          \t\t\t"companion": {
+          \t\t\t\t"name": "COMPANION",
+          \t\t\t\t"max_health": 24,
+          \t\t\t\t"commands": ["follow", "stay", "seek", "guard"],
+          \t\t\t\t"follow_distance": 34,
+          \t\t\t\t"guard_distance": 24,
+          \t\t\t\t"recovery_distance": 300,
+          \t\t\t\t"seek_radius": 280,
+          \t\t\t\t"seek_speed": 145,
+          \t\t\t\t"guard_attack_range": 52
+          \t\t\t}
+          \t\t},
+          '''
+          if source.count(old_profile) != 1:
+              raise SystemExit("Default companion profile block did not match the reviewed source.")
+          source = source.replace(old_profile, new_profile, 1)
+          old_tail = '''\t\t"object_placements": [],
+          \t\t"interactions": [],
+          \t\t"connections": []
+          '''
+          new_tail = '''\t\t"object_placements": [],
+          \t\t"encounter_zones": [],
+          \t\t"companion_cues": [],
+          \t\t"interactions": [],
+          \t\t"connections": []
+          '''
+          if source.count(old_tail) != 1:
+              raise SystemExit("Default map tail did not match the reviewed source.")
+          source = source.replace(old_tail, new_tail, 1)
+          repository_path.write_text(source, encoding="utf-8", newline="\n")
+
+          cue_records = {
+              "campaigns/epochbound_demo/maps/bellweather_crossing.json": [
+                  {
+                      "id": "well_name_scent",
+                      "kind": "clue",
+                      "position": {"x": 148, "y": 216},
+                      "reveal_radius": 22,
+                      "message": "Morrow circles the old stones, then paws at a name cut beneath the moss: VALE, dated seventy years too early.",
+                      "reward": 1,
+                      "visible_before_discovery": False,
+                      "available_eras": ["verdant"],
+                      "state_key": "bellweather:companion:well_name_scent"
+                  },
+                  {
+                      "id": "hot_brass_warning",
+                      "kind": "warning",
+                      "position": {"x": 448, "y": 200},
+                      "reveal_radius": 24,
+                      "message": "Morrow's hackles rise. Fresh heat runs through the suspended brass ahead, and something in the ash is following its rhythm.",
+                      "reward": 0,
+                      "visible_before_discovery": False,
+                      "available_eras": ["ashen"],
+                      "state_key": "bellweather:companion:hot_brass_warning"
+                  }
+              ],
+              "campaigns/epochbound_demo/maps/clockwood_edge.json": [
+                  {
+                      "id": "future_bark_trail",
+                      "kind": "trail",
+                      "position": {"x": 382, "y": 224},
+                      "reveal_radius": 24,
+                      "message": "Morrow follows a sap-bright scent between the carved dates. The newest mark carries Eli's fingerprint beneath the bark.",
+                      "reward": 1,
+                      "visible_before_discovery": False,
+                      "available_eras": ["verdant"],
+                      "state_key": "clockwood:companion:future_bark_trail"
+                  },
+                  {
+                      "id": "cold_ash_cache",
+                      "kind": "resource",
+                      "position": {"x": 616, "y": 264},
+                      "reveal_radius": 24,
+                      "message": "Morrow digs beneath a skin of cold ash and uncovers a clock shard wrapped in unburned museum catalogue cloth.",
+                      "reward": 1,
+                      "visible_before_discovery": False,
+                      "available_eras": ["ashen"],
+                      "state_key": "clockwood:companion:cold_ash_cache"
+                  }
+              ]
+          }
+
+          for filename, cues in cue_records.items():
+              path = Path(filename)
+              data = json.loads(path.read_text(encoding="utf-8"))
+              data["companion_cues"] = cues
+              path.write_text(json.dumps(data, indent="\t", ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-companion-contract-data.yml").unlink()
+
+      - name: Commit companion contract data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/campaign_repository.gd campaigns/epochbound_demo/maps/bellweather_crossing.json campaigns/epochbound_demo/maps/clockwood_edge.json .github/workflows/apply-companion-contract-data.yml
+          git commit -m "feat: author default companion profile and reference cues"
+          git push origin HEAD:work/companion-director-foundation-20260729

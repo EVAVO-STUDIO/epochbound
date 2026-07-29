@@ -61,7 +61,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd"],
 			"Runtime scene must bind a companion-capable runtime."
 		)
 	root.add_child(runtime)

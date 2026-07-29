@@ -22,7 +22,12 @@ try {
         throw "World-model smoke testing failed with exit code $LASTEXITCODE."
     }
 
-    Write-Host "Epochbound project, campaign and world-model validation passed."
+    & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/smoke_encounters.gd"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Encounter Studio and combat smoke testing failed with exit code $LASTEXITCODE."
+    }
+
+    Write-Host "Epochbound project, campaign, world-model and encounter validation passed."
 }
 finally {
     Pop-Location

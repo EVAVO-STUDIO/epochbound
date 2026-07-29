@@ -32,10 +32,13 @@ The repository now provides:
 22. Versioned save profiles with deterministic checksums, migrations and backup recovery
 23. Continue, autosave and three campaign-authored manual save slots
 24. Exact durable restoration across maps, eras, inventory, quests and world outcomes
-25. Bidirectional travel between Bellweather Crossing and Clockwood Edge
-26. Pause, resume and safe transition flow
+25. Campaign-authored equipment slots, starting loadouts and immediate derived stats
+26. Capability-gated travel, interactions and story conditions with blocked feedback
+27. A third Museum Underworks map with flashlight, hook and Archivist Lens trade-offs
+28. Bidirectional travel between Bellweather Crossing, Clockwood Edge and the Museum Underworks
+29. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -141,7 +144,7 @@ The **Items** main-screen editor authors the inventory and crafting layer. It ca
 - prevent deletion while starts, recipes, pickups or companion discoveries reference a definition;
 - validate item catalogs, recipe catalogs, grants and unlocks across the complete campaign.
 
-The runtime provides a paused **Field Satchel** with Items and Recipes tabs, deterministic item ordering, direct consumable use, quick-use healing, ingredient checks, output-capacity checks and atomic crafting. Inventory persists across era shifts and map travel for the active session.
+The runtime provides a paused **Field Satchel** with Items, Recipes and Equipment tabs, deterministic item ordering, direct consumable use, quick-use healing, ingredient checks, output-capacity checks, atomic crafting and owned-gear selection. Inventory and equipped item IDs persist through the durable profile contract.
 
 The reference campaign proves the complete loop:
 
@@ -192,6 +195,26 @@ The runtime adds a title-screen **Continue** flow, one managed autosave slot and
 
 The reference campaign exposes three manual slots, autosaves after safe travel or meaningful durable progress, and blocks manual saving during active directed combat.
 
+## Loadout Studio
+
+The **Loadout** main-screen editor authors equipment, derived stats and semantic gameplay capabilities while keeping ownership in Item Forge inventory. It can:
+
+- create equipment items in the primary item catalogue;
+- define campaign-specific equipment slots and player-facing slot names;
+- configure attack, defence, maximum-health and movement-speed bonuses;
+- create capability definitions with stable IDs and production descriptions;
+- assign capabilities to equipment or grant them as campaign base abilities;
+- configure starting equipment while enforcing starting-inventory ownership;
+- add capability requirements and blocked dialogue to map connections and interactions;
+- block deletion while gear, gates, story conditions or starting loadouts still reference a definition;
+- roll back authoring changes that would invalidate the complete campaign.
+
+The Field Satchel Equipment tab cycles each slot through the empty state and every compatible owned item. Equipping gear immediately rebuilds player attack, defence, maximum health, movement speed and active capabilities. The same capability set drives map gates and Story Studio's `has_capability` condition.
+
+The reference loadout includes the Brass Hook, Museum Field Coat and Museum Flashlight. Completing **The Missing Hour** grants the Archivist Lens. The flashlight and lens share the Tool slot: one permits entry into the dark Museum Underworks, while the other reveals its sealed catalogue. This creates an explicit spatial and narrative trade-off rather than an always-active collection of passive tools.
+
+Save schema 2 persists equipped item IDs. Schema-1 profiles migrate with empty equipment rather than guessing a loadout, and every restored slot validates against current ownership and campaign definitions.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -206,6 +229,7 @@ Read:
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md) for item catalogs, inventory, crafting, rewards and item-quality gates;
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md) for conversation graphs, typed conditions, quest stages, rewards and story-quality gates;
 - [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md) for save profiles, migration, backup recovery and durable-state quality gates;
+- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md) for equipment slots, derived stats, capabilities, gates and loadout-quality rules;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -229,7 +253,7 @@ Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 | Open or close Save Profiles | K | Left stick click |
 | Back, pause or skip | Escape | Start |
 
-Inside the Field Satchel, use Left and Right to change tabs, Up and Down to select, and E, Z, Space or C to use an item or craft a recipe.
+Inside the Field Satchel, use Left and Right to change Items, Recipes or Equipment tabs, Up and Down to select, and E, Z, Space or C to use an item, craft a recipe or cycle compatible owned gear in the selected slot.
 
 Inside the Journal, use Left and Right to change Active or Completed tabs and Up or Down to select a quest.
 
@@ -246,9 +270,9 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all seven editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all eight editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest and save-policy validation;
+3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability and gate validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
@@ -258,8 +282,11 @@ The validation gate performs:
 10. executable Story Studio graph and editor-state smoke tests;
 11. malformed conversation, condition, effect and quest-stage rejection tests;
 12. deterministic save capture, checksum, atomic write and exact runtime-restoration tests;
-13. legacy migration, future-schema rejection, corruption detection and backup-recovery tests;
-14. executable Save & State Studio slot and inspector tests.
+13. legacy migration, schema-1 equipment migration, future-schema rejection, corruption detection and backup-recovery tests;
+14. executable Save & State Studio slot, equipment and inspector tests;
+15. executable loadout stats, slot cycling, capability-gated travel, interaction and story-condition tests;
+16. executable Loadout Studio equipment, capability, campaign-loadout and gate-editor tests;
+17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests.
 
 ## Design pillars
 
@@ -279,6 +306,7 @@ The validation gate performs:
 - Items and recipes that connect exploration, combat and progression through one inspectable campaign contract
 - Conversations and quests that consume the same world, item, encounter and companion outcomes instead of parallel state
 - Save profiles that serialise those same stable IDs and durable outcomes instead of the live scene tree
+- Equipment choices that alter combat, movement, exploration and story through one shared capability contract
 
 ## Documentation
 
@@ -292,9 +320,10 @@ The validation gate performs:
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md): item, inventory and crafting production rules
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md): branching dialogue and quest production rules
 - [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md): save profile, migration and durable-state production rules
+- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md): equipment, derived-stat and capability-gate production rules
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: equipment and capability gates, merchants and economy, ranged attacks, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: merchants and economy, ranged attacks and ammunition, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated capability-order, quest-reachability, economy, save-compatibility, companion-recovery, damage and softlock probes.

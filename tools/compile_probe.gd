@@ -11,12 +11,16 @@ const TARGETS := [
 	"res://src/companion_runtime.gd",
 	"res://src/inventory_runtime.gd",
 	"res://src/story_runtime.gd",
+	"res://src/save_runtime.gd",
 	"res://src/content/combat_director_validator.gd",
 	"res://src/content/companion_validator.gd",
 	"res://src/content/item_catalog.gd",
 	"res://src/content/item_validator.gd",
 	"res://src/content/story_catalog.gd",
 	"res://src/content/story_validator.gd",
+	"res://src/content/save_profile.gd",
+	"res://src/content/save_profile_store.gd",
+	"res://src/content/save_validator.gd",
 	"res://src/game/encounter_zone_model.gd",
 	"res://src/game/companion_model.gd",
 	"res://src/game/inventory_model.gd",
@@ -37,6 +41,8 @@ const TARGETS := [
 	"res://addons/epochbound_item_forge/plugin.gd",
 	"res://addons/epochbound_story_studio/story_studio.gd",
 	"res://addons/epochbound_story_studio/plugin.gd",
+	"res://addons/epochbound_save_state_studio/save_state_studio.gd",
+	"res://addons/epochbound_save_state_studio/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
@@ -48,6 +54,9 @@ const TARGETS := [
 	"res://tools/smoke_story_studio.gd",
 	"res://tools/smoke_story_studio_editor.gd",
 	"res://tools/smoke_story_validation_edges.gd",
+	"res://tools/smoke_save_profiles.gd",
+	"res://tools/smoke_save_migrations.gd",
+	"res://tools/smoke_save_state_studio.gd",
 	"res://src/app.tscn"
 ]
 
@@ -65,7 +74,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, all six editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: runtime, all seven editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

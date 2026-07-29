@@ -362,7 +362,7 @@ func refresh_recipe_list(preferred_id: String = "") -> void:
 
 
 func sorted_definition_ids(definitions: Dictionary, name_field: String) -> PackedStringArray:
-	var ids := PackedStringArray()
+	var ids: Array[String] = []
 	for identifier in definitions.keys():
 		ids.append(str(identifier))
 	ids.sort_custom(func(left: String, right: String) -> bool:
@@ -370,7 +370,7 @@ func sorted_definition_ids(definitions: Dictionary, name_field: String) -> Packe
 		var right_data: Dictionary = definitions.get(right, {})
 		return str(left_data.get(name_field, left)).naturalnocasecmp_to(str(right_data.get(name_field, right))) < 0
 	)
-	return ids
+	return PackedStringArray(ids)
 
 
 func on_item_selected(index: int) -> void:

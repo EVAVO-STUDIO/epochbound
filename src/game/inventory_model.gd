@@ -158,7 +158,7 @@ static func craft(
 
 
 static func sorted_inventory_ids(inventory: Dictionary, item_definitions: Dictionary) -> PackedStringArray:
-	var ids := PackedStringArray()
+	var ids: Array[String] = []
 	for item_id in inventory.keys():
 		if count(inventory, str(item_id)) > 0 and item_definitions.has(item_id):
 			ids.append(str(item_id))
@@ -167,11 +167,11 @@ static func sorted_inventory_ids(inventory: Dictionary, item_definitions: Dictio
 		var right_name := ItemCatalog.item_name(ItemCatalog.item(item_definitions, right), right)
 		return left_name.naturalnocasecmp_to(right_name) < 0
 	)
-	return ids
+	return PackedStringArray(ids)
 
 
 static func sorted_recipe_ids(unlocked: Dictionary, recipe_definitions: Dictionary) -> PackedStringArray:
-	var ids := PackedStringArray()
+	var ids: Array[String] = []
 	for recipe_id in unlocked.keys():
 		if bool(unlocked.get(recipe_id, false)) and recipe_definitions.has(recipe_id):
 			ids.append(str(recipe_id))
@@ -180,7 +180,7 @@ static func sorted_recipe_ids(unlocked: Dictionary, recipe_definitions: Dictiona
 		var right_data := ItemCatalog.recipe(recipe_definitions, right)
 		return str(left_data.get("display_name", left)).naturalnocasecmp_to(str(right_data.get("display_name", right))) < 0
 	)
-	return ids
+	return PackedStringArray(ids)
 
 
 static func first_healing_item(inventory: Dictionary, item_definitions: Dictionary) -> String:

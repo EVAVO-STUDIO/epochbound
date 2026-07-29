@@ -6,6 +6,7 @@ const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const ItemValidator = preload("res://src/content/item_validator.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 
 var campaigns: Array = []
 var active_campaign: Dictionary = {}
@@ -819,6 +820,14 @@ func find_item_usages(item_id: String) -> PackedStringArray:
 				var grant: Dictionary = grant_value
 				if str(grant.get("item_id", "")) == item_id:
 					usages.append("cue %s grant" % cue.get("id", "cue"))
+	var economy_result := EconomyCatalog.load_catalogs(active_campaign_path, active_campaign)
+	var merchants: Dictionary = economy_result.get("merchants", {})
+	for merchant_id in merchants.keys():
+		var merchant_data := EconomyCatalog.merchant(merchants, str(merchant_id))
+		if EconomyCatalog.stock_entry_index(merchant_data).has(item_id):
+			usages.append("merchant %s stock" % merchant_id)
+		if EconomyCatalog.refused_items(merchant_data).has(item_id):
+			usages.append("merchant %s refusal rule" % merchant_id)
 	return usages
 
 

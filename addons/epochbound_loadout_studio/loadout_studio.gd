@@ -3,7 +3,7 @@ extends Control
 
 const Repository = preload("res://src/content/campaign_repository.gd")
 const EquipmentCatalog = preload("res://src/content/equipment_catalog.gd")
-const EquipmentValidator = preload("res://src/content/equipment_validator.gd")
+const EquipmentValidator = preload("res://src/content/economy_validator.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")

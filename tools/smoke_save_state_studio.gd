@@ -48,7 +48,7 @@ func run_smoke_test() -> void:
 	if overview_value is RichTextLabel:
 		check("Checksum" in (overview_value as RichTextLabel).text, "Overview must expose checksum status.")
 	if inventory_list_value is ItemList:
-		check((inventory_list_value as ItemList).item_count == 2, "Inventory inspector must expose both stored item stacks.")
+		check((inventory_list_value as ItemList).item_count == 3, "Inventory inspector must expose all stored item stacks including owned equipment.")
 	if equipment_list_value is ItemList:
 		check((equipment_list_value as ItemList).item_count == 1, "Equipment inspector must expose the stored loadout.")
 	if quest_list_value is ItemList:
@@ -59,7 +59,7 @@ func run_smoke_test() -> void:
 		check("\"checksum\"" in (raw_text_value as TextEdit).text, "Raw JSON inspector must expose the complete signed profile.")
 
 	var sections: Dictionary = SaveStateStudio.profile_sections(profile, {}, {})
-	check((sections.get("inventory", []) as Array).size() == 2, "Static profile sections must expose inventory rows without editor state.")
+	check((sections.get("inventory", []) as Array).size() == 3, "Static profile sections must expose owned equipment within inventory rows.")
 	check((sections.get("equipment", []) as Array).size() == 1, "Static profile sections must expose equipment rows without editor state.")
 	check((sections.get("quests", []) as Array).size() == 1, "Static profile sections must expose quest rows without editor state.")
 	check((sections.get("state", []) as Array).size() == 2, "Static profile sections must expose world-state rows without editor state.")
@@ -97,7 +97,7 @@ func test_profile() -> Dictionary:
 		"player_health": 28,
 		"companion_health": 22,
 		"clock_shards": 3,
-		"inventory": {"museum_tonic": 1, "brass_filings": 2},
+		"inventory": {"museum_tonic": 1, "brass_filings": 2, "museum_flashlight": 1},
 		"unlocked_recipes": ["ember_salve_recipe"],
 		"session_state": {"bellweather:clock_shard": "collected", "studio:test": true},
 		"quest_progress": {"the_missing_hour": {"status": "active", "stage_id": "trace_the_name"}},
@@ -110,7 +110,7 @@ func test_profile() -> Dictionary:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save State Studio smoke test passed: campaigns, slots, summaries, inspectors, validation and destructive-action confirmation are coherent.")
+		print("Save State Studio smoke test passed: campaigns, slots, summaries, equipment ownership, inspectors, validation and destructive-action confirmation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

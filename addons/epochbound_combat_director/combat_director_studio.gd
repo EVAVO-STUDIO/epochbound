@@ -159,7 +159,7 @@ func build_ui() -> void:
 	canvas = CombatDirectorCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.connect("canvas_clicked", Callable(self, "on_canvas_clicked"))
+	canvas.connect("canvas_action", Callable(self, "on_canvas_action"))
 	center.add_child(canvas)
 
 	var right := VBoxContainer.new()
@@ -406,7 +406,7 @@ func begin_select_zone() -> void:
 	set_status("Click near a zone centre to select it.", false)
 
 
-func on_canvas_clicked(world_position: Vector2, tool: String) -> void:
+func on_canvas_action(world_position: Vector2, _cell: Vector2i, tool: String, _erase: bool) -> void:
 	if active_map.is_empty():
 		return
 	if tool == "zone_place":

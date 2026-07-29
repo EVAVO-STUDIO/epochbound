@@ -1,0 +1,82 @@
+name: Apply loadout runtime expectations
+
+on:
+  push:
+    branches:
+      - work/loadout-capability-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Update inherited runtime smoke expectations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/loadout-capability-foundation-20260729
+
+      - name: Add equipment runtime to inherited expectations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_string: str, old: str, new: str) -> None:
+              path = Path(path_string)
+              source = path.read_text(encoding="utf-8")
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path_string}: expected one occurrence, found {count}: {old!r}")
+              path.write_text(source.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          replace_once(
+              "tools/smoke_encounters.gd",
+              '\t"res://src/save_runtime.gd"\n',
+              '\t"res://src/save_runtime.gd",\n\t"res://src/equipment_runtime.gd"\n',
+          )
+          replace_once(
+              "tools/smoke_combat_director.gd",
+              '["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd"]',
+              '["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"]',
+          )
+          replace_once(
+              "tools/smoke_companion_director.gd",
+              '["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd"]',
+              '["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"]',
+          )
+          replace_once(
+              "tools/smoke_item_forge.gd",
+              '["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd"]',
+              '["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"]',
+          )
+          replace_once(
+              "tools/smoke_story_studio.gd",
+              'str((script_value as GDScript).resource_path) in ["res://src/story_runtime.gd", "res://src/save_runtime.gd"],',
+              'str((script_value as GDScript).resource_path) in ["res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"],',
+          )
+          replace_once(
+              "tools/smoke_save_profiles.gd",
+              'str((script_value as GDScript).resource_path) == "res://src/save_runtime.gd",',
+              'str((script_value as GDScript).resource_path) == "res://src/equipment_runtime.gd",',
+          )
+          replace_once(
+              "tools/smoke_save_profiles.gd",
+              '"Runtime scene must bind the save-aware runtime."',
+              '"Runtime scene must bind the equipment-aware save runtime."',
+          )
+
+          Path(".github/workflows/apply-loadout-runtime-expectations.yml").unlink()
+
+      - name: Commit inherited expectation updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/smoke_encounters.gd tools/smoke_combat_director.gd tools/smoke_companion_director.gd tools/smoke_item_forge.gd tools/smoke_story_studio.gd tools/smoke_save_profiles.gd .github/workflows/apply-loadout-runtime-expectations.yml
+          git commit -m "test: recognise equipment-aware runtime in inherited smoke tests"
+          git push origin HEAD:work/loadout-capability-foundation-20260729

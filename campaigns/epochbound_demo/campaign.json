@@ -8,7 +8,8 @@
 	"start_map": "bellweather_crossing",
 	"start_era": "verdant",
 	"map_files": [
-		"maps/bellweather_crossing.json"
+		"maps/bellweather_crossing.json",
+		"maps/clockwood_edge.json"
 	],
 	"intro": [
 		"1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum.",

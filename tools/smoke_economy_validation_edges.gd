@@ -76,8 +76,15 @@ func _initialize() -> void:
 						"conditions": []
 					},
 					{
-						"item_id": "missing_item",
+						"item_id": "museum_tonic",
 						"quantity": 1,
+						"unlimited": false,
+						"buy_price": 1,
+						"conditions": []
+					},
+					{
+						"item_id": "museum_tonic",
+						"quantity": 2,
 						"unlimited": false,
 						"buy_price": 1,
 						"conditions": []

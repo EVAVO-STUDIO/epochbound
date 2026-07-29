@@ -6,6 +6,7 @@ const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const EconomyValidator = preload("res://src/content/economy_validator.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+const StoryCatalog = preload("res://src/content/story_catalog.gd")
 
 var campaigns: Array = []
 var active_campaign: Dictionary = {}

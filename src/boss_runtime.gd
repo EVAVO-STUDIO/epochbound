@@ -257,7 +257,7 @@ func clamp_boss_damage_to_phase(
 	var threshold := BossCatalog.next_phase_threshold(definition_data, ratio, current_era_id)
 	if threshold <= 0.0:
 		return maxi(1, amount)
-	var boundary_health := maxi(1, int(ceil(float(maximum) * threshold)))
+	var boundary_health := maxi(1, int(floor(float(maximum) * threshold)))
 	if current > boundary_health and current - amount < boundary_health:
 		return maxi(1, current - boundary_health)
 	return maxi(1, amount)

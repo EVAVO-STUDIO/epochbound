@@ -508,10 +508,38 @@
 				"y": 224
 			},
 			"facing": "left",
-			"available_eras": [
-				"ashen"
-			],
+			"available_eras": [],
 			"state_key": "underworks:sentinel"
+		},
+		{
+			"id": "curator_echo_west",
+			"object_id": "ash_hound",
+			"position": {
+				"x": 400,
+				"y": 224
+			},
+			"facing": "right",
+			"available_eras": [],
+			"state_key": "underworks:curator_echo_west",
+			"boss_reinforcement": {
+				"boss_placement_id": "underworks_sentinel",
+				"phase_id": "last_accession"
+			}
+		},
+		{
+			"id": "curator_echo_east",
+			"object_id": "ash_hound",
+			"position": {
+				"x": 435,
+				"y": 224
+			},
+			"facing": "left",
+			"available_eras": [],
+			"state_key": "underworks:curator_echo_east",
+			"boss_reinforcement": {
+				"boss_placement_id": "underworks_sentinel",
+				"phase_id": "last_accession"
+			}
 		}
 	],
 	"interactions": [
@@ -572,20 +600,20 @@
 	"encounter_zones": [
 		{
 			"id": "underworks_gallery_watch",
-			"display_name": "Underworks Gallery Watch",
+			"display_name": "Underworks Sentinel Gallery",
 			"position": {
-				"x": 470,
+				"x": 455,
 				"y": 224
 			},
-			"radius": 100,
-			"activation_radius": 176,
-			"leash_padding": 42,
+			"radius": 150,
+			"activation_radius": 190,
+			"leash_padding": 34,
 			"enemy_placements": [
-				"underworks_sentinel"
+				"underworks_sentinel",
+				"curator_echo_west",
+				"curator_echo_east"
 			],
-			"available_eras": [
-				"ashen"
-			],
+			"available_eras": [],
 			"clear_state_key": "underworks:zone:gallery_watch"
 		}
 	],

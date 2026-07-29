@@ -31,6 +31,7 @@ var status_label: RichTextLabel
 var validate_profile_button: Button
 var rewrite_button: Button
 var delete_button: Button
+var delete_confirmation: ConfirmationDialog
 
 
 func _ready() -> void:
@@ -142,6 +143,10 @@ func build_ui() -> void:
 	status_label.custom_minimum_size.y = 58
 	status_label.text = "[color=#9aa8b5]Save & State Studio ready.[/color]"
 	root.add_child(status_label)
+	delete_confirmation = ConfirmationDialog.new()
+	delete_confirmation.title = "Delete Save Profile"
+	delete_confirmation.confirmed.connect(confirm_delete_selected_profile)
+	add_child(delete_confirmation)
 	set_profile_actions_enabled(false)
 
 
@@ -381,6 +386,13 @@ func rewrite_selected_profile() -> void:
 
 
 func delete_selected_profile() -> void:
+	if selected_slot_id.is_empty() or active_campaign_id.is_empty() or selected_profile.is_empty():
+		return
+	delete_confirmation.dialog_text = "Delete %s and its backup copy? This cannot be undone from the editor." % SaveProfile.slot_label(selected_slot_id)
+	delete_confirmation.popup_centered(Vector2i(500, 170))
+
+
+func confirm_delete_selected_profile() -> void:
 	if selected_slot_id.is_empty() or active_campaign_id.is_empty() or selected_profile.is_empty():
 		return
 	var deleted_slot := selected_slot_id

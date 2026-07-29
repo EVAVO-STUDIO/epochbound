@@ -9,12 +9,15 @@ const SaveStoryModel = preload("res://src/game/story_model.gd")
 
 const SAVE_DEFAULT_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const SAVE_NOTICE_DURATION := 1.6
+const SAVE_OVERWRITE_CONFIRM_DURATION := 2.5
 const SAVE_SLOT_ROWS := 5
 
 var save_overlay_open := false
 var save_overlay_mode := 0
 var save_slot_index := 0
 var current_save_slot := ""
+var pending_overwrite_slot := ""
+var pending_overwrite_timer := 0.0
 var save_notice := ""
 var save_notice_timer := 0.0
 var play_time_seconds := 0.0
@@ -54,6 +57,8 @@ func reset_save_runtime_state() -> void:
 	save_overlay_mode = 0
 	save_slot_index = 0
 	current_save_slot = ""
+	pending_overwrite_slot = ""
+	pending_overwrite_timer = 0.0
 	save_notice = ""
 	save_notice_timer = 0.0
 	play_time_seconds = 0.0
@@ -143,6 +148,9 @@ func shift_to_next_era() -> void:
 
 func update_game(delta: float) -> void:
 	save_notice_timer = maxf(0.0, save_notice_timer - delta)
+	pending_overwrite_timer = maxf(0.0, pending_overwrite_timer - delta)
+	if pending_overwrite_timer <= 0.0:
+		pending_overwrite_slot = ""
 	if save_notice_timer <= 0.0:
 		save_notice = ""
 	if flow == Flow.GAME and not save_overlay_open:
@@ -192,12 +200,16 @@ func open_save_overlay() -> void:
 	save_overlay_open = true
 	save_overlay_mode = 0
 	save_slot_index = 0
+	pending_overwrite_slot = ""
+	pending_overwrite_timer = 0.0
 	refresh_save_slot_cache()
 	set_save_notice("Choose a slot.", 1.0)
 
 
 func close_save_overlay() -> void:
 	save_overlay_open = false
+	pending_overwrite_slot = ""
+	pending_overwrite_timer = 0.0
 	save_notice = ""
 	save_notice_timer = 0.0
 
@@ -209,6 +221,8 @@ func update_save_overlay() -> void:
 	if Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		save_overlay_mode = 1 - save_overlay_mode
 		save_slot_index = 0
+		pending_overwrite_slot = ""
+		pending_overwrite_timer = 0.0
 		set_save_notice("LOAD" if save_overlay_mode == 1 else "SAVE", 0.8)
 		return
 	var slots := SaveProfile.all_slot_ids(campaign)
@@ -216,18 +230,38 @@ func update_save_overlay() -> void:
 		return
 	if Input.is_action_just_pressed("move_up"):
 		save_slot_index = posmod(save_slot_index - 1, slots.size())
+		pending_overwrite_slot = ""
+		pending_overwrite_timer = 0.0
 	elif Input.is_action_just_pressed("move_down"):
 		save_slot_index = posmod(save_slot_index + 1, slots.size())
+		pending_overwrite_slot = ""
+		pending_overwrite_timer = 0.0
 	if confirm() or Input.is_action_just_pressed("attack"):
 		save_slot_index = clampi(save_slot_index, 0, slots.size() - 1)
-		var slot_id := str(slots[save_slot_index])
-		if save_overlay_mode == 0:
-			if slot_id == SaveProfile.AUTOSAVE_SLOT:
-				set_save_notice("Autosave is managed by the journey.")
-			else:
-				save_current_profile(slot_id, "Manual save")
-		else:
-			load_profile_from_slot(str(campaign.get("id", "")), slot_id)
+		activate_save_slot(str(slots[save_slot_index]))
+
+
+func activate_save_slot(slot_id: String) -> bool:
+	if save_overlay_mode == 0:
+		if slot_id == SaveProfile.AUTOSAVE_SLOT:
+			set_save_notice("Autosave is managed by the journey.")
+			return false
+		if save_slot_cache.has(slot_id) and (
+			pending_overwrite_slot != slot_id or pending_overwrite_timer <= 0.0
+		):
+			pending_overwrite_slot = slot_id
+			pending_overwrite_timer = SAVE_OVERWRITE_CONFIRM_DURATION
+			set_save_notice("CONFIRM AGAIN TO OVERWRITE %s" % SaveProfile.slot_label(slot_id), SAVE_OVERWRITE_CONFIRM_DURATION)
+			return false
+		pending_overwrite_slot = ""
+		pending_overwrite_timer = 0.0
+		return save_current_profile(slot_id, "Manual save")
+	pending_overwrite_slot = ""
+	pending_overwrite_timer = 0.0
+	if not save_slot_cache.has(slot_id):
+		set_save_notice("%s IS EMPTY" % SaveProfile.slot_label(slot_id))
+		return false
+	return load_profile_from_slot(str(campaign.get("id", "")), slot_id)
 
 
 func save_current_profile(slot_id: String, reason: String) -> bool:

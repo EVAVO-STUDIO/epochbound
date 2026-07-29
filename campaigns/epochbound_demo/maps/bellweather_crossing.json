@@ -554,6 +554,18 @@
 				"y": 232
 			},
 			"available_eras": []
+		},
+		{
+			"id": "from_underworks",
+			"player": {
+				"x": 528,
+				"y": 272
+			},
+			"companion": {
+				"x": 496,
+				"y": 286
+			},
+			"available_eras": []
 		}
 	],
 	"layers": [
@@ -683,6 +695,23 @@
 			"target_era": "same",
 			"trigger": "interact",
 			"available_eras": []
+		},
+		{
+			"id": "stairs_to_underworks",
+			"position": {
+				"x": 548,
+				"y": 272
+			},
+			"radius": 34,
+			"target_map": "museum_underworks",
+			"target_entry": "from_bellweather",
+			"target_era": "same",
+			"trigger": "interact",
+			"available_eras": [],
+			"required_capabilities": [
+				"illuminate_dark"
+			],
+			"blocked_dialogue": "The service stairs disappear into absolute darkness. Eli needs a dependable light before taking Morrow below."
 		}
 	],
 	"encounter_zones": [

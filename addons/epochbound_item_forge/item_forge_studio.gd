@@ -798,6 +798,11 @@ func find_item_usages(item_id: String) -> PackedStringArray:
 		var entry: Dictionary = entry_value
 		if str(entry.get("item_id", "")) == item_id:
 			usages.append("starting inventory")
+	var starting_equipment_value: Variant = active_campaign.get("starting_equipment", {})
+	if typeof(starting_equipment_value) == TYPE_DICTIONARY:
+		for equipped_value in (starting_equipment_value as Dictionary).values():
+			if str(equipped_value) == item_id:
+				usages.append("starting equipment")
 	var object_result := ObjectCatalog.load_catalogs(active_campaign_path, active_campaign)
 	var object_definitions: Dictionary = object_result.get("definitions", {})
 	for object_id in object_definitions.keys():

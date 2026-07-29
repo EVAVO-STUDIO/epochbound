@@ -78,7 +78,13 @@
 			"collision_radius": 5,
 			"interaction_radius": 18,
 			"pickup_value": 1,
-			"pickup_label": "Clock shard recovered."
+			"pickup_label": "Clock shard recovered.",
+			"item_grants": [
+				{
+					"item_id": "clockglass_fragment",
+					"quantity": 1
+				}
+			]
 		}
 	]
 }

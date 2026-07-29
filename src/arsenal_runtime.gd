@@ -366,6 +366,21 @@ func sanitize_loaded_ammo_state() -> void:
 		cancel_reload(false)
 
 
+func protected_equipment_ids() -> PackedStringArray:
+	var output := super.protected_equipment_ids()
+	for weapon_id_value in loaded_ammo.keys():
+		var weapon_id := str(weapon_id_value)
+		if int(loaded_ammo.get(weapon_id_value, 0)) > 0 and not output.has(weapon_id):
+			output.append(weapon_id)
+	return output
+
+
+func transaction_failure_message(reason: String) -> String:
+	if reason == "equipped_item":
+		return "That item is equipped or contains loaded ammunition."
+	return super.transaction_failure_message(reason)
+
+
 func can_open_save_overlay() -> bool:
 	return reload_timer <= 0.0 and projectiles.is_empty() and super.can_open_save_overlay()
 

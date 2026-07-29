@@ -128,6 +128,10 @@ func run_smoke_test() -> void:
 	runtime.set("inventory", inventory)
 	runtime.call("equip_specific_item", WEAPON_ID)
 	runtime.set("loaded_ammo", {WEAPON_ID: 2})
+	check(bool(runtime.call("equip_specific_item", "brass_hook")), "Loaded Dartcaster must be unequippable without losing its magazine.")
+	var protected_ids: PackedStringArray = runtime.call("protected_equipment_ids")
+	check(protected_ids.has(WEAPON_ID), "An unequipped ranged weapon with loaded rounds must remain protected from sale.")
+	check(bool(runtime.call("equip_specific_item", WEAPON_ID)), "Dartcaster must re-equip after loaded-sale protection testing.")
 	var captured_value: Variant = runtime.call("capture_save_profile", SLOT_ID, "Arsenal smoke checkpoint")
 	check(typeof(captured_value) == TYPE_DICTIONARY, "Arsenal profile capture must return an object.")
 	var captured: Dictionary = captured_value if typeof(captured_value) == TYPE_DICTIONARY else {}

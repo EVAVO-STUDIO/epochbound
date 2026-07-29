@@ -1,6 +1,7 @@
 @tool
 extends RefCounted
 
+const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const BUILTIN_ROOT := "res://campaigns"
 const USER_ROOT := "user://campaigns"
 const DEFAULT_ROOT := BUILTIN_ROOT
@@ -103,6 +104,10 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	var title := display_name.strip_edges()
 	if title.is_empty():
 		title = campaign_id.replace("_", " ").capitalize()
+	var catalog_path := campaign_directory.path_join("objects").path_join("core.json")
+	var catalog_result := save_json(catalog_path, ObjectCatalog.default_catalog())
+	if not catalog_result.get("ok", false):
+		return catalog_result
 	var map_id := "first_crossing"
 	var map_path := campaign_directory.path_join("maps").path_join(map_id + ".json")
 	var map_result := save_json(map_path, default_map(map_id, "First Crossing"))
@@ -114,6 +119,7 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	return {
 		"ok": true,
 		"campaign_path": campaign_path,
+		"catalog_path": catalog_path,
 		"map_path": map_path,
 		"errors": []
 	}
@@ -185,6 +191,7 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"start_map": "first_crossing",
 		"start_era": "verdant",
 		"map_files": ["maps/first_crossing.json"],
+		"object_files": ["objects/core.json"],
 		"intro": [
 			"A forgotten road waits beyond the last familiar hour.",
 			"One traveller and one loyal companion cross the threshold.",
@@ -288,6 +295,7 @@ static func default_map(map_id: String, display_name: String) -> Dictionary:
 			{"id": "collision", "type": "collision", "z_index": 20, "visible": true, "locked": false},
 			{"id": "navigation", "type": "navigation", "z_index": 30, "visible": true, "locked": false}
 		],
+		"object_placements": [],
 		"interactions": [],
 		"connections": []
 	}

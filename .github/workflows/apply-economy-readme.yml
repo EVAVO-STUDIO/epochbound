@@ -1,0 +1,145 @@
+name: Apply economy README update
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'work/merchant-economy-foundation-20260729'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out working branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/merchant-economy-foundation-20260729
+
+      - name: Update README
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"README expected one occurrence, found {count}: {old!r}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "27. A third Museum Underworks map with flashlight, hook and Archivist Lens trade-offs\n28. Bidirectional travel between Bellweather Crossing, Clockwood Edge and the Museum Underworks\n29. Pause, resume and safe transition flow",
+              "27. A third Museum Underworks map with flashlight, hook and Archivist Lens trade-offs\n28. Bidirectional travel between Bellweather Crossing, Clockwood Edge and the Museum Underworks\n29. Campaign-authored currencies, finite merchant stock and durable wallet state\n30. Atomic buy and sell transactions with stack, stock, balance and equipped-item protection\n31. Two conditionally available reference merchants bound to reusable NPC definitions\n32. Pause, resume and safe transition flow"
+          )
+          replace_once(
+              "save-state, loadout, capability-gating and interaction contracts",
+              "save-state, loadout, capability-gating, merchant, economy and interaction contracts"
+          )
+          replace_once(
+              "- prevent deletion while starts, recipes, pickups or companion discoveries reference a definition;",
+              "- prevent deletion while starts, recipes, pickups, companion discoveries or merchant records reference a definition;"
+          )
+          replace_once(
+              "typed conditions against inventory, durable world state, quest status, quest stage, map, era and clock-shard totals;",
+              "typed conditions against inventory, durable world state, quest status, quest stage, map, era, clock-shard totals, active capabilities and currency balances;"
+          )
+          replace_once(
+              "typed effects that start or advance quests, set state, grant or remove items, unlock recipes and grant clock shards;",
+              "typed effects that start or advance quests, set state, grant or remove items, unlock recipes, grant clock shards and change durable currency balances;"
+          )
+          replace_once(
+              "- inspect persisted inventory, learned recipes, quest stages and durable world-state keys;",
+              "- inspect persisted inventory, equipment, wallets, merchant stock, learned recipes, quest stages and durable world-state keys;"
+          )
+          replace_once(
+              "Map, era, positions, health, inventory, recipes, discoveries, defeated enemies, cleared encounters, quest progress, clock shards, companion hold state and play time restore from one validated profile.",
+              "Map, era, positions, health, inventory, equipment, wallets, merchant stock, recipes, discoveries, defeated enemies, cleared encounters, quest progress, clock shards, companion hold state and play time restore from one validated profile."
+          )
+          replace_once(
+              "Save schema 2 persists equipped item IDs. Schema-1 profiles migrate with empty equipment rather than guessing a loadout, and every restored slot validates against current ownership and campaign definitions.",
+              "Save schema 3 persists equipped item IDs alongside wallets and merchant stock. Schema-1 profiles migrate with empty equipment, while schema-2 profiles retain equipment and initialise the authored economy once; every restored slot, balance and stock record validates against current campaign definitions."
+          )
+
+          merchant_section = '''
+
+          ## Merchant & Economy Studio
+
+          The **Trade** main-screen editor authors currencies, merchant stock, prices, availability and reusable NPC trade bindings while keeping every traded good inside Item Forge inventory. It can:
+
+          - create stable campaign currency definitions;
+          - configure starting and maximum wallet balances;
+          - create merchants with greetings, farewells and transaction currencies;
+          - author buy and sell multipliers or item-specific price overrides;
+          - define finite or unlimited stock;
+          - condition merchants and individual stock through Story Studio records;
+          - choose accepted item kinds and explicit refusal rules;
+          - decide whether sold player goods become merchant stock;
+          - bind reusable NPC definitions to merchant contracts;
+          - prevent deletion while stock, refusal rules, story records or NPC bindings still reference a definition;
+          - roll back authoring changes that would invalidate the complete campaign.
+
+          Interacting with a merchant opens a paused Buy and Sell overlay. Purchases check availability, stock, stack capacity and the complete wallet cost before mutation. Sales reject equipped or refused items and confirm that the wallet can receive the complete payment before removing inventory. Any failed transaction leaves wallet, inventory and stock unchanged.
+
+          The reference campaign uses **Archive Chits** and includes **Bellweather Provisions** plus the capability-gated **Underworks Exchange**. Quiet the Ash Hunt grants currency through the same Story Studio effect contract. Save schema 3 restores exact wallet balances, finite stock and dynamically resold goods, while State Studio exposes dedicated Wallet and Merchant Stock inspectors.
+          '''
+          merchant_section = "\n".join(line[10:] if line.startswith("          ") else line for line in merchant_section.splitlines())
+          replace_once("\n## Content locations\n", merchant_section + "\n\n## Content locations\n")
+
+          replace_once(
+              "- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md) for equipment slots, derived stats, capabilities, gates and loadout-quality rules;",
+              "- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md) for equipment slots, derived stats, capabilities, gates and loadout-quality rules;\n- [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md) for currencies, shops, pricing, stock, transactions and economy-quality rules;\n- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;"
+          )
+          replace_once(
+              "Inside Save Profiles, use Left and Right to change Save or Load mode, Up and Down to select a slot, and E, Z, Space or C to confirm. Autosave is managed by the campaign and cannot be overwritten manually.",
+              "Inside Save Profiles, use Left and Right to change Save or Load mode, Up and Down to select a slot, and E, Z, Space or C to confirm. Autosave is managed by the campaign and cannot be overwritten manually.\n\nInside a merchant, use Left and Right to change Buy or Sell, Up and Down to select an item, E, Z, Space or C to complete one transaction, and Escape or I to close trade."
+          )
+          replace_once(
+              "1. direct loading and compilation of the runtime, critical resources and all eight editor plugins;",
+              "1. direct loading and compilation of the runtime, critical resources and all nine editor plugins;"
+          )
+          replace_once(
+              "3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability and gate validation;",
+              "3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock and transaction validation;"
+          )
+          replace_once(
+              "13. legacy migration, schema-1 equipment migration, future-schema rejection, corruption detection and backup-recovery tests;",
+              "13. legacy migration, schema-1 equipment migration, schema-2 economy migration, future-schema rejection, corruption detection and backup-recovery tests;"
+          )
+          replace_once(
+              "17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests.",
+              "17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests;\n18. executable merchant buy, sell, rollback, gated availability, story-currency and exact economy-restoration tests;\n19. executable Merchant & Economy Studio currency, merchant, stock, binding and source-parser tests;\n20. malformed currency, merchant, price, stock and saved-economy rejection tests."
+          )
+          replace_once(
+              "- Equipment choices that alter combat, movement, exploration and story through one shared capability contract",
+              "- Equipment choices that alter combat, movement, exploration and story through one shared capability contract\n- Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation"
+          )
+          replace_once(
+              "- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md): equipment, derived-stat and capability-gate production rules",
+              "- [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md): equipment, derived-stat and capability-gate production rules\n- [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md): currency, merchant, pricing, stock and transaction production rules\n- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review"
+          )
+          replace_once(
+              "The next vertical slices will build on the current contracts rather than replace them: merchants and economy, ranged attacks and ammunition, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated capability-order, quest-reachability, economy, save-compatibility, companion-recovery, damage and softlock probes.",
+              "The next vertical slices will build on the current contracts rather than replace them: ranged attacks and ammunition, merchant restocking and regional scarcity, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes."
+          )
+
+          path.write_text(text, encoding="utf-8", newline="\n")
+          subprocess.run(["git", "checkout", "HEAD", "--", ".github/workflows/apply-economy-readme.yml"], check=True)
+
+      - name: Commit README
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: document merchant economy runtime and editor"
+          git push origin HEAD:work/merchant-economy-foundation-20260729

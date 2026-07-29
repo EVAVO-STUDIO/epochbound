@@ -71,6 +71,11 @@ try {
         "--script", "res://tools/smoke_item_forge.gd"
     )
 
+    Invoke-GodotStep "Smoke test Item Forge editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_item_forge_editor.gd"
+    )
+
     Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio and Item Forge validation passed."
 }
 finally {

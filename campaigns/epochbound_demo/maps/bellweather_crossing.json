@@ -720,7 +720,13 @@
 			"available_eras": [
 				"verdant"
 			],
-			"state_key": "bellweather:companion:well_name_scent"
+			"state_key": "bellweather:companion:well_name_scent",
+			"reward_items": [
+				{
+					"item_id": "brass_filings",
+					"quantity": 2
+				}
+			]
 		},
 		{
 			"id": "hot_brass_warning",

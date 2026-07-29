@@ -7,9 +7,9 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 Push-Location $ProjectRoot
 try {
-    & $GodotExecutable --headless --path $ProjectRoot --editor --quit-after 2
+    & $GodotExecutable --headless --path $ProjectRoot --import
     if ($LASTEXITCODE -ne 0) {
-        throw "Godot editor import or script parsing failed with exit code $LASTEXITCODE."
+        throw "Godot import or script parsing failed with exit code $LASTEXITCODE."
     }
 
     & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/validate_content.gd"

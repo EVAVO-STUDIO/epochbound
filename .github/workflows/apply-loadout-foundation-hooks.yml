@@ -1,0 +1,220 @@
+name: Apply loadout foundation hooks
+
+on:
+  push:
+    branches:
+      - work/loadout-capability-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Add backwards-compatible runtime and story hooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/loadout-capability-foundation-20260729
+
+      - name: Apply reviewed source transformations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_string: str, old: str, new: str) -> None:
+              path = Path(path_string)
+              source = path.read_text(encoding="utf-8")
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path_string}: expected one occurrence, found {count}: {old[:120]!r}")
+              path.write_text(source.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          replace_once(
+              "src/app.gd",
+              '\t\tmove_actor("player", player + facing * PLAYER_SPEED * delta)\n',
+              '\t\tmove_actor("player", player + facing * player_move_speed_value() * delta)\n',
+          )
+          replace_once(
+              "src/app.gd",
+              '''func travel_through(connection: Dictionary) -> bool:
+          \tif transition_lock > 0.0:
+          \t\treturn false
+          \tvar target_map := String(connection.get("target_map", ""))
+          ''',
+              '''func travel_through(connection: Dictionary) -> bool:
+          \tif transition_lock > 0.0:
+          \t\treturn false
+          \tif not authored_requirements_met(connection):
+          \t\tdialogue = authored_blocked_message(connection)
+          \t\treturn false
+          \tvar target_map := String(connection.get("target_map", ""))
+          ''',
+          )
+          replace_once(
+              "src/app.gd",
+              '''\telse:
+          \t\tdialogue = dialogue_for(closest)
+
+
+          func dialogue_for(interaction: Dictionary) -> String:
+          ''',
+              '''\telse:
+          \t\tif authored_requirements_met(closest):
+          \t\t\tdialogue = dialogue_for(closest)
+          \t\telse:
+          \t\t\tdialogue = authored_blocked_message(closest)
+
+
+          func player_move_speed_value() -> float:
+          \treturn PLAYER_SPEED
+
+
+          func authored_requirements_met(_record: Dictionary) -> bool:
+          \treturn true
+
+
+          func authored_blocked_message(record: Dictionary) -> String:
+          \treturn str(record.get("blocked_dialogue", "You cannot use this yet."))
+
+
+          func dialogue_for(interaction: Dictionary) -> String:
+          ''',
+          )
+
+          replace_once(
+              "src/story_runtime.gd",
+              '''\tif best_index >= 0:
+          \t\tvar entity: Dictionary = runtime_entities[best_index]
+          \t\tif StoryEncounterModel.kind(entity) == "pickup":
+          ''',
+              '''\tif best_index >= 0:
+          \t\tvar entity: Dictionary = runtime_entities[best_index]
+          \t\tvar definition_data: Dictionary = entity.get("definition", {})
+          \t\tif not authored_requirements_met(definition_data):
+          \t\t\tdialogue = authored_blocked_message(definition_data)
+          \t\t\treturn
+          \t\tif StoryEncounterModel.kind(entity) == "pickup":
+          ''',
+          )
+          replace_once(
+              "src/story_runtime.gd",
+              '''\t\tvar definition_data: Dictionary = entity.get("definition", {})
+          \t\tvar conversation_id := str(definition_data.get("conversation_id", "")).strip_edges()
+          ''',
+              '''\t\tvar conversation_id := str(definition_data.get("conversation_id", "")).strip_edges()
+          ''',
+          )
+          replace_once(
+              "src/story_runtime.gd",
+              '''\tif not StoryModel.conditions_met(StoryCatalog.conditions(interaction, "story_conditions"), story_context()):
+          \t\tdialogue = str(interaction.get("blocked_dialogue", "Nothing changes yet."))
+          \t\treturn
+          ''',
+              '''\tif not authored_requirements_met(interaction):
+          \t\tdialogue = authored_blocked_message(interaction)
+          \t\treturn
+          \tif not StoryModel.conditions_met(StoryCatalog.conditions(interaction, "story_conditions"), story_context()):
+          \t\tdialogue = str(interaction.get("blocked_dialogue", "Nothing changes yet."))
+          \t\treturn
+          ''',
+          )
+
+          replace_once(
+              "src/content/story_catalog.gd",
+              '''\t"has_item",
+          \t"state_equals",
+          ''',
+              '''\t"has_item",
+          \t"has_capability",
+          \t"state_equals",
+          ''',
+          )
+          replace_once(
+              "src/game/story_model.gd",
+              '''\t\t"has_item":
+          \t\t\tvar inventory: Dictionary = context.get("inventory", {})
+          \t\t\treturn InventoryModel.count(inventory, str(condition.get("item_id", ""))) >= maxi(1, int(condition.get("quantity", 1)))
+          \t\t"state_equals":
+          ''',
+              '''\t\t"has_item":
+          \t\t\tvar inventory: Dictionary = context.get("inventory", {})
+          \t\t\treturn InventoryModel.count(inventory, str(condition.get("item_id", ""))) >= maxi(1, int(condition.get("quantity", 1)))
+          \t\t"has_capability":
+          \t\t\tvar capabilities_value: Variant = context.get("capabilities", [])
+          \t\t\tif typeof(capabilities_value) not in [TYPE_ARRAY, TYPE_PACKED_STRING_ARRAY]:
+          \t\t\t\treturn false
+          \t\t\treturn capabilities_value.has(str(condition.get("capability_id", "")))
+          \t\t"state_equals":
+          ''',
+          )
+          replace_once(
+              "src/content/story_validator.gd",
+              '''\t\t\t"state_equals":
+          \t\t\t\tvar key := str(condition.get("key", "")).strip_edges()
+          ''',
+              '''\t\t\t"has_capability":
+          \t\t\t\tvar capability_id := str(condition.get("capability_id", "")).strip_edges()
+          \t\t\t\tif capability_id.is_empty() or Repository.normalise_id(capability_id) != capability_id:
+          \t\t\t\t\terrors.append("%s: capability_id must be a normalised lowercase identifier." % condition_prefix)
+          \t\t\t"state_equals":
+          \t\t\t\tvar key := str(condition.get("key", "")).strip_edges()
+          ''',
+          )
+
+          replace_once(
+              "src/content/save_validator.gd",
+              '''const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+          ''',
+              '''const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+          const EquipmentModel = preload("res://src/game/equipment_model.gd")
+          ''',
+          )
+          replace_once(
+              "src/content/save_validator.gd",
+              '''\tvalidate_actor_state(payload, campaign, errors)
+          ''',
+              '''\tvalidate_actor_state(payload, campaign, item_definitions, errors)
+          ''',
+          )
+          replace_once(
+              "src/content/save_validator.gd",
+              '''static func validate_actor_state(payload: Dictionary, campaign: Dictionary, errors: Array[String]) -> void:
+          \tvar actors: Dictionary = campaign.get("actors", {})
+          \tfor actor_id in ["player", "companion"]:
+          \t\tvar actor_value: Variant = actors.get(actor_id, {})
+          \t\tvar actor: Dictionary = actor_value if typeof(actor_value) == TYPE_DICTIONARY else {}
+          \t\tvar maximum := int(actor.get("max_health", 1))
+          ''',
+              '''static func validate_actor_state(
+          \tpayload: Dictionary,
+          \tcampaign: Dictionary,
+          \titem_definitions: Dictionary,
+          \terrors: Array[String]
+          ) -> void:
+          \tvar actors: Dictionary = campaign.get("actors", {})
+          \tvar equipment_value: Variant = payload.get("equipment", {})
+          \tvar equipment: Dictionary = equipment_value if typeof(equipment_value) == TYPE_DICTIONARY else {}
+          \tfor actor_id in ["player", "companion"]:
+          \t\tvar actor_value: Variant = actors.get(actor_id, {})
+          \t\tvar actor: Dictionary = actor_value if typeof(actor_value) == TYPE_DICTIONARY else {}
+          \t\tvar maximum := int(actor.get("max_health", 1))
+          \t\tif actor_id == "player":
+          \t\t\tmaximum += int(EquipmentModel.modifier_total(equipment, item_definitions, "max_health_bonus"))
+          ''',
+          )
+
+          Path(".github/workflows/apply-loadout-foundation-hooks.yml").unlink()
+
+      - name: Commit compatibility hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.gd src/story_runtime.gd src/content/story_catalog.gd src/game/story_model.gd src/content/story_validator.gd src/content/save_validator.gd .github/workflows/apply-loadout-foundation-hooks.yml
+          git commit -m "feat: add capability and equipment extension hooks"
+          git push origin HEAD:work/loadout-capability-foundation-20260729

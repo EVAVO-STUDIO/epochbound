@@ -18,12 +18,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: work/merchant-economy-foundation-20260729
+          fetch-depth: 0
 
-      - name: Execute the reviewed validation patch
+      - name: Execute reviewed non-workflow validation changes
         shell: python
         run: |
           from pathlib import Path
+          import subprocess
           import textwrap
+
+          # Three files were already applied directly through the connected app.
+          # Restore their main versions so the reviewed patch remains one-shot and exact.
+          subprocess.run(["git", "fetch", "origin", "main", "--depth=1"], check=True)
+          subprocess.run([
+              "git", "checkout", "origin/main", "--",
+              "tools/compile_probe.gd",
+              "tools/validate_content.gd",
+              "tools/smoke_encounters.gd",
+          ], check=True)
 
           source = Path('.github/workflows/apply-economy-validation-suite.yml').read_text(encoding='utf-8')
           source = source.replace(
@@ -50,9 +62,17 @@ jobs:
           section = section.split('      - name: Commit validation suite', 1)[0]
           code = section.split('        run: |', 1)[1]
           exec(textwrap.dedent(code), {})
-          Path('.github/workflows/apply-economy-validation-pr.yml').unlink()
 
-      - name: Commit permanent validation changes
+          # The Actions token cannot modify workflow files. Leave those three
+          # paths untouched; the connected GitHub app applies them separately.
+          subprocess.run([
+              "git", "checkout", "HEAD", "--",
+              ".github/workflows/validate.yml",
+              ".github/workflows/apply-economy-validation-suite.yml",
+              ".github/workflows/apply-economy-validation-pr.yml",
+          ], check=True)
+
+      - name: Commit non-workflow validation changes
         shell: bash
         run: |
           set -euo pipefail
@@ -60,5 +80,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "test: extend permanent validation through merchant economy"
+          git commit -m "test: extend regression coverage through merchant economy"
           git push origin HEAD:work/merchant-economy-foundation-20260729

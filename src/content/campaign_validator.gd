@@ -51,13 +51,25 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 		for page in campaign.get("intro", []):
 			if typeof(page) != TYPE_STRING or String(page).strip_edges().is_empty():
 				errors.append("%s: every intro page must contain text." % prefix)
+	var companion_required := true
+	var ruleset_value: Variant = campaign.get("ruleset", {})
+	if typeof(ruleset_value) != TYPE_DICTIONARY:
+		errors.append("%s: ruleset must be an object." % prefix)
+	else:
+		var ruleset: Dictionary = ruleset_value
+		companion_required = bool(ruleset.get("companion_enabled", true))
+		if String(ruleset.get("combat_model", "action")) != "action":
+			errors.append("%s: unsupported combat_model '%s'." % [prefix, ruleset.get("combat_model", "")])
+		for flag_name in ["companion_enabled", "era_shifting_enabled"]:
+			if ruleset.has(flag_name) and typeof(ruleset.get(flag_name)) != TYPE_BOOL:
+				errors.append("%s: ruleset flag '%s' must be boolean." % [prefix, flag_name])
 	var actors_value: Variant = campaign.get("actors", {})
 	if typeof(actors_value) != TYPE_DICTIONARY:
 		errors.append("%s: actors must be an object." % prefix)
 	else:
 		var actors: Dictionary = actors_value
 		_validate_actor(actors.get("player", {}), "%s/player" % prefix, errors)
-		if bool(campaign.get("ruleset", {}).get("companion_enabled", true)):
+		if companion_required:
 			_validate_actor(actors.get("companion", {}), "%s/companion" % prefix, errors)
 	var map_files_value: Variant = campaign.get("map_files", [])
 	if typeof(map_files_value) != TYPE_ARRAY or map_files_value.is_empty():
@@ -214,6 +226,8 @@ static func _validate_eras(value: Variant, prefix: String, width: int, height: i
 			continue
 		var era: Dictionary = era_value
 		var era_id := String(era.get("id", ""))
+		if String(era.get("display_name", "")).strip_edges().is_empty():
+			errors.append("%s/%s: era display_name is required." % [prefix, era_id])
 		var palette_value: Variant = era.get("palette", {})
 		if typeof(palette_value) != TYPE_DICTIONARY:
 			errors.append("%s/%s: palette must be an object." % [prefix, era_id])

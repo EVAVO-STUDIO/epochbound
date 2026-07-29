@@ -75,7 +75,7 @@ func probe_runtime_scene() -> void:
 	if script_value is GDScript:
 		var runtime_path := str((script_value as GDScript).resource_path)
 		check(
-			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd"],
+			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd"],
 			"Runtime scene must bind a Combat Director-capable runtime."
 		)
 	root.add_child(runtime)

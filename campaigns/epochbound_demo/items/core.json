@@ -68,6 +68,82 @@
 			"use_effect": {
 				"type": "none"
 			}
+		},
+		{
+			"id": "brass_hook",
+			"display_name": "Brass Hook",
+			"kind": "equipment",
+			"description": "A compact museum rigging hook sharpened along its inner curve. It catches fibrous clockvines without slipping.",
+			"stack_limit": 1,
+			"value": 45,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "weapon",
+				"attack_bonus": 2,
+				"defense_bonus": 0,
+				"max_health_bonus": 0,
+				"move_speed_bonus": 0,
+				"capabilities": ["cut_clockvines"]
+			}
+		},
+		{
+			"id": "museum_coat",
+			"display_name": "Museum Field Coat",
+			"kind": "equipment",
+			"description": "A heavy collections coat with padded shoulders, reinforced pockets and an old Bellweather crest beneath the collar.",
+			"stack_limit": 1,
+			"value": 60,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "body",
+				"attack_bonus": 0,
+				"defense_bonus": 1,
+				"max_health_bonus": 4,
+				"move_speed_bonus": 0,
+				"capabilities": []
+			}
+		},
+		{
+			"id": "museum_flashlight",
+			"display_name": "Museum Flashlight",
+			"kind": "equipment",
+			"description": "Eli's battered aluminium flashlight. Its beam remains steady in rooms where every other light points toward the wrong year.",
+			"stack_limit": 1,
+			"value": 30,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "tool",
+				"attack_bonus": 0,
+				"defense_bonus": 0,
+				"max_health_bonus": 0,
+				"move_speed_bonus": 0,
+				"capabilities": ["illuminate_dark"]
+			}
+		},
+		{
+			"id": "archivist_lens",
+			"display_name": "Archivist Lens",
+			"kind": "equipment",
+			"description": "A brass-rimmed lens calibrated by the Lost Archivist after the missing hour was restored.",
+			"stack_limit": 1,
+			"value": 0,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "tool",
+				"attack_bonus": 0,
+				"defense_bonus": 0,
+				"max_health_bonus": 0,
+				"move_speed_bonus": 8,
+				"capabilities": ["clockglass_sight"]
+			}
 		}
 	]
 }

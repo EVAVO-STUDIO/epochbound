@@ -6,6 +6,10 @@ const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const EncounterModel = preload("res://src/game/encounter_model.gd")
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const RUNTIME_SCENE := "res://src/app.tscn"
+const COMBAT_RUNTIME_PATHS := [
+	"res://src/combat_runtime.gd",
+	"res://src/combat_director_runtime.gd"
+]
 
 var failures: Array[String] = []
 
@@ -64,9 +68,10 @@ func probe_runtime_scene() -> void:
 	var runtime_script: Variant = runtime.get_script()
 	check(runtime_script is GDScript, "Runtime root must retain its GDScript after scene loading.")
 	if runtime_script is GDScript:
+		var runtime_path := str((runtime_script as GDScript).resource_path)
 		check(
-			str((runtime_script as GDScript).resource_path) == "res://src/combat_runtime.gd",
-			"Runtime scene must bind the combat runtime script."
+			COMBAT_RUNTIME_PATHS.has(runtime_path),
+			"Runtime scene must bind a combat-capable runtime script."
 		)
 	if not has_property(runtime, "object_definitions") or not has_property(runtime, "runtime_entities"):
 		failures.append("Runtime script did not expose encounter state properties.")

@@ -723,7 +723,7 @@ static func reachable_nodes(start_id: String, outgoing: Dictionary) -> Dictionar
 		return reachable
 	var queue: Array[String] = [start_id]
 	while not queue.is_empty():
-		var current := queue.pop_front()
+		var current: String = queue.pop_front()
 		if reachable.has(current):
 			continue
 		reachable[current] = true

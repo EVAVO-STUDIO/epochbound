@@ -26,6 +26,22 @@ jobs:
           import textwrap
 
           source = Path('.github/workflows/apply-economy-validation-suite.yml').read_text(encoding='utf-8')
+          source = source.replace(
+              'item_count == 10, "Item Forge must display all ten reference items."',
+              'item_count == 10, "Item Forge must display all ten reference inventory and equipment items."'
+          )
+          source = source.replace(
+              'item_count == 11, "Item Forge must display all eleven reference items."',
+              'item_count == 11, "Item Forge must display all eleven reference inventory and equipment items."'
+          )
+          source = source.replace(
+              'item_count == 10, "Recipe output selector must contain every reference item."',
+              'item_count == 10, "Recipe output selector must contain every reference inventory and equipment item."'
+          )
+          source = source.replace(
+              'item_count == 11, "Recipe output selector must contain every reference item."',
+              'item_count == 11, "Recipe output selector must contain every reference inventory and equipment item."'
+          )
           section = source.split('      - name: Apply exact regression updates', 1)[1]
           section = section.split('      - name: Commit validation suite', 1)[0]
           code = section.split('        run: |', 1)[1]

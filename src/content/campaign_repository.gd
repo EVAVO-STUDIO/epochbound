@@ -2,6 +2,7 @@
 extends RefCounted
 
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const BUILTIN_ROOT := "res://campaigns"
 const USER_ROOT := "user://campaigns"
 const DEFAULT_ROOT := BUILTIN_ROOT
@@ -108,6 +109,14 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	var catalog_result := save_json(catalog_path, ObjectCatalog.default_catalog())
 	if not catalog_result.get("ok", false):
 		return catalog_result
+	var item_catalog_path := campaign_directory.path_join("items").path_join("core.json")
+	var item_catalog_result := save_json(item_catalog_path, ItemCatalog.default_item_catalog())
+	if not item_catalog_result.get("ok", false):
+		return item_catalog_result
+	var recipe_catalog_path := campaign_directory.path_join("recipes").path_join("core.json")
+	var recipe_catalog_result := save_json(recipe_catalog_path, ItemCatalog.default_recipe_catalog())
+	if not recipe_catalog_result.get("ok", false):
+		return recipe_catalog_result
 	var map_id := "first_crossing"
 	var map_path := campaign_directory.path_join("maps").path_join(map_id + ".json")
 	var map_result := save_json(map_path, default_map(map_id, "First Crossing"))
@@ -120,6 +129,8 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 		"ok": true,
 		"campaign_path": campaign_path,
 		"catalog_path": catalog_path,
+		"item_catalog_path": item_catalog_path,
+		"recipe_catalog_path": recipe_catalog_path,
 		"map_path": map_path,
 		"errors": []
 	}
@@ -192,6 +203,13 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"start_era": "verdant",
 		"map_files": ["maps/first_crossing.json"],
 		"object_files": ["objects/core.json"],
+		"item_files": ["items/core.json"],
+		"recipe_files": ["recipes/core.json"],
+		"starting_inventory": [
+			{"item_id": "trail_tonic", "quantity": 1},
+			{"item_id": "brass_scrap", "quantity": 2}
+		],
+		"starting_recipes": ["field_salve_recipe"],
 		"intro": [
 			"A forgotten road waits beyond the last familiar hour.",
 			"One traveller and one loyal companion cross the threshold.",

@@ -1,0 +1,123 @@
+name: Apply Arsenal production review
+
+on:
+  push:
+    branches:
+      - work/arsenal-ranged-foundation-20260730
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out working branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/arsenal-ranged-foundation-20260730
+
+      - name: Apply production review changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_name: str, old: str, new: str) -> None:
+              path = Path(path_name)
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path_name}: expected one occurrence, found {count}: {old!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          # Loaded ranged weapons stay protected from merchant sale even while unequipped.
+          arsenal_path = Path("src/arsenal_runtime.gd")
+          arsenal = arsenal_path.read_text(encoding="utf-8")
+          marker = '''func can_open_save_overlay() -> bool:\n'''
+          addition = '''func protected_equipment_ids() -> PackedStringArray:\n\tvar output := super.protected_equipment_ids()\n\tfor weapon_id_value in loaded_ammo.keys():\n\t\tvar weapon_id := str(weapon_id_value)\n\t\tif int(loaded_ammo.get(weapon_id_value, 0)) > 0 and not output.has(weapon_id):\n\t\t\toutput.append(weapon_id)\n\treturn output\n\n\nfunc transaction_failure_message(reason: String) -> String:\n\tif reason == "equipped_item":\n\t\treturn "That item is equipped or contains loaded ammunition."\n\treturn super.transaction_failure_message(reason)\n\n\nfunc can_open_save_overlay() -> bool:\n'''
+          if arsenal.count(marker) != 1:
+              raise SystemExit("arsenal_runtime.gd: save-overlay marker not found")
+          arsenal = arsenal.replace(marker, addition, 1)
+          arsenal_path.write_text(arsenal, encoding="utf-8", newline="\n")
+
+          # Prove sale protection through the runtime's shared merchant safety list.
+          test_path = Path("tools/smoke_arsenal_runtime.gd")
+          test = test_path.read_text(encoding="utf-8")
+          old = '''\truntime.set("loaded_ammo", {WEAPON_ID: 2})\n\tvar captured_value: Variant = runtime.call("capture_save_profile", SLOT_ID, "Arsenal smoke checkpoint")\n'''
+          new = '''\truntime.set("loaded_ammo", {WEAPON_ID: 2})\n\tcheck(bool(runtime.call("equip_specific_item", "brass_hook")), "Loaded Dartcaster must be unequippable without losing its magazine.")\n\tvar protected_ids: PackedStringArray = runtime.call("protected_equipment_ids")\n\tcheck(protected_ids.has(WEAPON_ID), "An unequipped ranged weapon with loaded rounds must remain protected from sale.")\n\tcheck(bool(runtime.call("equip_specific_item", WEAPON_ID)), "Dartcaster must re-equip after loaded-sale protection testing.")\n\tvar captured_value: Variant = runtime.call("capture_save_profile", SLOT_ID, "Arsenal smoke checkpoint")\n'''
+          if test.count(old) != 1:
+              raise SystemExit("smoke_arsenal_runtime.gd: save fixture marker not found")
+          test_path.write_text(test.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          # Publish the new runtime, editor, controls, schema and validation coverage.
+          readme_path = Path("README.md")
+          readme = readme_path.read_text(encoding="utf-8")
+          readme = readme.replace(
+              '''31. Two conditionally available reference merchants bound to reusable NPC definitions\n32. Pause, resume and safe transition flow\n''',
+              '''31. Two conditionally available reference merchants bound to reusable NPC definitions\n32. Inventory-backed ammunition, explicit reloads and deterministic moving projectiles\n33. Player and enemy ranged attacks that respect map collision, cover and existing combat feedback\n34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter\n35. Pause, resume and safe transition flow\n''',
+              1
+          )
+          readme = readme.replace(
+              'merchant, economy and interaction contracts',
+              'merchant, economy, ammunition, projectile, reload and interaction contracts',
+              1
+          )
+          readme = readme.replace(
+              '- create consumable, material, key and equipment item definitions;',
+              '- create consumable, material, key, equipment and ammunition item definitions;',
+              1
+          )
+          readme = readme.replace(
+              'Save schema 3 persists equipped item IDs alongside wallets and merchant stock.',
+              'Save schema 4 persists equipped item IDs, wallets, merchant stock and loaded ranged magazines.',
+              1
+          )
+          arsenal_section = '''\n## Arsenal Studio\n\nThe **Arsenal** main-screen editor authors ranged weapons, ammunition, reload timing, projectile movement and reusable enemy projectile profiles while preserving Item Forge ownership, Loadout Studio equipment and Combat Director encounter direction. It can:\n\n- create ammunition items with stack, value, damage, knockback and projectile-colour records;\n- create ranged Weapon-slot equipment that references stable ammunition IDs;\n- configure magazine size, damage, speed, range, radius, cooldown, reload, knockback and muzzle offset;\n- enable and tune projectile attacks on reusable enemy definitions;\n- block ammunition deletion while a weapon still references it;\n- validate weapon, ammunition, enemy and loaded-magazine records before play.\n\nThe active attack action fires a moving projectile when ranged equipment is selected and retains the existing melee attack when the Brass Hook or another close-range weapon is equipped. Reload transfers reserve Item Forge ammunition only when its authored interval completes. Switching weapons cancels reload without consuming reserve rounds. Fast projectiles use swept collision against map geometry, solid placed objects and the first valid target.\n\nThe reference Arsenal includes **Archive Bolts**, the four-round **Clockglass Dartcaster**, and the Ashen-only **Underworks Sentinel**. Bellweather Provisions stocks reserve bolts, while Underworks Exchange carries one Dartcaster. Enemy shots use the existing Combat Director windup but apply damage only after the projectile reaches Eli or Morrow.\n\nSave schema 4 stores exact loaded rounds by stable weapon ID. Schema-3 profiles retain their previous durable state and migrate with empty magazines rather than guessing how reserve ammunition had been distributed. State Studio exposes a dedicated Loaded Ammo inspector.\n\n'''
+          marker = '\n## Content locations\n'
+          if readme.count(marker) != 1:
+              raise SystemExit("README.md: content-locations marker not found")
+          readme = readme.replace(marker, arsenal_section + marker, 1)
+          readme = readme.replace(
+              '- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;\n',
+              '- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;\n- [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md) for ammunition, ranged weapons, reloads, projectiles and ranged-combat quality rules;\n- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;\n',
+              1
+          )
+          readme = readme.replace(
+              '| Attack | Space or C | East face button |\n',
+              '| Attack or fire equipped weapon | Space or C | East face button |\n| Reload ranged weapon | G | Right trigger |\n',
+              1
+          )
+          readme = readme.replace('all nine editor plugins', 'all ten editor plugins', 1)
+          readme = readme.replace(
+              '20. malformed currency, merchant, price, stock and saved-economy rejection tests.',
+              '20. malformed currency, merchant, price, stock and saved-economy rejection tests;\n21. executable ranged firing, reload completion, cancellation, projectile collision, enemy shots and exact loaded-magazine restoration tests;\n22. executable Arsenal Studio weapon, ammunition and enemy-profile editor tests;\n23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests.',
+              1
+          )
+          readme = readme.replace(
+              '- Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation\n',
+              '- Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation\n- Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage\n',
+              1
+          )
+          readme = readme.replace(
+              '- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review\n',
+              '- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review\n- [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md): ammunition, ranged weapon, projectile and save-state production rules\n- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review\n',
+              1
+          )
+          readme = readme.replace(
+              'ranged attacks and ammunition, merchant restocking and regional scarcity,',
+              'alternate ammunition, merchant restocking and regional scarcity,',
+              1
+          )
+          readme_path.write_text(readme, encoding="utf-8", newline="\n")
+
+      - name: Commit production review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/arsenal_runtime.gd tools/smoke_arsenal_runtime.gd README.md
+          git commit -m "fix: protect loaded weapons and document Arsenal systems"
+          git push origin HEAD:work/arsenal-ranged-foundation-20260730

@@ -36,9 +36,12 @@ The repository now provides:
 26. Capability-gated travel, interactions and story conditions with blocked feedback
 27. A third Museum Underworks map with flashlight, hook and Archivist Lens trade-offs
 28. Bidirectional travel between Bellweather Crossing, Clockwood Edge and the Museum Underworks
-29. Pause, resume and safe transition flow
+29. Campaign-authored currencies, finite merchant stock and durable wallet state
+30. Atomic buy and sell transactions with stack, stock, balance and equipped-item protection
+31. Two conditionally available reference merchants bound to reusable NPC definitions
+32. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -141,7 +144,7 @@ The **Items** main-screen editor authors the inventory and crafting layer. It ca
 - choose recipes unlocked by default;
 - author campaign starting inventory quantities;
 - choose campaign starting recipes;
-- prevent deletion while starts, recipes, pickups or companion discoveries reference a definition;
+- prevent deletion while starts, recipes, pickups, companion discoveries or merchant records reference a definition;
 - validate item catalogs, recipe catalogs, grants and unlocks across the complete campaign.
 
 The runtime provides a paused **Field Satchel** with Items, Recipes and Equipment tabs, deterministic item ordering, direct consumable use, quick-use healing, ingredient checks, output-capacity checks, atomic crafting and owned-gear selection. Inventory and equipped item IDs persist through the durable profile contract.
@@ -164,8 +167,8 @@ The **Story** main-screen editor authors branching conversations and multi-stage
 - preview authored branches through Godot `GraphEdit` nodes and connections;
 - preserve draggable graph layout in source-controlled `editor_position` records;
 - author plain or era-keyed dialogue text;
-- author typed conditions against inventory, durable world state, quest status, quest stage, map, era and clock-shard totals;
-- author typed effects that start or advance quests, set state, grant or remove items, unlock recipes and grant clock shards;
+- author typed conditions against inventory, durable world state, quest status, quest stage, map, era, clock-shard totals, active capabilities and currency balances;
+- author typed effects that start or advance quests, set state, grant or remove items, unlock recipes, grant clock shards and change durable currency balances;
 - create quests with objectives, deterministic completion conditions and rewards;
 - block unsafe deletion of referenced conversations, nodes, quests and stages;
 - roll back a story save that would invalidate the campaign;
@@ -184,14 +187,14 @@ The **State** main-screen editor inspects and manages versioned player profiles 
 
 - discover autosave and manual slots for each campaign;
 - show schema, checksum, timestamp, reason, map, era and play time;
-- inspect persisted inventory, learned recipes, quest stages and durable world-state keys;
+- inspect persisted inventory, equipment, wallets, merchant stock, learned recipes, quest stages and durable world-state keys;
 - validate a profile against the currently installed campaign definitions;
 - rewrite supported legacy profiles through explicit migrations;
 - recover a previous complete checkpoint from a rotated backup;
 - delete a slot together with its backup and abandoned temporary file;
 - expose canonical read-only JSON for support and review.
 
-The runtime adds a title-screen **Continue** flow, one managed autosave slot and campaign-authored manual slots. Writes use temporary files and promotion rather than overwriting the only valid copy. Map, era, positions, health, inventory, recipes, discoveries, defeated enemies, cleared encounters, quest progress, clock shards, companion hold state and play time restore from one validated profile. Transient dialogue, attack windups, knockback and menu state reset safely.
+The runtime adds a title-screen **Continue** flow, one managed autosave slot and campaign-authored manual slots. Writes use temporary files and promotion rather than overwriting the only valid copy. Map, era, positions, health, inventory, equipment, wallets, merchant stock, recipes, discoveries, defeated enemies, cleared encounters, quest progress, clock shards, companion hold state and play time restore from one validated profile. Transient dialogue, attack windups, knockback and menu state reset safely.
 
 The reference campaign exposes three manual slots, autosaves after safe travel or meaningful durable progress, and blocks manual saving during active directed combat.
 
@@ -213,7 +216,28 @@ The Field Satchel Equipment tab cycles each slot through the empty state and eve
 
 The reference loadout includes the Brass Hook, Museum Field Coat and Museum Flashlight. Completing **The Missing Hour** grants the Archivist Lens. The flashlight and lens share the Tool slot: one permits entry into the dark Museum Underworks, while the other reveals its sealed catalogue. This creates an explicit spatial and narrative trade-off rather than an always-active collection of passive tools.
 
-Save schema 2 persists equipped item IDs. Schema-1 profiles migrate with empty equipment rather than guessing a loadout, and every restored slot validates against current ownership and campaign definitions.
+Save schema 3 persists equipped item IDs alongside wallets and merchant stock. Schema-1 profiles migrate with empty equipment, while schema-2 profiles retain equipment and initialise the authored economy once; every restored slot, balance and stock record validates against current campaign definitions.
+
+
+## Merchant & Economy Studio
+
+The **Trade** main-screen editor authors currencies, merchant stock, prices, availability and reusable NPC trade bindings while keeping every traded good inside Item Forge inventory. It can:
+
+- create stable campaign currency definitions;
+- configure starting and maximum wallet balances;
+- create merchants with greetings, farewells and transaction currencies;
+- author buy and sell multipliers or item-specific price overrides;
+- define finite or unlimited stock;
+- condition merchants and individual stock through Story Studio records;
+- choose accepted item kinds and explicit refusal rules;
+- decide whether sold player goods become merchant stock;
+- bind reusable NPC definitions to merchant contracts;
+- prevent deletion while stock, refusal rules, story records or NPC bindings still reference a definition;
+- roll back authoring changes that would invalidate the complete campaign.
+
+Interacting with a merchant opens a paused Buy and Sell overlay. Purchases check availability, stock, stack capacity and the complete wallet cost before mutation. Sales reject equipped or refused items and confirm that the wallet can receive the complete payment before removing inventory. Any failed transaction leaves wallet, inventory and stock unchanged.
+
+The reference campaign uses **Archive Chits** and includes **Bellweather Provisions** plus the capability-gated **Underworks Exchange**. Quiet the Ash Hunt grants currency through the same Story Studio effect contract. Save schema 3 restores exact wallet balances, finite stock and dynamically resold goods, while State Studio exposes dedicated Wallet and Merchant Stock inspectors.
 
 ## Content locations
 
@@ -230,6 +254,8 @@ Read:
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md) for conversation graphs, typed conditions, quest stages, rewards and story-quality gates;
 - [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md) for save profiles, migration, backup recovery and durable-state quality gates;
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md) for equipment slots, derived stats, capabilities, gates and loadout-quality rules;
+- [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md) for currencies, shops, pricing, stock, transactions and economy-quality rules;
+- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -259,6 +285,8 @@ Inside the Journal, use Left and Right to change Active or Completed tabs and Up
 
 Inside Save Profiles, use Left and Right to change Save or Load mode, Up and Down to select a slot, and E, Z, Space or C to confirm. Autosave is managed by the campaign and cannot be overwritten manually.
 
+Inside a merchant, use Left and Right to change Buy or Sell, Up and Down to select an item, E, Z, Space or C to complete one transaction, and Escape or I to close trade.
+
 ## Validate
 
 From Windows PowerShell:
@@ -270,9 +298,9 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all eight editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all nine editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability and gate validation;
+3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock and transaction validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
@@ -282,11 +310,14 @@ The validation gate performs:
 10. executable Story Studio graph and editor-state smoke tests;
 11. malformed conversation, condition, effect and quest-stage rejection tests;
 12. deterministic save capture, checksum, atomic write and exact runtime-restoration tests;
-13. legacy migration, schema-1 equipment migration, future-schema rejection, corruption detection and backup-recovery tests;
+13. legacy migration, schema-1 equipment migration, schema-2 economy migration, future-schema rejection, corruption detection and backup-recovery tests;
 14. executable Save & State Studio slot, equipment and inspector tests;
 15. executable loadout stats, slot cycling, capability-gated travel, interaction and story-condition tests;
 16. executable Loadout Studio equipment, capability, campaign-loadout and gate-editor tests;
-17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests.
+17. malformed equipment slot, stat, capability, gate and saved-ownership rejection tests;
+18. executable merchant buy, sell, rollback, gated availability, story-currency and exact economy-restoration tests;
+19. executable Merchant & Economy Studio currency, merchant, stock, binding and source-parser tests;
+20. malformed currency, merchant, price, stock and saved-economy rejection tests.
 
 ## Design pillars
 
@@ -307,6 +338,7 @@ The validation gate performs:
 - Conversations and quests that consume the same world, item, encounter and companion outcomes instead of parallel state
 - Save profiles that serialise those same stable IDs and durable outcomes instead of the live scene tree
 - Equipment choices that alter combat, movement, exploration and story through one shared capability contract
+- Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation
 
 ## Documentation
 
@@ -321,9 +353,11 @@ The validation gate performs:
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md): branching dialogue and quest production rules
 - [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md): save profile, migration and durable-state production rules
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md): equipment, derived-stat and capability-gate production rules
+- [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md): currency, merchant, pricing, stock and transaction production rules
+- [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: merchants and economy, ranged attacks and ammunition, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated capability-order, quest-reachability, economy, save-compatibility, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: ranged attacks and ammunition, merchant restocking and regional scarcity, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.

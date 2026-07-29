@@ -1,0 +1,74 @@
+name: Apply reference item reward data
+
+on:
+  push:
+    branches:
+      - work/item-forge-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Author item and recipe discovery rewards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/item-forge-foundation-20260729
+
+      - name: Apply exact reward records
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          edits = {
+              "campaigns/epochbound_demo/maps/bellweather_crossing.json": {
+                  "well_name_scent": {
+                      "reward_items": [
+                          {"item_id": "brass_filings", "quantity": 2}
+                      ]
+                  }
+              },
+              "campaigns/epochbound_demo/maps/clockwood_edge.json": {
+                  "future_bark_trail": {
+                      "unlock_recipes": ["clockglass_lens_recipe"]
+                  },
+                  "cold_ash_cache": {
+                      "reward_items": [
+                          {"item_id": "ashen_resin", "quantity": 1}
+                      ]
+                  }
+              }
+          }
+
+          for filename, cue_edits in edits.items():
+              path = Path(filename)
+              data = json.loads(path.read_text(encoding="utf-8"))
+              cues = data.get("companion_cues", [])
+              by_id = {cue.get("id"): cue for cue in cues if isinstance(cue, dict)}
+              for cue_id, fields in cue_edits.items():
+                  if cue_id not in by_id:
+                      raise SystemExit(f"Missing reviewed companion cue {cue_id} in {filename}")
+                  by_id[cue_id].update(fields)
+              path.write_text(
+                  json.dumps(data, indent="\t", ensure_ascii=False) + "\n",
+                  encoding="utf-8",
+                  newline="\n",
+              )
+
+          Path(".github/workflows/apply-item-reward-data.yml").unlink()
+
+      - name: Commit authored rewards
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add campaigns/epochbound_demo/maps/bellweather_crossing.json campaigns/epochbound_demo/maps/clockwood_edge.json .github/workflows/apply-item-reward-data.yml
+          git commit -m "feat: author item and recipe discovery rewards"
+          git push origin HEAD:work/item-forge-foundation-20260729

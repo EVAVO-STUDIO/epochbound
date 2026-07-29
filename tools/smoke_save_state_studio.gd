@@ -29,6 +29,7 @@ func run_smoke_test() -> void:
 	var quest_list_value: Variant = studio.get("quest_list")
 	var state_list_value: Variant = studio.get("state_list")
 	var raw_text_value: Variant = studio.get("raw_text")
+	var delete_confirmation_value: Variant = studio.get("delete_confirmation")
 	check(campaign_selector_value is OptionButton, "Save State Studio must create a campaign selector.")
 	check(slot_list_value is ItemList, "Save State Studio must create a slot list.")
 	check(overview_value is RichTextLabel, "Save State Studio must create an overview inspector.")
@@ -36,6 +37,7 @@ func run_smoke_test() -> void:
 	check(quest_list_value is ItemList, "Save State Studio must create a quest inspector.")
 	check(state_list_value is ItemList, "Save State Studio must create a world-state inspector.")
 	check(raw_text_value is TextEdit, "Save State Studio must create a raw JSON inspector.")
+	check(delete_confirmation_value is ConfirmationDialog, "Save State Studio must protect destructive deletion with a confirmation dialog.")
 	if campaign_selector_value is OptionButton:
 		check((campaign_selector_value as OptionButton).item_count >= 1, "Save State Studio must discover the reference campaign.")
 	if slot_list_value is ItemList:
@@ -60,6 +62,10 @@ func run_smoke_test() -> void:
 	var status_value: Variant = studio.get("status_label")
 	if status_value is RichTextLabel:
 		check("0 error" in (status_value as RichTextLabel).text, "Selected profile validation must pass in the editor inspector.")
+	studio.call("delete_selected_profile")
+	if delete_confirmation_value is ConfirmationDialog:
+		check(SaveProfile.slot_label(SLOT_ID) in (delete_confirmation_value as ConfirmationDialog).dialog_text, "Deletion confirmation must identify the exact selected slot.")
+	check(FileAccess.file_exists(SaveProfileStore.slot_path(CAMPAIGN_ID, SLOT_ID)), "Opening deletion confirmation must not remove the profile before approval.")
 
 	root.remove_child(studio)
 	studio.free()
@@ -98,7 +104,7 @@ func test_profile() -> Dictionary:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save State Studio smoke test passed: campaigns, slots, summaries, inspectors and profile validation are coherent.")
+		print("Save State Studio smoke test passed: campaigns, slots, summaries, inspectors, validation and destructive-action confirmation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -55,7 +55,10 @@ static func valid_slot_id(slot_id: String) -> bool:
 	if not slot_id.begins_with("slot_"):
 		return false
 	var suffix := slot_id.trim_prefix("slot_")
-	return suffix.is_valid_int() and int(suffix) >= 1 and int(suffix) <= MAX_MANUAL_SLOTS
+	if not suffix.is_valid_int():
+		return false
+	var number := int(suffix)
+	return number >= 1 and number <= MAX_MANUAL_SLOTS and slot_id == "slot_%d" % number
 
 
 static func slot_label(slot_id: String) -> String:

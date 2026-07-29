@@ -140,17 +140,20 @@ static func list_campaign_profiles(campaign_id: String) -> Array:
 	var filename: String = directory.get_next()
 	while not filename.is_empty():
 		if not directory.current_is_dir() and filename.ends_with(".json"):
-			var result: Dictionary = read_profile_path(directory_path.path_join(filename))
-			if bool(result.get("ok", false)):
-				var profile: Dictionary = result.get("profile", {})
-				output.append({
-					"slot_id": str(profile.get("slot_id", filename.trim_suffix(".json"))),
-					"path": str(result.get("path", "")),
-					"profile": profile,
-					"summary": SaveProfile.profile_summary(profile),
-					"migrated": bool(result.get("migrated", false)),
-					"recovered_from_backup": bool(result.get("recovered_from_backup", false))
-				})
+			var filename_slot := filename.trim_suffix(".json")
+			if SaveProfile.valid_slot_id(filename_slot):
+				var result: Dictionary = read_profile_path(directory_path.path_join(filename))
+				if bool(result.get("ok", false)):
+					var profile: Dictionary = result.get("profile", {})
+					if str(profile.get("slot_id", "")) == filename_slot:
+						output.append({
+							"slot_id": filename_slot,
+							"path": str(result.get("path", "")),
+							"profile": profile,
+							"summary": SaveProfile.profile_summary(profile),
+							"migrated": bool(result.get("migrated", false)),
+							"recovered_from_backup": bool(result.get("recovered_from_backup", false))
+						})
 		filename = directory.get_next()
 	directory.list_dir_end()
 	output.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:

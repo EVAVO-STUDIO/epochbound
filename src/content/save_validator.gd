@@ -67,19 +67,26 @@ static func validate_policy(
 	errors: Array[String],
 	warnings: Array[String]
 ) -> void:
-	var value: Variant = campaign.get("save_policy", {})
+	if not campaign.has("save_policy"):
+		warnings.append("%s: save_policy is omitted; the backwards-compatible default policy will be used." % campaign_id)
+		return
+	var value: Variant = campaign.get("save_policy")
 	if typeof(value) != TYPE_DICTIONARY:
 		errors.append("%s: save_policy must be an object." % campaign_id)
 		return
 	var policy: Dictionary = value
-	var manual_slots := int(policy.get("manual_slots", 0))
+	var defaults := SaveProfile.default_policy()
+	if policy.has("manual_slots") and typeof(policy.get("manual_slots")) not in [TYPE_INT, TYPE_FLOAT]:
+		errors.append("%s: save_policy manual_slots must be numeric." % campaign_id)
+	var manual_slots := int(policy.get("manual_slots", defaults.get("manual_slots", 3)))
 	if manual_slots < SaveProfile.MIN_MANUAL_SLOTS or manual_slots > SaveProfile.MAX_MANUAL_SLOTS:
 		errors.append("%s: save_policy manual_slots must be between %d and %d." % [campaign_id, SaveProfile.MIN_MANUAL_SLOTS, SaveProfile.MAX_MANUAL_SLOTS])
 	for field in ["autosave_enabled", "autosave_on_travel", "autosave_on_progress", "allow_manual_save_in_combat"]:
-		if typeof(policy.get(field)) != TYPE_BOOL:
+		if policy.has(field) and typeof(policy.get(field)) != TYPE_BOOL:
 			errors.append("%s: save_policy %s must be boolean." % [campaign_id, field])
-	if not bool(policy.get("autosave_enabled", false)) and (
-		bool(policy.get("autosave_on_travel", false)) or bool(policy.get("autosave_on_progress", false))
+	var effective := SaveProfile.policy(campaign)
+	if not bool(effective.get("autosave_enabled", true)) and (
+		bool(effective.get("autosave_on_travel", false)) or bool(effective.get("autosave_on_progress", false))
 	):
 		warnings.append("%s: autosave triggers are enabled while autosave_enabled is false." % campaign_id)
 

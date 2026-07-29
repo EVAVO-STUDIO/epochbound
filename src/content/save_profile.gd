@@ -1,6 +1,6 @@
 extends RefCounted
 
-const CURRENT_SCHEMA := 1
+const CURRENT_SCHEMA := 2
 const AUTOSAVE_SLOT := "autosave"
 const MIN_MANUAL_SLOTS := 1
 const MAX_MANUAL_SLOTS := 9
@@ -75,13 +75,16 @@ static func build_profile(
 	metadata: Dictionary,
 	payload: Dictionary
 ) -> Dictionary:
+	var normalised_payload := payload.duplicate(true)
+	if typeof(normalised_payload.get("equipment")) != TYPE_DICTIONARY:
+		normalised_payload["equipment"] = {}
 	var profile := {
 		"schema_version": CURRENT_SCHEMA,
 		"profile_id": "%s:%s" % [campaign_id, slot_id],
 		"campaign_id": campaign_id,
 		"slot_id": slot_id,
 		"metadata": canonicalize(metadata),
-		"payload": canonicalize(payload)
+		"payload": canonicalize(normalised_payload)
 	}
 	refresh_checksum(profile)
 	return profile
@@ -114,7 +117,33 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 			"errors": ["Save profile schema_version cannot be negative."]
 		}
 
-	# Legacy schema 0 stored the durable state directly on the root object.
+	if version == 1:
+		if not checksum_valid(raw_profile):
+			return {
+				"ok": false,
+				"profile": {},
+				"migrated": false,
+				"from_version": version,
+				"errors": ["Legacy schema 1 checksum is missing or invalid."]
+			}
+		var metadata := dictionary_or_empty(raw_profile.get("metadata", {}))
+		var payload := dictionary_or_empty(raw_profile.get("payload", {}))
+		payload["equipment"] = dictionary_or_empty(payload.get("equipment", {}))
+		var migrated_profile := build_profile(
+			str(raw_profile.get("campaign_id", "")),
+			str(raw_profile.get("slot_id", "slot_1")),
+			metadata,
+			payload
+		)
+		return {
+			"ok": true,
+			"profile": migrated_profile,
+			"migrated": true,
+			"from_version": version,
+			"errors": []
+		}
+
+	# Legacy schema 0 stored durable state directly on the root object.
 	var campaign_id := str(raw_profile.get("campaign_id", "")).strip_edges()
 	var slot_id := str(raw_profile.get("slot_id", raw_profile.get("slot", "slot_1"))).strip_edges()
 	var legacy_metadata_value: Variant = raw_profile.get("metadata", {})
@@ -141,9 +170,12 @@ static func migrate(raw_profile: Dictionary) -> Dictionary:
 			"unlocked_recipes": string_array(raw_profile.get("unlocked_recipes", raw_profile.get("recipes", []))),
 			"session_state": dictionary_or_empty(raw_profile.get("session_state", raw_profile.get("state", {}))),
 			"quest_progress": dictionary_or_empty(raw_profile.get("quest_progress", raw_profile.get("quests", {}))),
+			"equipment": dictionary_or_empty(raw_profile.get("equipment", {})),
 			"companion_command": "follow",
 			"companion_hold_position": normalise_position(raw_profile.get("companion_position", raw_profile.get("companion", {})))
 		}
+	else:
+		payload["equipment"] = dictionary_or_empty(payload.get("equipment", {}))
 	var migrated := build_profile(campaign_id, slot_id, metadata, payload)
 	return {
 		"ok": true,
@@ -261,7 +293,7 @@ static func validate_payload(payload: Dictionary, errors: Array[String]) -> void
 			errors.append("Save payload %s must be positive." % field)
 	if int(payload.get("clock_shards", -1)) < 0:
 		errors.append("Save payload clock_shards cannot be negative.")
-	for field in ["inventory", "session_state", "quest_progress"]:
+	for field in ["inventory", "session_state", "quest_progress", "equipment"]:
 		if typeof(payload.get(field)) != TYPE_DICTIONARY:
 			errors.append("Save payload %s must be an object." % field)
 	if typeof(payload.get("unlocked_recipes")) != TYPE_ARRAY:
@@ -282,6 +314,8 @@ static func profile_summary(profile: Dictionary) -> Dictionary:
 	var inventory: Dictionary = inventory_value if typeof(inventory_value) == TYPE_DICTIONARY else {}
 	var quests_value: Variant = payload.get("quest_progress", {})
 	var quests: Dictionary = quests_value if typeof(quests_value) == TYPE_DICTIONARY else {}
+	var equipment_value: Variant = payload.get("equipment", {})
+	var equipment: Dictionary = equipment_value if typeof(equipment_value) == TYPE_DICTIONARY else {}
 	var active_quests := 0
 	var completed_quests := 0
 	for value in quests.values():
@@ -305,6 +339,7 @@ static func profile_summary(profile: Dictionary) -> Dictionary:
 		"companion_health": int(payload.get("companion_health", 0)),
 		"clock_shards": int(payload.get("clock_shards", 0)),
 		"inventory_stacks": inventory.size(),
+		"equipment_slots": equipment.size(),
 		"active_quests": active_quests,
 		"completed_quests": completed_quests,
 		"state_keys": (payload.get("session_state", {}) as Dictionary).size() if typeof(payload.get("session_state")) == TYPE_DICTIONARY else 0

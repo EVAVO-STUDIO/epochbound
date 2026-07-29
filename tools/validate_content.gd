@@ -1,16 +1,16 @@
 extends SceneTree
 
-const SaveValidator = preload("res://src/content/save_validator.gd")
+const EquipmentValidator = preload("res://src/content/equipment_validator.gd")
 
 
 func _initialize() -> void:
-	var report := SaveValidator.validate_all()
+	var report: Dictionary = EquipmentValidator.validate_all()
 	for warning in report.get("warnings", []):
 		print_rich("[color=yellow]WARNING[/color] %s" % warning)
 	for error in report.get("errors", []):
 		push_error(str(error))
 	print(
-		"Content validation: %d campaign(s), %d map(s), %d definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d warning(s), %d error(s)." % [
+		"Content validation: %d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d equipment item(s), %d equipment slot(s), %d capability definition(s), %d capability gate(s), %d warning(s), %d error(s)." % [
 			report.get("campaign_count", 0),
 			report.get("map_count", 0),
 			report.get("definition_count", 0),
@@ -22,8 +22,12 @@ func _initialize() -> void:
 			report.get("conversation_count", 0),
 			report.get("quest_count", 0),
 			report.get("save_policy_count", 0),
+			report.get("equipment_item_count", 0),
+			report.get("equipment_slot_count", 0),
+			report.get("capability_count", 0),
+			report.get("capability_gate_count", 0),
 			report.get("warnings", []).size(),
 			report.get("errors", []).size()
 		]
 	)
-	quit(0 if report.get("ok", false) else 1)
+	quit(0 if bool(report.get("ok", false)) else 1)

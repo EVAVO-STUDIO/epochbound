@@ -588,6 +588,10 @@ static func validate_conditions(
 					errors.append("%s: unknown item '%s'." % [condition_prefix, item_id])
 				if int(condition.get("quantity", 0)) <= 0:
 					errors.append("%s: quantity must be positive." % condition_prefix)
+			"has_capability":
+				var capability_id := str(condition.get("capability_id", "")).strip_edges()
+				if capability_id.is_empty() or Repository.normalise_id(capability_id) != capability_id:
+					errors.append("%s: capability_id must be a normalised lowercase identifier." % condition_prefix)
 			"state_equals":
 				var key := str(condition.get("key", "")).strip_edges()
 				if key.is_empty():

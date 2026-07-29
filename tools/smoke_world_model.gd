@@ -14,18 +14,23 @@ func _initialize() -> void:
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign JSON must load.")
 	var campaign: Dictionary = campaign_result.get("data", {})
-	check(campaign.get("map_files", []).size() == 2, "Reference campaign must declare two maps.")
+	check(campaign.get("map_files", []).size() == 3, "Reference campaign must declare three maps.")
 
 	var bell_path := Repository.find_exact_map_path(CAMPAIGN_PATH, campaign, "bellweather_crossing")
 	var clock_path := Repository.find_exact_map_path(CAMPAIGN_PATH, campaign, "clockwood_edge")
+	var underworks_path := Repository.find_exact_map_path(CAMPAIGN_PATH, campaign, "museum_underworks")
 	check(not bell_path.is_empty(), "Bellweather map path must resolve exactly.")
 	check(not clock_path.is_empty(), "Clockwood map path must resolve exactly.")
+	check(not underworks_path.is_empty(), "Museum Underworks map path must resolve exactly.")
 	var bell_result := Repository.read_json(bell_path)
 	var clock_result := Repository.read_json(clock_path)
+	var underworks_result := Repository.read_json(underworks_path)
 	check(bell_result.get("ok", false), "Bellweather map must load.")
 	check(clock_result.get("ok", false), "Clockwood map must load.")
+	check(underworks_result.get("ok", false), "Museum Underworks map must load.")
 	var bell: Dictionary = bell_result.get("data", {})
 	var clock: Dictionary = clock_result.get("data", {})
+	var underworks: Dictionary = underworks_result.get("data", {})
 
 	var collision_point := MapModel.cell_to_world(bell, Vector2i(7, 12))
 	var open_point := MapModel.cell_to_world(bell, Vector2i(20, 13))
@@ -41,6 +46,14 @@ func _initialize() -> void:
 	check(String(connection.get("target_map", "")) == "clockwood_edge", "Bellweather connection must target Clockwood.")
 	var target_entry := MapModel.find_entry_point(clock, String(connection.get("target_entry", "")), "verdant")
 	check(String(target_entry.get("id", "")) == "from_bellweather", "Clockwood target entry must resolve.")
+	var underworks_connection := MapModel.find_connection_near(bell, Vector2(548, 272), "verdant", "interact")
+	check(String(underworks_connection.get("target_map", "")) == "museum_underworks", "Bellweather capability-gated connection must target Museum Underworks.")
+	var underworks_entry := MapModel.find_entry_point(underworks, String(underworks_connection.get("target_entry", "")), "verdant")
+	check(String(underworks_entry.get("id", "")) == "from_bellweather", "Museum Underworks target entry must resolve.")
+	var return_connection := MapModel.find_connection_near(underworks, Vector2(80, 224), "verdant", "interact")
+	check(String(return_connection.get("target_map", "")) == "bellweather_crossing", "Museum Underworks return connection must target Bellweather.")
+	var return_entry := MapModel.find_entry_point(bell, String(return_connection.get("target_entry", "")), "verdant")
+	check(String(return_entry.get("id", "")) == "from_underworks", "Bellweather return entry must resolve.")
 
 	var navigation_start := MapModel.cell_to_world(bell, Vector2i(6, 13))
 	var navigation_target := MapModel.cell_to_world(bell, Vector2i(10, 13))
@@ -50,7 +63,7 @@ func _initialize() -> void:
 	check(recovery.distance_to(Vector2(448, 232)) < 2.0, "Nearest authored recovery anchor should be selected.")
 
 	if failures.is_empty():
-		print("World-model smoke test passed: terrain, collision, navigation, recovery and map links are coherent.")
+		print("World-model smoke test passed: terrain, collision, navigation, recovery and three-map links are coherent.")
 		quit(0)
 		return
 	for failure in failures:

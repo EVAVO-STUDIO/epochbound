@@ -8,6 +8,7 @@ const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const StoryModel = preload("res://src/game/story_model.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
+const EquipmentModel = preload("res://src/game/equipment_model.gd")
 
 const ALLOWED_QUEST_STATUSES := [
 	StoryModel.STATUS_NOT_STARTED,
@@ -130,7 +131,7 @@ static func validate_profile(profile: Dictionary, campaign_path: String) -> Dict
 			append_messages(errors, map_result.get("errors", []))
 		else:
 			validate_map_state(payload, map_result.get("data", {}), errors, warnings)
-	validate_actor_state(payload, campaign, errors)
+	validate_actor_state(payload, campaign, item_definitions, errors)
 	validate_inventory(payload, item_definitions, errors)
 	validate_recipes(payload, recipe_definitions, errors)
 	validate_session_state(payload, errors, warnings)
@@ -172,12 +173,21 @@ static func validate_map_state(
 			warnings.append("Save profile facing direction is zero and will fall back to down.")
 
 
-static func validate_actor_state(payload: Dictionary, campaign: Dictionary, errors: Array[String]) -> void:
+static func validate_actor_state(
+	payload: Dictionary,
+	campaign: Dictionary,
+	item_definitions: Dictionary,
+	errors: Array[String]
+) -> void:
 	var actors: Dictionary = campaign.get("actors", {})
+	var equipment_value: Variant = payload.get("equipment", {})
+	var equipment: Dictionary = equipment_value if typeof(equipment_value) == TYPE_DICTIONARY else {}
 	for actor_id in ["player", "companion"]:
 		var actor_value: Variant = actors.get(actor_id, {})
 		var actor: Dictionary = actor_value if typeof(actor_value) == TYPE_DICTIONARY else {}
 		var maximum := int(actor.get("max_health", 1))
+		if actor_id == "player":
+			maximum += int(EquipmentModel.modifier_total(equipment, item_definitions, "max_health_bonus"))
 		var field := "%s_health" % actor_id
 		var health := int(payload.get(field, 0))
 		if health <= 0 or health > maximum:

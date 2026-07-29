@@ -122,6 +122,10 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	var story_catalog_result := save_json(story_catalog_path, StoryCatalog.default_story_catalog())
 	if not story_catalog_result.get("ok", false):
 		return story_catalog_result
+	var capability_catalog_path := campaign_directory.path_join("capabilities").path_join("core.json")
+	var capability_catalog_result := save_json(capability_catalog_path, default_capability_catalog())
+	if not capability_catalog_result.get("ok", false):
+		return capability_catalog_result
 	var map_id := "first_crossing"
 	var map_path := campaign_directory.path_join("maps").path_join(map_id + ".json")
 	var map_result := save_json(map_path, default_map(map_id, "First Crossing"))
@@ -137,6 +141,7 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 		"item_catalog_path": item_catalog_path,
 		"recipe_catalog_path": recipe_catalog_path,
 		"story_catalog_path": story_catalog_path,
+		"capability_catalog_path": capability_catalog_path,
 		"map_path": map_path,
 		"errors": []
 	}
@@ -212,6 +217,18 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"item_files": ["items/core.json"],
 		"recipe_files": ["recipes/core.json"],
 		"story_files": ["story/core.json"],
+		"capability_files": ["capabilities/core.json"],
+		"equipment_slots": [
+			{"id": "weapon", "display_name": "Weapon"},
+			{"id": "body", "display_name": "Body"},
+			{"id": "tool", "display_name": "Tool"}
+		],
+		"starting_equipment": {
+			"weapon": "trail_hook",
+			"body": "field_coat",
+			"tool": "trail_lantern"
+		},
+		"base_capabilities": [],
 		"save_policy": {
 			"manual_slots": 3,
 			"autosave_enabled": true,
@@ -221,7 +238,10 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		},
 		"starting_inventory": [
 			{"item_id": "trail_tonic", "quantity": 1},
-			{"item_id": "brass_scrap", "quantity": 2}
+			{"item_id": "brass_scrap", "quantity": 2},
+			{"item_id": "trail_hook", "quantity": 1},
+			{"item_id": "field_coat", "quantity": 1},
+			{"item_id": "trail_lantern", "quantity": 1}
 		],
 		"starting_recipes": ["field_salve_recipe"],
 		"starting_quests": [],
@@ -250,6 +270,29 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 			"era_shifting_enabled": true
 		}
 	}
+
+static func default_capability_catalog() -> Dictionary:
+	return {
+		"schema_version": 1,
+		"capabilities": [
+			{
+				"id": "illuminate_dark",
+				"display_name": "Illuminate Darkness",
+				"description": "Allows the player to enter and interpret spaces beyond ordinary ambient light."
+			},
+			{
+				"id": "cut_clockvines",
+				"display_name": "Cut Clockvines",
+				"description": "Allows a suitable tool to cut fibrous growth hardened by displaced time."
+			},
+			{
+				"id": "clockglass_sight",
+				"display_name": "Clockglass Sight",
+				"description": "Reveals seams and inscriptions hidden beneath an object's remembered surface."
+			}
+		]
+	}
+
 
 static func default_map(map_id: String, display_name: String) -> Dictionary:
 	return {

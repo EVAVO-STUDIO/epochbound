@@ -25,7 +25,7 @@ func run_smoke_test() -> void:
 	check(starting_recipe_list_value is ItemList, "Item Forge must create its starting-recipe list.")
 
 	if item_list_value is ItemList:
-		check((item_list_value as ItemList).item_count == 6, "Item Forge must display all six reference items.")
+		check((item_list_value as ItemList).item_count == 10, "Item Forge must display all ten reference inventory and equipment items.")
 	if recipe_list_value is ItemList:
 		check((recipe_list_value as ItemList).item_count == 2, "Item Forge must display both reference recipes.")
 	if starting_recipe_list_value is ItemList:
@@ -39,7 +39,7 @@ func run_smoke_test() -> void:
 	check(not selected_recipe.is_empty(), "The initial Item Forge recipe must resolve from the shared catalog.")
 	if output_selector_value is OptionButton and not selected_recipe.is_empty():
 		var output_selector := output_selector_value as OptionButton
-		check(output_selector.item_count == 6, "Recipe output selector must contain every reference item.")
+		check(output_selector.item_count == 10, "Recipe output selector must contain every reference inventory and equipment item.")
 		check(output_selector.selected >= 0, "Recipe output selector must retain a selection.")
 		if output_selector.selected >= 0:
 			var actual_output_id := str(output_selector.get_item_metadata(output_selector.selected))
@@ -54,6 +54,9 @@ func run_smoke_test() -> void:
 		var starting_text := (starting_inventory_value as TextEdit).text
 		check(starting_text.contains("museum_tonic = 1"), "Starting loadout editor must show Museum Tonic.")
 		check(starting_text.contains("brass_filings = 1"), "Starting loadout editor must show Brass Filings.")
+		check(starting_text.contains("brass_hook = 1"), "Starting loadout editor must expose owned starting weapon equipment.")
+		check(starting_text.contains("museum_coat = 1"), "Starting loadout editor must expose owned starting body equipment.")
+		check(starting_text.contains("museum_flashlight = 1"), "Starting loadout editor must expose owned starting tool equipment.")
 	else:
 		failures.append("Item Forge must create its starting-inventory editor.")
 
@@ -64,7 +67,7 @@ func run_smoke_test() -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Item Forge editor smoke test passed: catalogs, recipe output selection and starting loadout are represented correctly.")
+		print("Item Forge editor smoke test passed: inventory, equipment, recipes, output selection and starting ownership are represented correctly.")
 		quit(0)
 		return
 	for failure in failures:

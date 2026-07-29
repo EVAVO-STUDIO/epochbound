@@ -111,7 +111,22 @@ try {
         "--script", "res://tools/smoke_save_state_studio.gd"
     )
 
-    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio and Save & State Studio validation passed."
+    Invoke-GodotStep "Smoke test loadout stats capability gates and restoration" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_loadout_runtime.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Loadout Studio editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_loadout_studio.gd"
+    )
+
+    Invoke-GodotStep "Smoke test malformed equipment capabilities and gates" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_equipment_validation_edges.gd"
+    )
+
+    Write-Host "`nEpochbound project, campaign, world-model, encounter, Combat Director, Companion Studio, Item Forge, Story Studio, Save State and Loadout validation passed."
 }
 finally {
     Pop-Location

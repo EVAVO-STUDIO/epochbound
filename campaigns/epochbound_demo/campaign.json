@@ -9,7 +9,8 @@
 	"start_era": "verdant",
 	"map_files": [
 		"maps/bellweather_crossing.json",
-		"maps/clockwood_edge.json"
+		"maps/clockwood_edge.json",
+		"maps/museum_underworks.json"
 	],
 	"object_files": [
 		"objects/core.json"
@@ -23,6 +24,20 @@
 	"story_files": [
 		"story/core.json"
 	],
+	"capability_files": [
+		"capabilities/core.json"
+	],
+	"equipment_slots": [
+		{"id": "weapon", "display_name": "Weapon"},
+		{"id": "body", "display_name": "Body"},
+		{"id": "tool", "display_name": "Tool"}
+	],
+	"starting_equipment": {
+		"weapon": "brass_hook",
+		"body": "museum_coat",
+		"tool": "museum_flashlight"
+	},
+	"base_capabilities": [],
 	"save_policy": {
 		"manual_slots": 3,
 		"autosave_enabled": true,
@@ -37,6 +52,18 @@
 		},
 		{
 			"item_id": "brass_filings",
+			"quantity": 1
+		},
+		{
+			"item_id": "brass_hook",
+			"quantity": 1
+		},
+		{
+			"item_id": "museum_coat",
+			"quantity": 1
+		},
+		{
+			"item_id": "museum_flashlight",
 			"quantity": 1
 		}
 	],

@@ -200,6 +200,57 @@ static func default_item_catalog() -> Dictionary:
 				"stack_limit": 9,
 				"value": 28,
 				"use_effect": {"type": "heal", "amount": 16}
+			},
+			{
+				"id": "trail_hook",
+				"display_name": "Trail Hook",
+				"kind": "equipment",
+				"description": "A compact hooked field tool for roots, ropes and hardened growth.",
+				"stack_limit": 1,
+				"value": 24,
+				"use_effect": {"type": "none"},
+				"equipment": {
+					"slot": "weapon",
+					"attack_bonus": 1,
+					"defense_bonus": 0,
+					"max_health_bonus": 0,
+					"move_speed_bonus": 0,
+					"capabilities": ["cut_clockvines"]
+				}
+			},
+			{
+				"id": "field_coat",
+				"display_name": "Field Coat",
+				"kind": "equipment",
+				"description": "A reinforced travelling coat with room for tools and emergency supplies.",
+				"stack_limit": 1,
+				"value": 32,
+				"use_effect": {"type": "none"},
+				"equipment": {
+					"slot": "body",
+					"attack_bonus": 0,
+					"defense_bonus": 1,
+					"max_health_bonus": 2,
+					"move_speed_bonus": 0,
+					"capabilities": []
+				}
+			},
+			{
+				"id": "trail_lantern",
+				"display_name": "Trail Lantern",
+				"kind": "equipment",
+				"description": "A hooded lantern suitable for enclosed roads and forgotten structures.",
+				"stack_limit": 1,
+				"value": 20,
+				"use_effect": {"type": "none"},
+				"equipment": {
+					"slot": "tool",
+					"attack_bonus": 0,
+					"defense_bonus": 0,
+					"max_health_bonus": 0,
+					"move_speed_bonus": 0,
+					"capabilities": ["illuminate_dark"]
+				}
 			}
 		]
 	}

@@ -75,7 +75,7 @@ func probe_runtime_scene() -> void:
 	if script_value is GDScript:
 		var runtime_path := str((script_value as GDScript).resource_path)
 		check(
-			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd"],
+			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd"],
 			"Runtime scene must bind a Combat Director-capable runtime."
 		)
 	root.add_child(runtime)
@@ -107,6 +107,11 @@ func probe_runtime_scene() -> void:
 	runtime.set("player", Vector2(386, 216))
 	runtime.set("companion", Vector2(270, 230))
 	var player_health_before := int(runtime.get("player_health"))
+	var hound_definition: Dictionary = hound.get("definition", {})
+	var authored_attack_damage := int(hound_definition.get("attack_damage", 4))
+	var expected_player_damage := authored_attack_damage
+	if runtime.has_method("player_defense_value"):
+		expected_player_damage = maxi(1, authored_attack_damage - int(runtime.call("player_defense_value")))
 	runtime.call("update_runtime_entities", 0.01)
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
@@ -114,7 +119,7 @@ func probe_runtime_scene() -> void:
 	check(float(hound.get("attack_windup", 0.0)) > 0.0, "Enemy windup timer must be active.")
 	check(int(runtime.get("player_health")) == player_health_before, "Windup must not damage the player early.")
 	runtime.call("update_runtime_entities", 0.35)
-	check(int(runtime.get("player_health")) == player_health_before - 4, "Completed windup must apply authored attack damage.")
+	check(int(runtime.get("player_health")) == player_health_before - expected_player_damage, "Completed windup must apply authored attack damage after active defence.")
 
 	# Player damage must stagger and knock the enemy away.
 	entities = runtime_entities(runtime)
@@ -183,7 +188,7 @@ func enemy_index(entities: Array, placement_id: String) -> int:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Combat Director smoke test passed: zones, windup, damage, stagger, leash return and persistent clearing are coherent.")
+		print("Combat Director smoke test passed: zones, windup, derived damage, stagger, leash return and persistent clearing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

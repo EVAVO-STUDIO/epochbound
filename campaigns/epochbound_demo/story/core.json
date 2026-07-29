@@ -1,0 +1,234 @@
+{
+	"schema_version": 1,
+	"conversations": [
+		{
+			"id": "archivist_missing_hour",
+			"display_name": "The Archivist and the Missing Hour",
+			"start_node": "greeting",
+			"conditions": [],
+			"nodes": [
+				{
+					"id": "greeting",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": {
+						"verdant": "The archivist closes a catalogue that has not been printed yet. ‘You and the hound arrived between one chime and the next.’",
+						"ashen": "The archivist watches ash pass through their sleeves. ‘The hour is still missing. In this age, everything inside it is burning.’",
+						"default": "The archivist studies Eli as though checking an accession number."
+					},
+					"next": "questions",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 80, "y": 180}
+				},
+				{
+					"id": "questions",
+					"kind": "choice",
+					"prompt": "What will Eli ask?",
+					"conditions": [],
+					"effects": [],
+					"choices": [
+						{
+							"id": "return_lens",
+							"text": "Show the Clockglass Lens.",
+							"conditions": [
+								{"type": "quest_stage", "quest_id": "the_missing_hour", "stage_id": "return_to_archivist"},
+								{"type": "has_item", "item_id": "clockglass_lens", "quantity": 1}
+							],
+							"effects": [
+								{"type": "remove_item", "item_id": "clockglass_lens", "quantity": 1},
+								{"type": "set_state", "key": "story:missing_hour:returned", "value": true}
+							],
+							"next": "returned_hour"
+						},
+						{
+							"id": "begin_missing_hour",
+							"text": "Ask what happened to the missing hour.",
+							"conditions": [
+								{"type": "quest_status", "quest_id": "the_missing_hour", "status": "not_started"}
+							],
+							"effects": [
+								{"type": "start_quest", "quest_id": "the_missing_hour"}
+							],
+							"next": "missing_hour_assignment"
+						},
+						{
+							"id": "missing_hour_progress",
+							"text": "Ask what the missing hour still needs.",
+							"conditions": [
+								{"type": "quest_status", "quest_id": "the_missing_hour", "status": "active"}
+							],
+							"effects": [],
+							"next": "current_work"
+						},
+						{
+							"id": "missing_hour_complete",
+							"text": "Ask whether the restored hour will hold.",
+							"conditions": [
+								{"type": "quest_status", "quest_id": "the_missing_hour", "status": "completed"}
+							],
+							"effects": [],
+							"next": "after_hour"
+						},
+						{
+							"id": "begin_hunt",
+							"text": "Ask about the creature following the brass rhythm.",
+							"conditions": [
+								{"type": "era_is", "era_id": "ashen"},
+								{"type": "quest_status", "quest_id": "quiet_the_hunt", "status": "not_started"}
+							],
+							"effects": [
+								{"type": "start_quest", "quest_id": "quiet_the_hunt"}
+							],
+							"next": "hunt_assignment"
+						},
+						{
+							"id": "hunt_progress",
+							"text": "Ask whether the Ash Hunt is finished.",
+							"conditions": [
+								{"type": "quest_status", "quest_id": "quiet_the_hunt", "status": "active"}
+							],
+							"effects": [],
+							"next": "hunt_work"
+						},
+						{
+							"id": "leave",
+							"text": "Leave the archivist to the catalogues.",
+							"conditions": [],
+							"effects": [],
+							"next": "end"
+						}
+					],
+					"editor_position": {"x": 360, "y": 120}
+				},
+				{
+					"id": "missing_hour_assignment",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "‘First find the name the well remembers. Then make a lens from the fragments the clock keeps shedding. Bring it back before another age notices the gap.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 40}
+				},
+				{
+					"id": "current_work",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "‘The journal knows your present objective. Trust the evidence you have, not the order in which the ages offer it.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 170}
+				},
+				{
+					"id": "returned_hour",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "The lens catches an absent chime. For one breath, the museum, the crossing and the clockwood share the same shadow. ‘There. The hour remembers where it belongs.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 300}
+				},
+				{
+					"id": "after_hour",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "‘It will hold until someone tries to remember what happened inside it. That is why we must reach the lower galleries first.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 430}
+				},
+				{
+					"id": "hunt_assignment",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "‘The Ash Hound is not hunting you. It is hunting the sound your arrival made. Quiet it before the rhythm reaches the gate.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 560}
+				},
+				{
+					"id": "hunt_work",
+					"kind": "line",
+					"speaker": "LOST ARCHIVIST",
+					"text": "‘When the eastern ash goes still, the hunt is over. Until then, do not let it pull Morrow beyond the brass path.’",
+					"next": "end",
+					"conditions": [],
+					"effects": [],
+					"editor_position": {"x": 760, "y": 690}
+				},
+				{
+					"id": "end",
+					"kind": "end",
+					"effects": [],
+					"editor_position": {"x": 1080, "y": 300}
+				}
+			]
+		}
+	],
+	"quests": [
+		{
+			"id": "the_missing_hour",
+			"title": "The Missing Hour",
+			"summary": "Recover the evidence needed to restore the hour erased beneath Bellweather Museum.",
+			"initial_stage": "trace_the_name",
+			"auto_start": false,
+			"stages": [
+				{
+					"id": "trace_the_name",
+					"description": "Use Morrow to find the name remembered by the old well.",
+					"completion_conditions": [
+						{"type": "state_equals", "key": "bellweather:companion:well_name_scent", "value": "discovered"}
+					],
+					"next_stage": "forge_the_lens"
+				},
+				{
+					"id": "forge_the_lens",
+					"description": "Discover the lens recipe and craft the Clockglass Lens.",
+					"completion_conditions": [
+						{"type": "has_item", "item_id": "clockglass_lens", "quantity": 1}
+					],
+					"next_stage": "return_to_archivist"
+				},
+				{
+					"id": "return_to_archivist",
+					"description": "Return the Clockglass Lens to the Lost Archivist.",
+					"completion_conditions": [
+						{"type": "state_equals", "key": "story:missing_hour:returned", "value": true}
+					],
+					"next_stage": ""
+				}
+			],
+			"rewards": [
+				{"type": "grant_item", "item_id": "museum_tonic", "quantity": 1},
+				{"type": "grant_clock_shards", "amount": 3},
+				{"type": "set_state", "key": "story:missing_hour:completed", "value": true}
+			]
+		},
+		{
+			"id": "quiet_the_hunt",
+			"title": "Quiet the Ash Hunt",
+			"summary": "Stop the Ash Hound from carrying the brass rhythm toward Clockwood Gate.",
+			"initial_stage": "clear_east_hunt",
+			"auto_start": false,
+			"stages": [
+				{
+					"id": "clear_east_hunt",
+					"description": "Defeat every enemy assigned to the East Ash Hunt.",
+					"completion_conditions": [
+						{"type": "state_equals", "key": "bellweather:zone:east_ash_hunt", "value": "cleared"}
+					],
+					"next_stage": ""
+				}
+			],
+			"rewards": [
+				{"type": "grant_item", "item_id": "ashen_resin", "quantity": 1},
+				{"type": "grant_clock_shards", "amount": 1}
+			]
+		}
+	]
+}

@@ -244,3 +244,51 @@ jobs:
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
             exit 1
           fi
+
+      - name: Smoke test save capture and exact restoration
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_profiles.gd 2>&1 | tee "$log_file"
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then
+            exit "$godot_status"
+          fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
+            exit 1
+          fi
+
+      - name: Smoke test save migration integrity and backup recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_migrations.gd 2>&1 | tee "$log_file"
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then
+            exit "$godot_status"
+          fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
+            exit 1
+          fi
+
+      - name: Smoke test Save and State Studio inspector
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_state_studio.gd 2>&1 | tee "$log_file"
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then
+            exit "$godot_status"
+          fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
+            exit 1
+          fi

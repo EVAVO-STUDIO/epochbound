@@ -1,0 +1,137 @@
+name: Apply save compatibility hardening
+
+on:
+  push:
+    branches:
+      - work/save-state-studio-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Preserve older campaigns and canonical slots
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/save-state-studio-foundation-20260729
+
+      - name: Apply reviewed compatibility changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          validator_path = Path("src/content/save_validator.gd")
+          validator = validator_path.read_text(encoding="utf-8")
+          old_policy = '''\tvar value: Variant = campaign.get("save_policy", {})
+          \tif typeof(value) != TYPE_DICTIONARY:
+          \t\terrors.append("%s: save_policy must be an object." % campaign_id)
+          \t\treturn
+          \tvar policy: Dictionary = value
+          \tvar manual_slots := int(policy.get("manual_slots", 0))
+          \tif manual_slots < SaveProfile.MIN_MANUAL_SLOTS or manual_slots > SaveProfile.MAX_MANUAL_SLOTS:
+          \t\terrors.append("%s: save_policy manual_slots must be between %d and %d." % [campaign_id, SaveProfile.MIN_MANUAL_SLOTS, SaveProfile.MAX_MANUAL_SLOTS])
+          \tfor field in ["autosave_enabled", "autosave_on_travel", "autosave_on_progress", "allow_manual_save_in_combat"]:
+          \t\tif typeof(policy.get(field)) != TYPE_BOOL:
+          \t\t\terrors.append("%s: save_policy %s must be boolean." % [campaign_id, field])
+          \tif not bool(policy.get("autosave_enabled", false)) and (
+          \t\tbool(policy.get("autosave_on_travel", false)) or bool(policy.get("autosave_on_progress", false))
+          \t):
+          \t\twarnings.append("%s: autosave triggers are enabled while autosave_enabled is false." % campaign_id)
+          '''
+          new_policy = '''\tif not campaign.has("save_policy"):
+          \t\twarnings.append("%s: save_policy is omitted; the backwards-compatible default policy will be used." % campaign_id)
+          \t\treturn
+          \tvar value: Variant = campaign.get("save_policy")
+          \tif typeof(value) != TYPE_DICTIONARY:
+          \t\terrors.append("%s: save_policy must be an object." % campaign_id)
+          \t\treturn
+          \tvar policy: Dictionary = value
+          \tvar defaults := SaveProfile.default_policy()
+          \tif policy.has("manual_slots") and typeof(policy.get("manual_slots")) not in [TYPE_INT, TYPE_FLOAT]:
+          \t\terrors.append("%s: save_policy manual_slots must be numeric." % campaign_id)
+          \tvar manual_slots := int(policy.get("manual_slots", defaults.get("manual_slots", 3)))
+          \tif manual_slots < SaveProfile.MIN_MANUAL_SLOTS or manual_slots > SaveProfile.MAX_MANUAL_SLOTS:
+          \t\terrors.append("%s: save_policy manual_slots must be between %d and %d." % [campaign_id, SaveProfile.MIN_MANUAL_SLOTS, SaveProfile.MAX_MANUAL_SLOTS])
+          \tfor field in ["autosave_enabled", "autosave_on_travel", "autosave_on_progress", "allow_manual_save_in_combat"]:
+          \t\tif policy.has(field) and typeof(policy.get(field)) != TYPE_BOOL:
+          \t\t\terrors.append("%s: save_policy %s must be boolean." % [campaign_id, field])
+          \tvar effective := SaveProfile.policy(campaign)
+          \tif not bool(effective.get("autosave_enabled", true)) and (
+          \t\tbool(effective.get("autosave_on_travel", false)) or bool(effective.get("autosave_on_progress", false))
+          \t):
+          \t\twarnings.append("%s: autosave triggers are enabled while autosave_enabled is false." % campaign_id)
+          '''
+          if validator.count(old_policy) != 1:
+              raise SystemExit("Save policy validation block did not match the reviewed source.")
+          validator_path.write_text(validator.replace(old_policy, new_policy, 1), encoding="utf-8", newline="\n")
+
+          profile_path = Path("src/content/save_profile.gd")
+          profile = profile_path.read_text(encoding="utf-8")
+          old_slot = '''\tvar suffix := slot_id.trim_prefix("slot_")
+          \treturn suffix.is_valid_int() and int(suffix) >= 1 and int(suffix) <= MAX_MANUAL_SLOTS
+          '''
+          new_slot = '''\tvar suffix := slot_id.trim_prefix("slot_")
+          \tif not suffix.is_valid_int():
+          \t\treturn false
+          \tvar number := int(suffix)
+          \treturn number >= 1 and number <= MAX_MANUAL_SLOTS and slot_id == "slot_%d" % number
+          '''
+          if profile.count(old_slot) != 1:
+              raise SystemExit("Slot validation block did not match the reviewed source.")
+          profile_path.write_text(profile.replace(old_slot, new_slot, 1), encoding="utf-8", newline="\n")
+
+          store_path = Path("src/content/save_profile_store.gd")
+          store = store_path.read_text(encoding="utf-8")
+          old_listing = '''\twhile not filename.is_empty():
+          \t\tif not directory.current_is_dir() and filename.ends_with(".json"):
+          \t\t\tvar result: Dictionary = read_profile_path(directory_path.path_join(filename))
+          \t\t\tif bool(result.get("ok", false)):
+          \t\t\t\tvar profile: Dictionary = result.get("profile", {})
+          \t\t\t\toutput.append({
+          \t\t\t\t\t"slot_id": str(profile.get("slot_id", filename.trim_suffix(".json"))),
+          \t\t\t\t\t"path": str(result.get("path", "")),
+          \t\t\t\t\t"profile": profile,
+          \t\t\t\t\t"summary": SaveProfile.profile_summary(profile),
+          \t\t\t\t\t"migrated": bool(result.get("migrated", false)),
+          \t\t\t\t\t"recovered_from_backup": bool(result.get("recovered_from_backup", false))
+          \t\t\t\t})
+          \t\tfilename = directory.get_next()
+          '''
+          new_listing = '''\twhile not filename.is_empty():
+          \t\tif not directory.current_is_dir() and filename.ends_with(".json"):
+          \t\t\tvar filename_slot := filename.trim_suffix(".json")
+          \t\t\tif SaveProfile.valid_slot_id(filename_slot):
+          \t\t\t\tvar result: Dictionary = read_profile_path(directory_path.path_join(filename))
+          \t\t\t\tif bool(result.get("ok", false)):
+          \t\t\t\t\tvar profile: Dictionary = result.get("profile", {})
+          \t\t\t\t\tif str(profile.get("slot_id", "")) == filename_slot:
+          \t\t\t\t\t\toutput.append({
+          \t\t\t\t\t\t\t"slot_id": filename_slot,
+          \t\t\t\t\t\t\t"path": str(result.get("path", "")),
+          \t\t\t\t\t\t\t"profile": profile,
+          \t\t\t\t\t\t\t"summary": SaveProfile.profile_summary(profile),
+          \t\t\t\t\t\t\t"migrated": bool(result.get("migrated", false)),
+          \t\t\t\t\t\t\t"recovered_from_backup": bool(result.get("recovered_from_backup", false))
+          \t\t\t\t\t\t})
+          \t\tfilename = directory.get_next()
+          '''
+          if store.count(old_listing) != 1:
+              raise SystemExit("Profile listing block did not match the reviewed source.")
+          store_path.write_text(store.replace(old_listing, new_listing, 1), encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-save-compatibility-hardening.yml").unlink()
+
+      - name: Commit compatibility hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/save_validator.gd src/content/save_profile.gd src/content/save_profile_store.gd .github/workflows/apply-save-compatibility-hardening.yml
+          git commit -m "fix: preserve legacy campaign defaults and canonical slots"
+          git push origin HEAD:work/save-state-studio-foundation-20260729

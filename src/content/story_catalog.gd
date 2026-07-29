@@ -12,7 +12,8 @@ const ALLOWED_CONDITION_TYPES := [
 	"quest_stage",
 	"map_is",
 	"era_is",
-	"clock_shards_at_least"
+	"clock_shards_at_least",
+	"currency_at_least"
 ]
 const ALLOWED_EFFECT_TYPES := [
 	"start_quest",
@@ -24,6 +25,8 @@ const ALLOWED_EFFECT_TYPES := [
 	"remove_item",
 	"unlock_recipe",
 	"grant_clock_shards",
+	"grant_currency",
+	"remove_currency",
 	"message"
 ]
 

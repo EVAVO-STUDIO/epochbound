@@ -648,6 +648,17 @@
 				"verdant"
 			],
 			"state_key": "bellweather:clock_shard"
+		},
+		{
+			"id": "crossing_provisioner",
+			"object_id": "museum_provisioner",
+			"position": {
+				"x": 304,
+				"y": 184
+			},
+			"facing": "down",
+			"available_eras": [],
+			"state_key": "bellweather:provisioner"
 		}
 	],
 	"interactions": [

@@ -28,9 +28,18 @@
 		"capabilities/core.json"
 	],
 	"equipment_slots": [
-		{"id": "weapon", "display_name": "Weapon"},
-		{"id": "body", "display_name": "Body"},
-		{"id": "tool", "display_name": "Tool"}
+		{
+			"id": "weapon",
+			"display_name": "Weapon"
+		},
+		{
+			"id": "body",
+			"display_name": "Body"
+		},
+		{
+			"id": "tool",
+			"display_name": "Tool"
+		}
 	],
 	"starting_equipment": {
 		"weapon": "brass_hook",
@@ -102,5 +111,8 @@
 		"combat_model": "action",
 		"companion_enabled": true,
 		"era_shifting_enabled": true
-	}
+	},
+	"economy_files": [
+		"economy/core.json"
+	]
 }

@@ -86,6 +86,41 @@
 					"quantity": 1
 				}
 			]
+		},
+		{
+			"id": "museum_provisioner",
+			"display_name": "Bellweather Provisioner",
+			"kind": "npc",
+			"appearance": {
+				"shape": "person",
+				"color": "635a48",
+				"accent": "e0c47e"
+			},
+			"solid": true,
+			"collision_radius": 9,
+			"interaction_radius": 46,
+			"merchant_id": "bellweather_provisions",
+			"dialogue": {
+				"verdant": "The provisioner counts archive chits against a till that rings one second late.",
+				"ashen": "The provisioner remains behind the blackened counter, pricing each item by what survived the fire.",
+				"default": "The old museum till is open for trade."
+			}
+		},
+		{
+			"id": "underworks_salvager",
+			"display_name": "Underworks Salvager",
+			"kind": "npc",
+			"appearance": {
+				"shape": "person",
+				"color": "4b5657",
+				"accent": "d28b58"
+			},
+			"solid": true,
+			"collision_radius": 9,
+			"interaction_radius": 46,
+			"merchant_id": "underworks_exchange",
+			"merchant_blocked_dialogue": "Without a steady light, the salvager will not open the lower exchange.",
+			"dialogue": "The salvager weighs objects by how many histories they can survive."
 		}
 	]
 }

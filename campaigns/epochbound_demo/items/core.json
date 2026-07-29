@@ -85,7 +85,9 @@
 				"defense_bonus": 0,
 				"max_health_bonus": 0,
 				"move_speed_bonus": 0,
-				"capabilities": ["cut_clockvines"]
+				"capabilities": [
+					"cut_clockvines"
+				]
 			}
 		},
 		{
@@ -123,7 +125,9 @@
 				"defense_bonus": 0,
 				"max_health_bonus": 0,
 				"move_speed_bonus": 0,
-				"capabilities": ["illuminate_dark"]
+				"capabilities": [
+					"illuminate_dark"
+				]
 			}
 		},
 		{
@@ -142,7 +146,28 @@
 				"defense_bonus": 0,
 				"max_health_bonus": 0,
 				"move_speed_bonus": 8,
-				"capabilities": ["clockglass_sight"]
+				"capabilities": [
+					"clockglass_sight"
+				]
+			}
+		},
+		{
+			"id": "salvager_wrap",
+			"display_name": "Underworks Salvager Wrap",
+			"kind": "equipment",
+			"description": "A close-fitted work wrap reinforced with clockvine fibre and thin brass plates recovered below the museum.",
+			"stack_limit": 1,
+			"value": 64,
+			"use_effect": {
+				"type": "none"
+			},
+			"equipment": {
+				"slot": "body",
+				"attack_bonus": 0,
+				"defense_bonus": 2,
+				"max_health_bonus": 0,
+				"move_speed_bonus": 4,
+				"capabilities": []
 			}
 		}
 	]

@@ -57,7 +57,7 @@ func probe_runtime_scene() -> void:
 	check(runtime != null, "Runtime scene must instantiate.")
 	if runtime == null:
 		return
-	var runtime_script := runtime.get_script()
+	var runtime_script: Variant = runtime.get_script()
 	check(runtime_script is GDScript, "Runtime root must retain its GDScript after scene loading.")
 	if runtime_script is GDScript:
 		check(

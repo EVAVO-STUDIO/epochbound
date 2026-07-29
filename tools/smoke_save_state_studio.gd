@@ -26,6 +26,7 @@ func run_smoke_test() -> void:
 	var slot_list_value: Variant = studio.get("slot_list")
 	var overview_value: Variant = studio.get("overview")
 	var inventory_list_value: Variant = studio.get("inventory_list")
+	var equipment_list_value: Variant = studio.get("equipment_list")
 	var quest_list_value: Variant = studio.get("quest_list")
 	var state_list_value: Variant = studio.get("state_list")
 	var raw_text_value: Variant = studio.get("raw_text")
@@ -34,6 +35,7 @@ func run_smoke_test() -> void:
 	check(slot_list_value is ItemList, "Save State Studio must create a slot list.")
 	check(overview_value is RichTextLabel, "Save State Studio must create an overview inspector.")
 	check(inventory_list_value is ItemList, "Save State Studio must create an inventory inspector.")
+	check(equipment_list_value is ItemList, "Save State Studio must create an equipment inspector.")
 	check(quest_list_value is ItemList, "Save State Studio must create a quest inspector.")
 	check(state_list_value is ItemList, "Save State Studio must create a world-state inspector.")
 	check(raw_text_value is TextEdit, "Save State Studio must create a raw JSON inspector.")
@@ -47,6 +49,8 @@ func run_smoke_test() -> void:
 		check("Checksum" in (overview_value as RichTextLabel).text, "Overview must expose checksum status.")
 	if inventory_list_value is ItemList:
 		check((inventory_list_value as ItemList).item_count == 2, "Inventory inspector must expose both stored item stacks.")
+	if equipment_list_value is ItemList:
+		check((equipment_list_value as ItemList).item_count == 1, "Equipment inspector must expose the stored loadout.")
 	if quest_list_value is ItemList:
 		check((quest_list_value as ItemList).item_count == 1, "Quest inspector must expose stored quest progress.")
 	if state_list_value is ItemList:
@@ -56,6 +60,7 @@ func run_smoke_test() -> void:
 
 	var sections: Dictionary = SaveStateStudio.profile_sections(profile, {}, {})
 	check((sections.get("inventory", []) as Array).size() == 2, "Static profile sections must expose inventory rows without editor state.")
+	check((sections.get("equipment", []) as Array).size() == 1, "Static profile sections must expose equipment rows without editor state.")
 	check((sections.get("quests", []) as Array).size() == 1, "Static profile sections must expose quest rows without editor state.")
 	check((sections.get("state", []) as Array).size() == 2, "Static profile sections must expose world-state rows without editor state.")
 	studio.call("validate_selected_profile")
@@ -96,6 +101,7 @@ func test_profile() -> Dictionary:
 		"unlocked_recipes": ["ember_salve_recipe"],
 		"session_state": {"bellweather:clock_shard": "collected", "studio:test": true},
 		"quest_progress": {"the_missing_hour": {"status": "active", "stage_id": "trace_the_name"}},
+		"equipment": {"tool": "museum_flashlight"},
 		"companion_command": "follow",
 		"companion_hold_position": {"x": 280, "y": 232}
 	}

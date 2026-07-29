@@ -5,6 +5,8 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const SaveProfile = preload("res://src/content/save_profile.gd")
 const SaveProfileStore = preload("res://src/content/save_profile_store.gd")
 const SaveValidator = preload("res://src/content/save_validator.gd")
+const EquipmentValidator = preload("res://src/content/equipment_validator.gd")
+const EquipmentCatalog = preload("res://src/content/equipment_catalog.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const StoryModel = preload("res://src/game/story_model.gd")
@@ -24,6 +26,7 @@ var campaign_selector: OptionButton
 var slot_list: ItemList
 var overview: RichTextLabel
 var inventory_list: ItemList
+var equipment_list: ItemList
 var quest_list: ItemList
 var state_list: ItemList
 var raw_text: TextEdit
@@ -118,6 +121,11 @@ func build_ui() -> void:
 	inventory_list.name = "Inventory"
 	inventory_list.select_mode = ItemList.SELECT_SINGLE
 	tabs.add_child(inventory_list)
+
+	equipment_list = ItemList.new()
+	equipment_list.name = "Equipment"
+	equipment_list.select_mode = ItemList.SELECT_SINGLE
+	tabs.add_child(equipment_list)
 
 	quest_list = ItemList.new()
 	quest_list.name = "Quests"
@@ -281,7 +289,7 @@ func display_profile(profile: Dictionary) -> void:
 		+ "[color=#8fa9a5]LOCATION[/color]\n%s / %s\n" % [str(summary.get("map_id", "")).replace("_", " ").capitalize(), str(summary.get("era_id", "")).replace("_", " ").capitalize()]
 		+ "Play time  %s\n\n" % format_play_time(float(summary.get("play_time_seconds", 0.0)))
 		+ "[color=#8fa9a5]ACTORS[/color]\nPlayer health  %d\nCompanion health  %d\nClock shards  %d\n\n" % [int(summary.get("player_health", 0)), int(summary.get("companion_health", 0)), int(summary.get("clock_shards", 0))]
-		+ "[color=#8fa9a5]DURABLE STATE[/color]\nInventory stacks  %d\nActive quests  %d\nCompleted quests  %d\nState keys  %d\n\n" % [int(summary.get("inventory_stacks", 0)), int(summary.get("active_quests", 0)), int(summary.get("completed_quests", 0)), int(summary.get("state_keys", 0))]
+		+ "[color=#8fa9a5]DURABLE STATE[/color]\nInventory stacks  %d\nEquipped slots  %d\nActive quests  %d\nCompleted quests  %d\nState keys  %d\n\n" % [int(summary.get("inventory_stacks", 0)), int(summary.get("equipment_slots", 0)), int(summary.get("active_quests", 0)), int(summary.get("completed_quests", 0)), int(summary.get("state_keys", 0))]
 		+ "[color=#87949b]Profile ID: %s\nChecksum: %s\nMap label: %s\nEra label: %s[/color]" % [str(profile.get("profile_id", "")), str(profile.get("checksum", "")), str(metadata.get("map_name", "")), str(metadata.get("era_name", ""))]
 	)
 	inventory_list.clear()
@@ -289,6 +297,11 @@ func display_profile(profile: Dictionary) -> void:
 		inventory_list.add_item(str(row_value))
 	if inventory_list.item_count == 0:
 		inventory_list.add_item("Inventory is empty.")
+	equipment_list.clear()
+	for row_value in sections.get("equipment", []):
+		equipment_list.add_item(str(row_value))
+	if equipment_list.item_count == 0:
+		equipment_list.add_item("No equipment is stored.")
 	quest_list.clear()
 	for row_value in sections.get("quests", []):
 		quest_list.add_item(str(row_value))
@@ -322,6 +335,19 @@ static func profile_sections(
 			var definition_data := ItemCatalog.item(items, item_id)
 			var name := ItemCatalog.item_name(definition_data, item_id)
 			inventory_rows.append("%s   x%d   [%s]" % [name, int(inventory.get(item_id, 0)), item_id])
+	var equipment_rows: Array[String] = []
+	var equipment_value: Variant = payload.get("equipment", {})
+	if typeof(equipment_value) == TYPE_DICTIONARY:
+		var equipment: Dictionary = equipment_value
+		var slot_ids: Array[String] = []
+		for slot_key in equipment.keys():
+			slot_ids.append(str(slot_key))
+		slot_ids.sort()
+		for slot_id in slot_ids:
+			var item_id := str(equipment.get(slot_id, ""))
+			var definition_data := ItemCatalog.item(items, item_id)
+			var item_name := ItemCatalog.item_name(definition_data, item_id)
+			equipment_rows.append("%s   %s   [%s]" % [slot_id.replace("_", " ").capitalize(), item_name, item_id])
 	var quest_rows: Array[String] = []
 	var progress_value: Variant = payload.get("quest_progress", {})
 	if typeof(progress_value) == TYPE_DICTIONARY:
@@ -345,7 +371,7 @@ static func profile_sections(
 		keys.sort()
 		for key in keys:
 			state_rows.append("%s = %s" % [key, format_state_value(state.get(key))])
-	return {"summary": summary, "inventory": inventory_rows, "quests": quest_rows, "state": state_rows}
+	return {"summary": summary, "inventory": inventory_rows, "equipment": equipment_rows, "quests": quest_rows, "state": state_rows}
 
 
 static func format_state_value(value: Variant) -> String:
@@ -357,21 +383,21 @@ static func format_state_value(value: Variant) -> String:
 func validate_campaign() -> void:
 	if active_campaign_path.is_empty():
 		return
-	var report: Dictionary = SaveValidator.validate_campaign_path(active_campaign_path)
+	var report: Dictionary = EquipmentValidator.validate_campaign_path(active_campaign_path)
 	set_status(format_report(report), not bool(report.get("ok", false)))
 
 
 func validate_selected_profile() -> void:
 	if selected_profile.is_empty() or active_campaign_path.is_empty():
 		return
-	var report: Dictionary = SaveValidator.validate_profile(selected_profile, active_campaign_path)
+	var report: Dictionary = EquipmentValidator.validate_profile(selected_profile, active_campaign_path)
 	set_status(format_report(report), not bool(report.get("ok", false)))
 
 
 func rewrite_selected_profile() -> void:
 	if selected_read_result.is_empty():
 		return
-	var validation: Dictionary = SaveValidator.validate_profile(selected_profile, active_campaign_path)
+	var validation: Dictionary = EquipmentValidator.validate_profile(selected_profile, active_campaign_path)
 	if not bool(validation.get("ok", false)):
 		set_status("Cannot rewrite an invalid profile. %s" % format_messages(validation.get("errors", [])), true)
 		return
@@ -441,6 +467,7 @@ func clear_campaign() -> void:
 func clear_profile_views() -> void:
 	overview.text = "[color=#87949b]Select an occupied save slot to inspect its deterministic state.[/color]"
 	inventory_list.clear()
+	equipment_list.clear()
 	quest_list.clear()
 	state_list.clear()
 	raw_text.text = ""

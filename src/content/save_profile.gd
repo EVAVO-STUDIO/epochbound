@@ -75,13 +75,16 @@ static func build_profile(
 	metadata: Dictionary,
 	payload: Dictionary
 ) -> Dictionary:
+	var normalised_payload := payload.duplicate(true)
+	if typeof(normalised_payload.get("equipment")) != TYPE_DICTIONARY:
+		normalised_payload["equipment"] = {}
 	var profile := {
 		"schema_version": CURRENT_SCHEMA,
 		"profile_id": "%s:%s" % [campaign_id, slot_id],
 		"campaign_id": campaign_id,
 		"slot_id": slot_id,
 		"metadata": canonicalize(metadata),
-		"payload": canonicalize(payload)
+		"payload": canonicalize(normalised_payload)
 	}
 	refresh_checksum(profile)
 	return profile

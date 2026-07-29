@@ -11,6 +11,10 @@ var failures: Array[String] = []
 
 
 func _initialize() -> void:
+	call_deferred("run_smoke_test")
+
+
+func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass catalog and placement validation.")
 	check(int(validation.get("definition_count", 0)) == 4, "Reference campaign must expose four reusable object definitions.")

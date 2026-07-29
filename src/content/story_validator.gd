@@ -396,11 +396,13 @@ static func validate_quest(
 		errors.append("%s: at least one stage is required." % prefix)
 		return
 	var stage_ids: Dictionary = {}
+	var stage_records: Array[Dictionary] = []
 	for stage_value in stages:
 		if typeof(stage_value) != TYPE_DICTIONARY:
 			errors.append("%s: every stage must be an object." % prefix)
 			continue
 		var stage_data: Dictionary = stage_value
+		stage_records.append(stage_data)
 		var stage_id := str(stage_data.get("id", ""))
 		var stage_prefix := "%s/stage/%s" % [prefix, stage_id if not stage_id.is_empty() else "stage"]
 		if stage_id.is_empty() or Repository.normalise_id(stage_id) != stage_id:
@@ -413,9 +415,9 @@ static func validate_quest(
 	if initial_stage.is_empty() or not stage_ids.has(initial_stage):
 		errors.append("%s: initial_stage '%s' does not exist." % [prefix, initial_stage])
 	var outgoing: Dictionary = {}
-	for stage_id in stage_ids.keys():
-		var stage_data: Dictionary = stage_ids[stage_id]
-		var stage_prefix := "%s/stage/%s" % [prefix, stage_id]
+	for stage_data in stage_records:
+		var stage_id := str(stage_data.get("id", ""))
+		var stage_prefix := "%s/stage/%s" % [prefix, stage_id if not stage_id.is_empty() else "stage"]
 		if str(stage_data.get("description", "")).strip_edges().is_empty():
 			errors.append("%s: description is required." % stage_prefix)
 		var conditions := StoryCatalog.conditions(stage_data, "completion_conditions")

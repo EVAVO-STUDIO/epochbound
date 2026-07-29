@@ -1,0 +1,87 @@
+name: Apply Boss regression wiring
+
+on:
+  push:
+    branches: [work/boss-phase-foundation-20260730]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/boss-phase-foundation-20260730
+      - name: Extend inherited and permanent validation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/validate.yml")
+          text = workflow.read_text(encoding="utf-8")
+          marker = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ammunition ranged weapons enemies and saves"\n'
+          addition = marker + '          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"\n          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"\n          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"\n'
+          if text.count(marker) != 1:
+              raise SystemExit("Arsenal workflow marker missing")
+          workflow.write_text(text.replace(marker, addition, 1), encoding="utf-8", newline="\n")
+
+          ps = Path("scripts/validate.ps1")
+          text = ps.read_text(encoding="utf-8")
+          marker = '    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."\n'
+          addition = '''    Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_runtime.gd"
+          )
+
+          Invoke-GodotStep "Smoke test Boss and Phase Studio editor state" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_studio.gd"
+          )
+
+          Invoke-GodotStep "Smoke test malformed boss arenas phases patterns rewards and reinforcements" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_validation_edges.gd"
+          )
+
+          Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."
+          '''
+          if text.count(marker) != 1:
+              raise SystemExit("PowerShell completion marker missing")
+          ps.write_text(text.replace(marker, addition, 1), encoding="utf-8", newline="\n")
+
+          for path in Path("tools").glob("smoke_*.gd"):
+              if path.name.startswith("smoke_boss_"):
+                  continue
+              text = path.read_text(encoding="utf-8")
+              text = text.replace('== "res://src/arsenal_runtime.gd"', '== "res://src/boss_runtime.gd"')
+              if '"res://src/arsenal_runtime.gd"' in text and '"res://src/boss_runtime.gd"' not in text:
+                  text = text.replace('"res://src/arsenal_runtime.gd"', '"res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"')
+              path.write_text(text, encoding="utf-8", newline="\n")
+
+          encounter = Path("tools/smoke_encounters.gd")
+          text = encounter.read_text(encoding="utf-8")
+          old = '== 12, "Reference campaign must expose twelve object placements."'
+          if old not in text:
+              raise SystemExit("Encounter placement count marker missing")
+          encounter.write_text(text.replace(old, '== 14, "Reference campaign must expose fourteen object placements."', 1), encoding="utf-8", newline="\n")
+
+          director = Path("tools/smoke_combat_director.gd")
+          text = director.read_text(encoding="utf-8")
+          old = '== 12, "Reference campaign must retain twelve placements."'
+          if old not in text:
+              raise SystemExit("Combat Director placement count marker missing")
+          director.write_text(text.replace(old, '== 14, "Reference campaign must retain fourteen placements."', 1), encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-boss-test-wiring.yml").unlink()
+      - name: Commit regression wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: extend regressions through Boss Studio"
+          git push origin HEAD:work/boss-phase-foundation-20260730

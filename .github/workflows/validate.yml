@@ -142,3 +142,6 @@ jobs:
           run_godot_test res://tools/smoke_economy_runtime.gd "Merchant transactions and durable economy"
           run_godot_test res://tools/smoke_trade_studio.gd "Merchant and Economy Studio editor state"
           run_godot_test res://tools/smoke_economy_validation_edges.gd "Malformed currencies merchants stock and economy saves"
+          run_godot_test res://tools/smoke_arsenal_runtime.gd "Arsenal ranged combat reloads and durable magazines"
+          run_godot_test res://tools/smoke_arsenal_studio.gd "Arsenal Studio editor state"
+          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"

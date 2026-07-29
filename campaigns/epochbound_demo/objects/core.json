@@ -31,6 +31,7 @@
 			"solid": true,
 			"collision_radius": 9,
 			"interaction_radius": 46,
+			"conversation_id": "archivist_missing_hour",
 			"dialogue": {
 				"verdant": "The catalogues changed first. Then the rooms began remembering other years.",
 				"ashen": "You came back too late. The museum is still burning somewhere beneath us.",

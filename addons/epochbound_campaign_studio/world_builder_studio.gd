@@ -3,6 +3,7 @@ extends "res://addons/epochbound_campaign_studio/campaign_studio.gd"
 
 const SafeRepository = preload("res://src/content/campaign_repository.gd")
 const SafeMapModel = preload("res://src/content/map_model.gd")
+const FullValidator = preload("res://src/content/epochbound_validator.gd")
 
 # Validate connection references before mutating the selected record. This keeps
 # an invalid inspector edit from changing the in-memory map even when saving is
@@ -93,6 +94,30 @@ func apply_selected_marker() -> void:
 	if commit_change("Update %s" % selected_kind):
 		if save_active_map():
 			set_status("Updated '%s'." % requested_id, false)
+
+
+func validate_all_campaigns() -> void:
+	var report := FullValidator.validate_all()
+	set_status(format_full_report(report), not report.get("ok", false))
+
+
+func format_full_report(report: Dictionary) -> String:
+	var lines := PackedStringArray()
+	lines.append(
+		"%d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d warning(s), %d error(s)." % [
+			report.get("campaign_count", 0),
+			report.get("map_count", 0),
+			report.get("definition_count", 0),
+			report.get("placement_count", 0),
+			report.get("warnings", []).size(),
+			report.get("errors", []).size()
+		]
+	)
+	for warning in report.get("warnings", []):
+		lines.append("WARNING: %s" % warning)
+	for error in report.get("errors", []):
+		lines.append("ERROR: %s" % error)
+	return "\n".join(lines)
 
 
 func resolve_target_map(map_id: String) -> Dictionary:

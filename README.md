@@ -29,10 +29,13 @@ The repository now provides:
 19. Branching conversations with typed choices, conditions and effects
 20. Multi-stage quests driven by real inventory, map, era, world and encounter state
 21. Active-objective tracking and a keyboard/controller Journal
-22. Bidirectional travel between Bellweather Crossing and Clockwood Edge
-23. Pause, resume and safe transition flow
+22. Versioned save profiles with deterministic checksums, migrations and backup recovery
+23. Continue, autosave and three campaign-authored manual save slots
+24. Exact durable restoration across maps, eras, inventory, quests and world outcomes
+25. Bidirectional travel between Bellweather Crossing and Clockwood Edge
+26. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -172,6 +175,23 @@ The reference campaign proves two arcs:
 - **The Missing Hour** begins through the Lost Archivist, consumes Morrow’s well discovery, requires crafting the Clockglass Lens, returns the lens through a gated response and grants one-time rewards;
 - **Quiet the Ash Hunt** begins in Ashen dialogue and completes from Combat Director’s stable `east_ash_hunt` clear-state key.
 
+## Save & State Studio
+
+The **State** main-screen editor inspects and manages versioned player profiles without writing them into campaign source. It can:
+
+- discover autosave and manual slots for each campaign;
+- show schema, checksum, timestamp, reason, map, era and play time;
+- inspect persisted inventory, learned recipes, quest stages and durable world-state keys;
+- validate a profile against the currently installed campaign definitions;
+- rewrite supported legacy profiles through explicit migrations;
+- recover a previous complete checkpoint from a rotated backup;
+- delete a slot together with its backup and abandoned temporary file;
+- expose canonical read-only JSON for support and review.
+
+The runtime adds a title-screen **Continue** flow, one managed autosave slot and campaign-authored manual slots. Writes use temporary files and promotion rather than overwriting the only valid copy. Map, era, positions, health, inventory, recipes, discoveries, defeated enemies, cleared encounters, quest progress, clock shards, companion hold state and play time restore from one validated profile. Transient dialogue, attack windups, knockback and menu state reset safely.
+
+The reference campaign exposes three manual slots, autosaves after safe travel or meaningful durable progress, and blocks manual saving during active directed combat.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -185,6 +205,7 @@ Read:
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md) for commands, scent cues, recovery and companion-quality gates;
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md) for item catalogs, inventory, crafting, rewards and item-quality gates;
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md) for conversation graphs, typed conditions, quest stages, rewards and story-quality gates;
+- [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md) for save profiles, migration, backup recovery and durable-state quality gates;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -205,11 +226,14 @@ Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 | Open or close Field Satchel | I | Back / View button |
 | Quick-use restorative | V | Right shoulder button |
 | Open or close Journal | J | Right stick click |
+| Open or close Save Profiles | K | Left stick click |
 | Back, pause or skip | Escape | Start |
 
 Inside the Field Satchel, use Left and Right to change tabs, Up and Down to select, and E, Z, Space or C to use an item or craft a recipe.
 
 Inside the Journal, use Left and Right to change Active or Completed tabs and Up or Down to select a quest.
+
+Inside Save Profiles, use Left and Right to change Save or Load mode, Up and Down to select a slot, and E, Z, Space or C to confirm. Autosave is managed by the campaign and cannot be overwritten manually.
 
 ## Validate
 
@@ -222,9 +246,9 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all six editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all seven editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation and quest validation;
+3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest and save-policy validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
@@ -232,7 +256,10 @@ The validation gate performs:
 8. executable item catalog, stack limit, pickup reward, companion reward, recipe unlock, crafting, healing and duplicate-protection smoke tests;
 9. executable branching dialogue, item-gated objectives, world-state objectives, quest rewards and Journal smoke tests;
 10. executable Story Studio graph and editor-state smoke tests;
-11. malformed conversation, condition, effect and quest-stage rejection tests.
+11. malformed conversation, condition, effect and quest-stage rejection tests;
+12. deterministic save capture, checksum, atomic write and exact runtime-restoration tests;
+13. legacy migration, future-schema rejection, corruption detection and backup-recovery tests;
+14. executable Save & State Studio slot and inspector tests.
 
 ## Design pillars
 
@@ -251,6 +278,7 @@ The validation gate performs:
 - Companion behaviour that communicates relationship and information rather than merely following the player
 - Items and recipes that connect exploration, combat and progression through one inspectable campaign contract
 - Conversations and quests that consume the same world, item, encounter and companion outcomes instead of parallel state
+- Save profiles that serialise those same stable IDs and durable outcomes instead of the live scene tree
 
 ## Documentation
 
@@ -263,9 +291,10 @@ The validation gate performs:
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md): companion command and discovery production rules
 - [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md): item, inventory and crafting production rules
 - [`docs/STORY_STUDIO.md`](docs/STORY_STUDIO.md): branching dialogue and quest production rules
+- [`docs/SAVE_STATE_STUDIO.md`](docs/SAVE_STATE_STUDIO.md): save profile, migration and durable-state production rules
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: deterministic world-state inspection, durable save profiles and migrations, equipment and capability gates, merchants, ranged attacks, bosses, cinematics, campaign packaging, localisation, and automated quest-reachability, economy, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: equipment and capability gates, merchants and economy, ranged attacks, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.

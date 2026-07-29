@@ -23,10 +23,13 @@ The repository now provides:
 13. Authored encounter zones with activation, patrol, pursuit, leash return and clearing
 14. Follow, Stay, Seek, Guard and dedicated Recall companion behaviour
 15. Era-scoped scent, clue, trail, warning and resource discoveries
-16. Bidirectional travel between Bellweather Crossing and Clockwood Edge
-17. Pause, resume and safe transition flow
+16. Data-driven items, stack limits, starting loadouts and persistent session inventory
+17. Consumable healing, quick-use items, recipe discovery and transactional crafting
+18. Pickup and companion-discovery item rewards protected from duplication
+19. Bidirectional travel between Bellweather Crossing and Clockwood Edge
+20. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -117,6 +120,32 @@ The player can cycle **Follow**, **Stay**, **Seek** and **Guard**, while **Recal
 
 The reference campaign includes four companion discoveries across Bellweather Crossing and Clockwood Edge, with different clues in the Verdant and Ashen eras.
 
+## Item Forge
+
+The **Items** main-screen editor authors the inventory and crafting layer. It can:
+
+- create consumable, material, key and equipment item definitions;
+- author player-facing names and descriptions;
+- configure stack limits and reserved economy values;
+- configure supported active effects such as healing;
+- create recipes with validated ingredients and outputs;
+- choose recipes unlocked by default;
+- author campaign starting inventory quantities;
+- choose campaign starting recipes;
+- prevent deletion while starts, recipes, pickups or companion discoveries reference a definition;
+- validate item catalogs, recipe catalogs, grants and unlocks across the complete campaign.
+
+The runtime provides a paused **Field Satchel** with Items and Recipes tabs, deterministic item ordering, direct consumable use, quick-use healing, ingredient checks, output-capacity checks and atomic crafting. Inventory persists across era shifts and map travel for the active session.
+
+The reference campaign proves the complete loop:
+
+- Eli starts with a Museum Tonic and Brass Filings;
+- Morrow discovers additional brass and Ashen Resin;
+- clock-shard pickups grant Clockglass Fragments;
+- the Ember Salve recipe converts discovered materials into a stronger restorative;
+- a Clockwood clue teaches the Clockglass Lens recipe;
+- two fragments and remaining brass craft the Clockglass Lens key item.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -128,6 +157,7 @@ Read:
 - [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md) for reusable objects and placement authoring;
 - [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md) for encounter zones, behaviour direction and combat-quality gates;
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md) for commands, scent cues, recovery and companion-quality gates;
+- [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md) for item catalogs, inventory, crafting, rewards and item-quality gates;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -145,7 +175,11 @@ Open `project.godot` in Godot 4.6.2 and press **F6** or **F5**.
 | Shift era | Q or X | West face button |
 | Cycle companion command | R | North face button |
 | Recall companion | F | Left shoulder button |
+| Open or close Field Satchel | I | Back / View button |
+| Quick-use restorative | V | Right shoulder button |
 | Back, pause or skip | Escape | Start |
+
+Inside the Field Satchel, use Left and Right to change tabs, Up and Down to select, and E, Z, Space or C to use an item or craft a recipe.
 
 ## Validate
 
@@ -158,13 +192,14 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all four editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all five editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object-catalog, placement, encounter-zone, companion-profile and cue validation;
+3. complete campaign, map, object-catalog, placement, encounter-zone, companion-profile, cue, item and recipe validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
-7. executable companion command, Stay, Seek, discovery, reward-idempotence, Guard and Recall smoke tests.
+7. executable companion command, Stay, Seek, discovery, reward-idempotence, Guard and Recall smoke tests;
+8. executable item catalog, stack limit, pickup reward, companion reward, recipe unlock, crafting, healing and duplicate-protection smoke tests.
 
 ## Design pillars
 
@@ -181,6 +216,7 @@ The validation gate performs:
 - Encounters built from reusable definitions, stable map instances and explicit spatial direction
 - Damage that follows readable timing and feedback instead of unexplained contact
 - Companion behaviour that communicates relationship and information rather than merely following the player
+- Items and recipes that connect exploration, combat and progression through one inspectable campaign contract
 
 ## Documentation
 
@@ -191,9 +227,10 @@ The validation gate performs:
 - [`docs/ENCOUNTER_STUDIO.md`](docs/ENCOUNTER_STUDIO.md): object and placement production rules
 - [`docs/COMBAT_DIRECTOR.md`](docs/COMBAT_DIRECTOR.md): directed combat and encounter production rules
 - [`docs/COMPANION_STUDIO.md`](docs/COMPANION_STUDIO.md): companion command and discovery production rules
+- [`docs/ITEM_FORGE.md`](docs/ITEM_FORGE.md): item, inventory and crafting production rules
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: items and inventory, crafting and recipe discovery, dialogue and quest graphs, deterministic world state, save profiles, ranged attacks, bosses, cinematics, campaign packaging and automated reachability, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: dialogue and quest graphs, deterministic world state, durable save profiles, equipment and capability gates, merchants, ranged attacks, bosses, cinematics, campaign packaging and automated reachability, economy, companion-recovery, damage and softlock probes.

@@ -18,7 +18,7 @@ func _initialize() -> void:
 func run_smoke_test() -> void:
 	var validation := ItemValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass item and recipe validation.")
-	check(int(validation.get("item_count", 0)) == 6, "Reference campaign must expose six item definitions.")
+	check(int(validation.get("item_count", 0)) == 10, "Reference campaign must expose ten inventory and equipment item definitions.")
 	check(int(validation.get("recipe_count", 0)) == 2, "Reference campaign must expose two recipe definitions.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
@@ -34,6 +34,9 @@ func run_smoke_test() -> void:
 	var unlocked := InventoryModel.initial_recipe_unlocks(campaign, recipes)
 	check(InventoryModel.count(inventory, "museum_tonic") == 1, "Starting inventory must include one Museum Tonic.")
 	check(InventoryModel.count(inventory, "brass_filings") == 1, "Starting inventory must include one Brass Filings stack.")
+	check(InventoryModel.count(inventory, "brass_hook") == 1, "Starting inventory must own the Brass Hook.")
+	check(InventoryModel.count(inventory, "museum_coat") == 1, "Starting inventory must own the Museum Field Coat.")
+	check(InventoryModel.count(inventory, "museum_flashlight") == 1, "Starting inventory must own the Museum Flashlight.")
 	check(bool(unlocked.get("ember_salve_recipe", false)), "Ember Salve recipe must be known at campaign start.")
 	check(not bool(unlocked.get("clockglass_lens_recipe", false)), "Clockglass Lens recipe must begin locked.")
 
@@ -87,6 +90,9 @@ func probe_runtime_scene() -> void:
 	var unlocks := runtime_unlocks(runtime)
 	check(InventoryModel.count(inventory, "museum_tonic") == 1, "Runtime must initialise the Museum Tonic.")
 	check(InventoryModel.count(inventory, "brass_filings") == 1, "Runtime must initialise Brass Filings.")
+	check(InventoryModel.count(inventory, "brass_hook") == 1, "Runtime must initialise owned weapon equipment.")
+	check(InventoryModel.count(inventory, "museum_coat") == 1, "Runtime must initialise owned body equipment.")
+	check(InventoryModel.count(inventory, "museum_flashlight") == 1, "Runtime must initialise owned tool equipment.")
 	check(bool(unlocks.get("ember_salve_recipe", false)), "Runtime must initialise starting recipe unlocks.")
 
 	runtime.set("player_health", 12)
@@ -202,7 +208,7 @@ func find_cue(map_data: Dictionary, cue_id: String) -> Dictionary:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Item Forge smoke test passed: catalogs, stacks, rewards, unlocks, crafting, healing and duplicate protection are coherent.")
+		print("Item Forge smoke test passed: inventory ownership, equipment items, stacks, rewards, unlocks, crafting, healing and duplicate protection are coherent.")
 		quit(0)
 		return
 	for failure in failures:

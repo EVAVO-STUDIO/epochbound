@@ -113,13 +113,12 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var object_definitions: Dictionary = object_result.get("definitions", {})
 	for object_id in object_definitions.keys():
 		var object_data: Dictionary = object_definitions.get(object_id, {})
-		var grants := ItemCatalog.item_grants(object_data)
-		if grants.is_empty():
-			continue
-		if str(object_data.get("kind", "")) != "pickup":
+		var grants_value: Variant = object_data.get("item_grants", [])
+		var has_grants := typeof(grants_value) == TYPE_ARRAY and not Array(grants_value).is_empty()
+		if has_grants and str(object_data.get("kind", "")) != "pickup":
 			warnings.append("%s/object/%s: item_grants are normally expected on pickup definitions." % [campaign_id, object_id])
 		validate_grants(
-			grants,
+			grants_value,
 			"%s/object/%s/item_grants" % [campaign_id, object_id],
 			items,
 			used_items,
@@ -397,17 +396,21 @@ static func validate_map_item_rewards(
 			continue
 		var cue: Dictionary = cue_value
 		var prefix := "%s/companion_cue/%s" % [map_id, cue.get("id", "cue")]
-		validate_grants(ItemCatalog.item_grants(cue, "reward_items"), prefix + "/reward_items", items, used_items, errors)
-		validate_recipe_unlocks(ItemCatalog.recipe_unlocks(cue), prefix + "/unlock_recipes", recipes, used_recipes, errors)
+		validate_grants(cue.get("reward_items", []), prefix + "/reward_items", items, used_items, errors)
+		validate_recipe_unlocks(cue.get("unlock_recipes", []), prefix + "/unlock_recipes", recipes, used_recipes, errors)
 
 
 static func validate_grants(
-	grants: Array,
+	value: Variant,
 	prefix: String,
 	items: Dictionary,
 	used_items: Dictionary,
 	errors: Array[String]
 ) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("%s: grants must be an array." % prefix)
+		return
+	var grants: Array = value
 	var seen: Dictionary = {}
 	for grant_value in grants:
 		if typeof(grant_value) != TYPE_DICTIONARY:
@@ -427,16 +430,30 @@ static func validate_grants(
 
 
 static func validate_recipe_unlocks(
-	unlock_ids: PackedStringArray,
+	value: Variant,
 	prefix: String,
 	recipes: Dictionary,
 	used_recipes: Dictionary,
 	errors: Array[String]
 ) -> void:
-	for recipe_id in unlock_ids:
-		if not recipes.has(recipe_id):
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("%s: recipe unlocks must be an array." % prefix)
+		return
+	var unlock_ids: Array = value
+	var seen: Dictionary = {}
+	for recipe_value in unlock_ids:
+		if typeof(recipe_value) != TYPE_STRING:
+			errors.append("%s: every recipe unlock must be a string ID." % prefix)
+			continue
+		var recipe_id := str(recipe_value).strip_edges()
+		if recipe_id.is_empty():
+			errors.append("%s: recipe unlock ID cannot be empty." % prefix)
+		elif seen.has(recipe_id):
+			errors.append("%s: recipe '%s' is repeated." % [prefix, recipe_id])
+		elif not recipes.has(recipe_id):
 			errors.append("%s: unknown recipe '%s'." % [prefix, recipe_id])
 		else:
+			seen[recipe_id] = true
 			used_recipes[recipe_id] = true
 
 

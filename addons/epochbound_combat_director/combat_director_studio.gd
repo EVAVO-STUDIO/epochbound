@@ -159,7 +159,7 @@ func build_ui() -> void:
 	canvas = CombatDirectorCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.canvas_clicked.connect(on_canvas_clicked)
+	canvas.connect("canvas_clicked", Callable(self, "on_canvas_clicked"))
 	center.add_child(canvas)
 
 	var right := VBoxContainer.new()

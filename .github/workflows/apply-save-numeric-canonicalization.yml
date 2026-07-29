@@ -1,0 +1,51 @@
+name: Apply save numeric canonicalization
+
+on:
+  push:
+    branches:
+      - work/save-state-studio-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Stabilize checksums across JSON round trips
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/save-state-studio-foundation-20260729
+
+      - name: Canonicalize numeric variants consistently
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/content/save_profile.gd")
+          source = path.read_text(encoding="utf-8")
+          replacements = {
+              '''\t\tTYPE_PACKED_INT32_ARRAY, TYPE_PACKED_INT64_ARRAY, TYPE_PACKED_FLOAT32_ARRAY, TYPE_PACKED_FLOAT64_ARRAY:\n\t\t\tvar output: Array = []\n\t\t\tfor item in value:\n\t\t\t\toutput.append(item)\n\t\t\treturn output''':
+                  '''\t\tTYPE_PACKED_INT32_ARRAY, TYPE_PACKED_INT64_ARRAY, TYPE_PACKED_FLOAT32_ARRAY, TYPE_PACKED_FLOAT64_ARRAY:\n\t\t\tvar output: Array = []\n\t\t\tfor item in value:\n\t\t\t\toutput.append(float(item))\n\t\t\treturn output''',
+              '''\t\tTYPE_VECTOR2I:\n\t\t\tvar vector: Vector2i = value\n\t\t\treturn {"x": vector.x, "y": vector.y}\n\t\t_:\n\t\t\treturn value''':
+                  '''\t\tTYPE_VECTOR2I:\n\t\t\tvar vector: Vector2i = value\n\t\t\treturn {"x": float(vector.x), "y": float(vector.y)}\n\t\tTYPE_INT, TYPE_FLOAT:\n\t\t\t# Godot's JSON parser returns JSON numbers as floats. Normalising both\n\t\t\t# numeric variants before hashing keeps checksums stable after a disk round trip.\n\t\t\treturn float(value)\n\t\t_:\n\t\t\treturn value'''
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f"Expected one canonicalization block, found {source.count(old)}")
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding="utf-8", newline="\n")
+          Path(".github/workflows/apply-save-numeric-canonicalization.yml").unlink()
+
+      - name: Commit checksum fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/save_profile.gd .github/workflows/apply-save-numeric-canonicalization.yml
+          git commit -m "fix: stabilize save checksums across JSON parsing"
+          git push origin HEAD:work/save-state-studio-foundation-20260729

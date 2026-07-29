@@ -330,8 +330,8 @@ func rebuild_definitions() -> void:
 
 func refresh_all_forms() -> void:
 	refresh_item_list()
-	refresh_recipe_list()
 	refresh_item_selectors()
+	refresh_recipe_list()
 	refresh_starting_loadout()
 
 
@@ -587,7 +587,8 @@ func add_recipe() -> void:
 	if item_definitions.is_empty():
 		set_status("Create at least one item before adding a recipe.", true)
 		return
-	var first_item_id := str(item_definitions.keys()[0])
+	var item_ids := sorted_definition_ids(item_definitions, "display_name")
+	var first_item_id := item_ids[0]
 	var recipes: Array = active_recipe_catalog.get("recipes", [])
 	recipes.append(ItemCatalog.default_recipe(recipe_id, recipe_id.replace("_", " ").capitalize(), first_item_id))
 	active_recipe_catalog["recipes"] = recipes

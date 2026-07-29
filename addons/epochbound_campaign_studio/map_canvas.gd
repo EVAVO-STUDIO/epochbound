@@ -17,7 +17,11 @@ func _ready() -> void:
 
 func set_map_data(value: Dictionary) -> void:
 	map_data = value
-	if era_id.is_empty():
+	var era_ids: Array[String] = []
+	for value_era in map_data.get("eras", []):
+		var era: Dictionary = value_era
+		era_ids.append(String(era.get("id", "")))
+	if era_id.is_empty() or not era_ids.has(era_id):
 		era_id = first_era_id()
 	queue_redraw()
 
@@ -33,14 +37,16 @@ func set_selected_interaction(value: String) -> void:
 	queue_redraw()
 
 func first_era_id() -> String:
-	for era in map_data.get("eras", []):
+	for value in map_data.get("eras", []):
+		var era: Dictionary = value
 		return String(era.get("id", ""))
 	return ""
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			var world_position := screen_to_world(event.position)
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			var world_position := screen_to_world(mouse_event.position)
 			if world_position.x >= 0.0 and world_position.y >= 0.0:
 				canvas_clicked.emit(snap_to_grid(world_position), active_tool)
 				accept_event()
@@ -62,24 +68,29 @@ func screen_to_world(screen_position: Vector2) -> Vector2:
 
 func view_transform() -> Dictionary:
 	var canvas: Dictionary = map_data.get("canvas", {})
-	var world_size := Vector2(float(canvas.get("width", 640)), float(canvas.get("height", 360)))
+	var world_size := Vector2(
+		maxf(1.0, float(canvas.get("width", 640))),
+		maxf(1.0, float(canvas.get("height", 360)))
+	)
 	var available := Vector2(maxf(1.0, size.x), maxf(1.0, size.y))
 	var zoom := minf(available.x / world_size.x, available.y / world_size.y)
 	var origin := (available - world_size * zoom) * 0.5
 	return {"world_size": world_size, "zoom": zoom, "origin": origin}
 
 func current_era() -> Dictionary:
-	for era in map_data.get("eras", []):
+	for value in map_data.get("eras", []):
+		var era: Dictionary = value
 		if String(era.get("id", "")) == era_id:
 			return era
-	for era in map_data.get("eras", []):
-		return era
+	for value in map_data.get("eras", []):
+		var fallback: Dictionary = value
+		return fallback
 	return {}
 
 func palette_color(key: String, fallback: String) -> Color:
 	var era: Dictionary = current_era()
 	var palette: Dictionary = era.get("palette", {})
-	return Color(String(palette.get(key, fallback)))
+	return Color.from_string(String(palette.get(key, fallback)), Color.from_string(fallback, Color.WHITE))
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color("15191f"))
@@ -107,7 +118,9 @@ func _draw() -> void:
 		palette_color("ground", "4f6550")
 	)
 	draw_grid(world_size)
-	for landmark in current_era().get("landmarks", []):
+	var era: Dictionary = current_era()
+	for value in era.get("landmarks", []):
+		var landmark: Dictionary = value
 		draw_landmark(landmark)
 	draw_spawns()
 	draw_interactions()
@@ -143,12 +156,19 @@ func draw_spawns() -> void:
 	draw_circle(companion, 14.0, Color("e4a968"), false, 2.0)
 
 func draw_interactions() -> void:
-	for interaction in map_data.get("interactions", []):
+	for value in map_data.get("interactions", []):
+		var interaction: Dictionary = value
 		var position := Repository.data_to_vector(interaction.get("position"), Vector2.ZERO)
 		var interaction_id := String(interaction.get("id", "interaction"))
 		var selected := interaction_id == selected_interaction_id
 		draw_circle(position, 7.0, Color("f5df71") if selected else Color("d2b95d"))
-		draw_circle(position, float(interaction.get("radius", 32.0)), Color(1.0, 0.86, 0.36, 0.22), false, 1.0)
+		draw_circle(
+			position,
+			float(interaction.get("radius", 32.0)),
+			Color(1.0, 0.86, 0.36, 0.22),
+			false,
+			1.0
+		)
 		draw_string(
 			ThemeDB.fallback_font,
 			position + Vector2(11, -8),

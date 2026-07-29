@@ -21,7 +21,7 @@ jobs:
 
           workflow = Path(".github/workflows/validate.yml")
           text = workflow.read_text(encoding="utf-8")
-          marker = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ammunition ranged weapons enemies and saves"\n'
+          marker = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"\n'
           addition = marker + '          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"\n          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"\n          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"\n'
           if text.count(marker) != 1:
               raise SystemExit("Arsenal workflow marker missing")

@@ -36,13 +36,16 @@ jobs:
           chmod +x .godot-bin/godot
           .godot-bin/godot --version
 
-      - name: Compile runtime scenes and editor plugins
+      - name: Compile runtime scenes editors validators and tests
         shell: bash
         run: |
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
+          timeout 60s .godot-bin/godot \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
           if [ "$godot_status" -ne 0 ]; then
@@ -58,7 +61,10 @@ jobs:
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --import 2>&1 | tee "$log_file"
+          timeout 90s .godot-bin/godot \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --import 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
           if [ "$godot_status" -ne 0 ]; then
@@ -69,13 +75,16 @@ jobs:
             exit 1
           fi
 
-      - name: Validate campaign content
+      - name: Validate complete campaign content
         shell: bash
         run: |
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
+          timeout 60s .godot-bin/godot \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
           if [ "$godot_status" -ne 0 ]; then
@@ -85,258 +94,51 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke test world model and traversal contracts
+      - name: Run complete executable regression suite
         shell: bash
         run: |
           set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_world_model.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
 
-      - name: Smoke test encounter catalogs placements and combat
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_encounters.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
+          run_godot_test() {
+            local script_path="$1"
+            local label="$2"
+            local log_file
+            log_file="$(mktemp)"
+            echo ""
+            echo "==> ${label}"
+            set +e
+            timeout 60s .godot-bin/godot \
+              --headless \
+              --path "$GITHUB_WORKSPACE" \
+              --script "$script_path" 2>&1 | tee "$log_file"
+            local godot_status=${PIPESTATUS[0]}
+            set -e
+            if [ "$godot_status" -ne 0 ]; then
+              echo "${label} failed with exit code ${godot_status}."
+              exit "$godot_status"
+            fi
+            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
+              echo "${label} emitted a Godot parser or runtime error."
+              exit 1
+            fi
+          }
 
-      - name: Smoke test encounter zones and directed combat
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_combat_director.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test companion commands and authored discovery
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_companion_director.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Item Forge inventory and crafting
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_item_forge.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Item Forge editor state
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_item_forge_editor.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test malformed item rewards and recipe unlocks
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_item_validation_edges.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Story Studio branching and quest progression
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_story_studio.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Story Studio editor graph and forms
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_story_studio_editor.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test malformed story graphs and quest records
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_story_validation_edges.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test save capture and exact restoration
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_profiles.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test save migration integrity and backup recovery
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_migrations.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Save and State Studio inspector
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_save_state_studio.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test loadout stats capability gates and restoration
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_loadout_runtime.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test Loadout Studio editor state
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_loadout_studio.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
-
-      - name: Smoke test malformed equipment capabilities and gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_equipment_validation_edges.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
+          run_godot_test res://tools/smoke_world_model.gd "World model and traversal"
+          run_godot_test res://tools/smoke_encounters.gd "Encounter catalogs placements and combat"
+          run_godot_test res://tools/smoke_combat_director.gd "Combat Director zones and behaviour"
+          run_godot_test res://tools/smoke_companion_director.gd "Companion commands and discovery"
+          run_godot_test res://tools/smoke_item_forge.gd "Item Forge inventory and crafting"
+          run_godot_test res://tools/smoke_item_forge_editor.gd "Item Forge editor state"
+          run_godot_test res://tools/smoke_item_validation_edges.gd "Malformed item rewards and recipe unlocks"
+          run_godot_test res://tools/smoke_story_studio.gd "Story branching and quest progression"
+          run_godot_test res://tools/smoke_story_studio_editor.gd "Story Studio graph and forms"
+          run_godot_test res://tools/smoke_story_validation_edges.gd "Malformed story graphs and quest records"
+          run_godot_test res://tools/smoke_save_profiles.gd "Save capture and exact restoration"
+          run_godot_test res://tools/smoke_save_migrations.gd "Save migrations integrity and backup recovery"
+          run_godot_test res://tools/smoke_save_state_studio.gd "Save and State Studio inspector"
+          run_godot_test res://tools/smoke_loadout_runtime.gd "Loadout stats capability gates and restoration"
+          run_godot_test res://tools/smoke_loadout_studio.gd "Loadout Studio editor state"
+          run_godot_test res://tools/smoke_equipment_validation_edges.gd "Malformed equipment capabilities and gates"
+          run_godot_test res://tools/smoke_economy_runtime.gd "Merchant transactions and durable economy"
+          run_godot_test res://tools/smoke_trade_studio.gd "Merchant and Economy Studio editor state"
+          run_godot_test res://tools/smoke_economy_validation_edges.gd "Malformed currencies merchants stock and economy saves"

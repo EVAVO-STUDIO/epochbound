@@ -1,0 +1,62 @@
+name: Apply Godot item sorting fix
+
+on:
+  push:
+    branches:
+      - work/item-forge-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Use sortable typed arrays
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/item-forge-foundation-20260729
+
+      - name: Apply exact sorting changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          edits = {
+              "src/game/inventory_model.gd": [
+                  ("static func sorted_inventory_ids(inventory: Dictionary, item_definitions: Dictionary) -> PackedStringArray:\n\tvar ids := PackedStringArray()\n", "static func sorted_inventory_ids(inventory: Dictionary, item_definitions: Dictionary) -> PackedStringArray:\n\tvar ids: Array[String] = []\n"),
+                  ("\treturn ids\n\n\nstatic func sorted_recipe_ids", "\treturn PackedStringArray(ids)\n\n\nstatic func sorted_recipe_ids", 1),
+                  ("static func sorted_recipe_ids(unlocked: Dictionary, recipe_definitions: Dictionary) -> PackedStringArray:\n\tvar ids := PackedStringArray()\n", "static func sorted_recipe_ids(unlocked: Dictionary, recipe_definitions: Dictionary) -> PackedStringArray:\n\tvar ids: Array[String] = []\n"),
+                  ("\treturn ids\n\n\nstatic func first_healing_item", "\treturn PackedStringArray(ids)\n\n\nstatic func first_healing_item", 1),
+              ],
+              "addons/epochbound_item_forge/item_forge_studio.gd": [
+                  ("func sorted_definition_ids(definitions: Dictionary, name_field: String) -> PackedStringArray:\n\tvar ids := PackedStringArray()\n", "func sorted_definition_ids(definitions: Dictionary, name_field: String) -> PackedStringArray:\n\tvar ids: Array[String] = []\n"),
+                  ("\treturn ids\n\n\nfunc on_item_selected", "\treturn PackedStringArray(ids)\n\n\nfunc on_item_selected", 1),
+              ],
+          }
+
+          for filename, replacements in edits.items():
+              path = Path(filename)
+              source = path.read_text(encoding="utf-8")
+              for replacement in replacements:
+                  old, new = replacement[0], replacement[1]
+                  count = replacement[2] if len(replacement) > 2 else 1
+                  if source.count(old) != count:
+                      raise SystemExit(f"Expected {count} reviewed occurrence(s) in {filename}: {old!r}; found {source.count(old)}")
+                  source = source.replace(old, new, count)
+              path.write_text(source, encoding="utf-8", newline="\n")
+
+          Path(".github/workflows/apply-item-sort-fix.yml").unlink()
+
+      - name: Commit sorting fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/inventory_model.gd addons/epochbound_item_forge/item_forge_studio.gd .github/workflows/apply-item-sort-fix.yml
+          git commit -m "fix: use sortable arrays for item ordering"
+          git push origin HEAD:work/item-forge-foundation-20260729

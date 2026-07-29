@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const EncounterStudio = preload("res://addons/epochbound_encounter_studio/encounter_studio.gd")
+const EncounterStudio = preload("res://addons/epochbound_encounter_studio/encounter_studio_controller.gd")
 
 var studio
 

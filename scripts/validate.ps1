@@ -17,7 +17,12 @@ try {
         throw "Campaign content validation failed with exit code $LASTEXITCODE."
     }
 
-    Write-Host "Epochbound project and campaign validation passed."
+    & $GodotExecutable --headless --path $ProjectRoot --script "res://tools/smoke_world_model.gd"
+    if ($LASTEXITCODE -ne 0) {
+        throw "World-model smoke testing failed with exit code $LASTEXITCODE."
+    }
+
+    Write-Host "Epochbound project, campaign and world-model validation passed."
 }
 finally {
     Pop-Location

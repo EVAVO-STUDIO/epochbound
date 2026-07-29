@@ -1,0 +1,193 @@
+{
+	"schema_version": 1,
+	"id": "museum_underworks",
+	"display_name": "Museum Underworks",
+	"canvas": {
+		"width": 640,
+		"height": 360,
+		"grid_size": 16
+	},
+	"bounds": {
+		"left": 32,
+		"right": 608,
+		"top": 96,
+		"bottom": 328
+	},
+	"spawns": {
+		"player": {"x": 104, "y": 224},
+		"companion": {"x": 136, "y": 238}
+	},
+	"eras": [
+		{
+			"id": "verdant",
+			"display_name": "Verdant Age",
+			"palette": {
+				"sky": "202b2d",
+				"ground": "313f39",
+				"accent": "d6c879",
+				"structure": "4b5751"
+			},
+			"landmarks": [
+				{"id": "west_arch", "kind": "ruin", "position": {"x": 96, "y": 172}, "size": 44},
+				{"id": "sealed_stack", "kind": "ruin", "position": {"x": 454, "y": 164}, "size": 62}
+			]
+		},
+		{
+			"id": "ashen",
+			"display_name": "Ashen Age",
+			"palette": {
+				"sky": "281f21",
+				"ground": "3c302d",
+				"accent": "d67852",
+				"structure": "453535"
+			},
+			"landmarks": [
+				{"id": "west_arch", "kind": "ruin", "position": {"x": 96, "y": 172}, "size": 44},
+				{"id": "sealed_stack", "kind": "ruin", "position": {"x": 454, "y": 164}, "size": 62}
+			]
+		}
+	],
+	"terrain_palette": [
+		{
+			"id": "stone",
+			"display_name": "Stone Floor",
+			"colors": {"default": "3e4945", "verdant": "46544d", "ashen": "493b37"},
+			"blocked": false
+		},
+		{
+			"id": "brass_path",
+			"display_name": "Brass Service Path",
+			"colors": {"default": "796746", "verdant": "8b7950", "ashen": "73583f"},
+			"blocked": false
+		},
+		{
+			"id": "void",
+			"display_name": "Unlit Drop",
+			"colors": {"default": "111519", "verdant": "101719", "ashen": "181214"},
+			"blocked": true
+		}
+	],
+	"terrain_cells": [
+		{"x": 6, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 7, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 8, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 9, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 10, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 11, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 12, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 13, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 14, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 15, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 16, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 17, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 18, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 19, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 20, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 21, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 22, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 23, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 24, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 25, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 26, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 27, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 28, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 29, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 30, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 31, "y": 14, "tile": "brass_path", "available_eras": []},
+		{"x": 18, "y": 17, "tile": "void", "available_eras": []},
+		{"x": 19, "y": 17, "tile": "void", "available_eras": []},
+		{"x": 20, "y": 17, "tile": "void", "available_eras": []}
+	],
+	"collision_cells": [],
+	"navigation_cells": [
+		{"x": 6, "y": 14, "available_eras": []},
+		{"x": 7, "y": 14, "available_eras": []},
+		{"x": 8, "y": 14, "available_eras": []},
+		{"x": 9, "y": 14, "available_eras": []},
+		{"x": 10, "y": 14, "available_eras": []},
+		{"x": 11, "y": 14, "available_eras": []},
+		{"x": 12, "y": 14, "available_eras": []},
+		{"x": 13, "y": 14, "available_eras": []},
+		{"x": 14, "y": 14, "available_eras": []},
+		{"x": 15, "y": 14, "available_eras": []},
+		{"x": 16, "y": 14, "available_eras": []},
+		{"x": 17, "y": 14, "available_eras": []},
+		{"x": 18, "y": 14, "available_eras": []},
+		{"x": 19, "y": 14, "available_eras": []},
+		{"x": 20, "y": 14, "available_eras": []},
+		{"x": 21, "y": 14, "available_eras": []},
+		{"x": 22, "y": 14, "available_eras": []},
+		{"x": 23, "y": 14, "available_eras": []},
+		{"x": 24, "y": 14, "available_eras": []},
+		{"x": 25, "y": 14, "available_eras": []},
+		{"x": 26, "y": 14, "available_eras": []},
+		{"x": 27, "y": 14, "available_eras": []},
+		{"x": 28, "y": 14, "available_eras": []},
+		{"x": 29, "y": 14, "available_eras": []},
+		{"x": 30, "y": 14, "available_eras": []},
+		{"x": 31, "y": 14, "available_eras": []}
+	],
+	"recovery_anchors": [
+		{"id": "west_recovery", "position": {"x": 128, "y": 240}, "available_eras": []},
+		{"id": "east_recovery", "position": {"x": 480, "y": 240}, "available_eras": []}
+	],
+	"entry_points": [
+		{
+			"id": "from_bellweather",
+			"player": {"x": 104, "y": 224},
+			"companion": {"x": 136, "y": 238},
+			"available_eras": []
+		}
+	],
+	"layers": [
+		{"id": "ground", "type": "terrain", "z_index": 0, "visible": true, "locked": false},
+		{"id": "objects", "type": "objects", "z_index": 10, "visible": true, "locked": false},
+		{"id": "collision", "type": "collision", "z_index": 20, "visible": true, "locked": false},
+		{"id": "navigation", "type": "navigation", "z_index": 30, "visible": true, "locked": false}
+	],
+	"object_placements": [],
+	"interactions": [
+		{
+			"id": "clockvine_bulkhead",
+			"kind": "clockvines",
+			"position": {"x": 320, "y": 224},
+			"radius": 48,
+			"available_eras": [],
+			"required_capabilities": ["cut_clockvines"],
+			"blocked_dialogue": "The clockvines have hardened into a cable-thick knot. Eli needs something made to hook and cut them.",
+			"dialogue": {
+				"verdant": "The Brass Hook bites between the living strands. The knot opens without bleeding sap.",
+				"ashen": "The Brass Hook breaks the fossil-dark vines apart. Heat escapes from the wall behind them.",
+				"default": "The clockvine knot yields to the Brass Hook."
+			}
+		},
+		{
+			"id": "sealed_catalogue",
+			"kind": "catalogue",
+			"position": {"x": 462, "y": 190},
+			"radius": 54,
+			"available_eras": [],
+			"required_capabilities": ["clockglass_sight"],
+			"blocked_dialogue": "The brass catalogue page is perfectly blank. Ordinary light only makes the surface more opaque.",
+			"dialogue": {
+				"verdant": "Through the Archivist Lens, an erased accession line returns: ELI VALE, DONOR, 1967.",
+				"ashen": "The Archivist Lens reveals the same name beneath the burn marks, followed by a room number that does not exist yet.",
+				"default": "The Archivist Lens restores writing hidden beneath the catalogue's remembered surface."
+			}
+		}
+	],
+	"connections": [
+		{
+			"id": "west_to_bellweather",
+			"position": {"x": 80, "y": 224},
+			"radius": 34,
+			"target_map": "bellweather_crossing",
+			"target_entry": "from_underworks",
+			"target_era": "same",
+			"trigger": "interact",
+			"available_eras": []
+		}
+	],
+	"encounter_zones": [],
+	"companion_cues": []
+}

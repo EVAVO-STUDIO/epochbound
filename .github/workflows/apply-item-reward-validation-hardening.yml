@@ -1,0 +1,161 @@
+name: Harden Item Forge reward validation
+
+on:
+  push:
+    branches:
+      - work/item-forge-foundation-20260729
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Validate raw reward arrays
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/item-forge-foundation-20260729
+
+      - name: Apply exact validator hardening
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/content/item_validator.gd")
+          source = path.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  '''\tfor object_id in object_definitions.keys():
+          \t\tvar object_data: Dictionary = object_definitions.get(object_id, {})
+          \t\tvar grants := ItemCatalog.item_grants(object_data)
+          \t\tif grants.is_empty():
+          \t\t\tcontinue
+          \t\tif str(object_data.get("kind", "")) != "pickup":
+          \t\t\twarnings.append("%s/object/%s: item_grants are normally expected on pickup definitions." % [campaign_id, object_id])
+          \t\tvalidate_grants(
+          \t\t\tgrants,
+          \t\t\t"%s/object/%s/item_grants" % [campaign_id, object_id],
+          \t\t\titems,
+          \t\t\tused_items,
+          \t\t\terrors
+          \t\t)
+          ''',
+                  '''\tfor object_id in object_definitions.keys():
+          \t\tvar object_data: Dictionary = object_definitions.get(object_id, {})
+          \t\tvar grants_value: Variant = object_data.get("item_grants", [])
+          \t\tvar has_grants := typeof(grants_value) == TYPE_ARRAY and not Array(grants_value).is_empty()
+          \t\tif has_grants and str(object_data.get("kind", "")) != "pickup":
+          \t\t\twarnings.append("%s/object/%s: item_grants are normally expected on pickup definitions." % [campaign_id, object_id])
+          \t\tvalidate_grants(
+          \t\t\tgrants_value,
+          \t\t\t"%s/object/%s/item_grants" % [campaign_id, object_id],
+          \t\t\titems,
+          \t\t\tused_items,
+          \t\t\terrors
+          \t\t)
+          ''',
+              ),
+              (
+                  '''\t\tvar cue: Dictionary = cue_value
+          \t\tvar prefix := "%s/companion_cue/%s" % [map_id, cue.get("id", "cue")]
+          \t\tvalidate_grants(ItemCatalog.item_grants(cue, "reward_items"), prefix + "/reward_items", items, used_items, errors)
+          \t\tvalidate_recipe_unlocks(ItemCatalog.recipe_unlocks(cue), prefix + "/unlock_recipes", recipes, used_recipes, errors)
+          ''',
+                  '''\t\tvar cue: Dictionary = cue_value
+          \t\tvar prefix := "%s/companion_cue/%s" % [map_id, cue.get("id", "cue")]
+          \t\tvalidate_grants(cue.get("reward_items", []), prefix + "/reward_items", items, used_items, errors)
+          \t\tvalidate_recipe_unlocks(cue.get("unlock_recipes", []), prefix + "/unlock_recipes", recipes, used_recipes, errors)
+          ''',
+              ),
+              (
+                  '''static func validate_grants(
+          \tgrants: Array,
+          \tprefix: String,
+          \titems: Dictionary,
+          \tused_items: Dictionary,
+          \terrors: Array[String]
+          ) -> void:
+          \tvar seen: Dictionary = {}
+          \tfor grant_value in grants:
+          ''',
+                  '''static func validate_grants(
+          \tvalue: Variant,
+          \tprefix: String,
+          \titems: Dictionary,
+          \tused_items: Dictionary,
+          \terrors: Array[String]
+          ) -> void:
+          \tif typeof(value) != TYPE_ARRAY:
+          \t\terrors.append("%s: grants must be an array." % prefix)
+          \t\treturn
+          \tvar grants: Array = value
+          \tvar seen: Dictionary = {}
+          \tfor grant_value in grants:
+          ''',
+              ),
+              (
+                  '''static func validate_recipe_unlocks(
+          \tunlock_ids: PackedStringArray,
+          \tprefix: String,
+          \trecipes: Dictionary,
+          \tused_recipes: Dictionary,
+          \terrors: Array[String]
+          ) -> void:
+          \tfor recipe_id in unlock_ids:
+          \t\tif not recipes.has(recipe_id):
+          \t\t\terrors.append("%s: unknown recipe '%s'." % [prefix, recipe_id])
+          \t\telse:
+          \t\t\tused_recipes[recipe_id] = true
+          ''',
+                  '''static func validate_recipe_unlocks(
+          \tvalue: Variant,
+          \tprefix: String,
+          \trecipes: Dictionary,
+          \tused_recipes: Dictionary,
+          \terrors: Array[String]
+          ) -> void:
+          \tif typeof(value) != TYPE_ARRAY:
+          \t\terrors.append("%s: recipe unlocks must be an array." % prefix)
+          \t\treturn
+          \tvar unlock_ids: Array = value
+          \tvar seen: Dictionary = {}
+          \tfor recipe_value in unlock_ids:
+          \t\tif typeof(recipe_value) != TYPE_STRING:
+          \t\t\terrors.append("%s: every recipe unlock must be a string ID." % prefix)
+          \t\t\tcontinue
+          \t\tvar recipe_id := str(recipe_value).strip_edges()
+          \t\tif recipe_id.is_empty():
+          \t\t\terrors.append("%s: recipe unlock ID cannot be empty." % prefix)
+          \t\telif seen.has(recipe_id):
+          \t\t\terrors.append("%s: recipe '%s' is repeated." % [prefix, recipe_id])
+          \t\telif not recipes.has(recipe_id):
+          \t\t\terrors.append("%s: unknown recipe '%s'." % [prefix, recipe_id])
+          \t\telse:
+          \t\t\tseen[recipe_id] = true
+          \t\t\tused_recipes[recipe_id] = true
+          ''',
+              ),
+          ]
+
+          for old, new in replacements:
+              if source.count(old) != 1:
+                  raise SystemExit(f"Expected one reviewed item-validator block, found {source.count(old)}")
+              source = source.replace(old, new, 1)
+
+          path.write_text(source, encoding="utf-8", newline="\n")
+          Path(".github/workflows/apply-item-reward-validation-hardening.yml").unlink()
+
+      - name: Commit reward validation hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/item_validator.gd .github/workflows/apply-item-reward-validation-hardening.yml
+          git commit -m "fix: validate raw item and recipe reward arrays"
+          git push origin HEAD:work/item-forge-foundation-20260729

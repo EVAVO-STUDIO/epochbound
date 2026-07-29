@@ -66,7 +66,7 @@ func run_smoke_test() -> void:
 
 	var validation := EconomyValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Trade Studio reference campaign must pass complete validation.")
-	check(int(validation.get("merchant_stock_count", 0)) == 7, "Trade Studio validator must count every authored stock record.")
+	check(int(validation.get("merchant_stock_count", 0)) == 9, "Trade Studio validator must count every authored stock record.")
 
 	root.remove_child(studio)
 	studio.free()

@@ -499,6 +499,19 @@
 			"facing": "right",
 			"available_eras": [],
 			"state_key": "underworks:salvager"
+		},
+		{
+			"id": "underworks_sentinel",
+			"object_id": "underworks_sentinel",
+			"position": {
+				"x": 470,
+				"y": 224
+			},
+			"facing": "left",
+			"available_eras": [
+				"ashen"
+			],
+			"state_key": "underworks:sentinel"
 		}
 	],
 	"interactions": [
@@ -556,6 +569,25 @@
 			"available_eras": []
 		}
 	],
-	"encounter_zones": [],
+	"encounter_zones": [
+		{
+			"id": "underworks_gallery_watch",
+			"display_name": "Underworks Gallery Watch",
+			"position": {
+				"x": 470,
+				"y": 224
+			},
+			"radius": 100,
+			"activation_radius": 176,
+			"leash_padding": 42,
+			"enemy_placements": [
+				"underworks_sentinel"
+			],
+			"available_eras": [
+				"ashen"
+			],
+			"clear_state_key": "underworks:zone:gallery_watch"
+		}
+	],
 	"companion_cues": []
 }

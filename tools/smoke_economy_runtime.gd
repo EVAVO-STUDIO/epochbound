@@ -25,7 +25,7 @@ func run_smoke_test() -> void:
 	check(int(validation.get("currency_count", 0)) == 1, "Reference campaign must expose one currency.")
 	check(int(validation.get("merchant_count", 0)) == 2, "Reference campaign must expose two merchants.")
 	check(int(validation.get("merchant_binding_count", 0)) == 2, "Reference campaign must bind two reusable NPC definitions to merchants.")
-	check(int(validation.get("merchant_stock_count", 0)) == 7, "Reference merchants must expose seven authored stock entries.")
+	check(int(validation.get("merchant_stock_count", 0)) == 9, "Reference merchants must expose nine authored stock entries.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -127,7 +127,7 @@ func probe_runtime_scene() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal runtime.")
 	root.add_child(runtime)
 	check(runtime.has_method("open_merchant"), "Runtime must expose merchant entry.")
 	check(runtime.has_method("activate_merchant_selection"), "Runtime must expose guarded transaction activation.")

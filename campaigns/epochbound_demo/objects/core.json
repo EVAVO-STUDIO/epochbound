@@ -121,6 +121,41 @@
 			"merchant_id": "underworks_exchange",
 			"merchant_blocked_dialogue": "Without a steady light, the salvager will not open the lower exchange.",
 			"dialogue": "The salvager weighs objects by how many histories they can survive."
+		},
+		{
+			"id": "underworks_sentinel",
+			"display_name": "Underworks Sentinel",
+			"kind": "enemy",
+			"appearance": {
+				"shape": "pillar",
+				"color": "4d4d55",
+				"accent": "e4674d"
+			},
+			"solid": true,
+			"collision_radius": 10,
+			"interaction_radius": 0,
+			"max_health": 18,
+			"move_speed": 30,
+			"awareness_radius": 220,
+			"attack_radius": 160,
+			"attack_damage": 3,
+			"attack_cooldown": 1.4,
+			"attack_windup": 0.45,
+			"patrol_radius": 18,
+			"leash_radius": 0,
+			"return_speed_multiplier": 0.9,
+			"target_memory": 1.0,
+			"stagger_duration": 0.18,
+			"knockback_distance": 16,
+			"contact_knockback": 12,
+			"ranged_attack": {
+				"projectile_speed": 210,
+				"projectile_range": 240,
+				"projectile_radius": 4,
+				"knockback_distance": 18,
+				"projectile_color": "e4674d"
+			},
+			"reward": 3
 		}
 	]
 }

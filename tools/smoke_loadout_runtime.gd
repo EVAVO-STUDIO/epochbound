@@ -26,7 +26,7 @@ func run_smoke_test() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	var validation: Dictionary = EquipmentValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(bool(validation.get("ok", false)), "Reference campaign must pass equipment and capability validation.")
-	check(int(validation.get("equipment_item_count", 0)) == 5, "Reference campaign must expose five equipment items.")
+	check(int(validation.get("equipment_item_count", 0)) == 6, "Reference campaign must expose six equipment items.")
 	check(int(validation.get("equipment_slot_count", 0)) == 3, "Reference campaign must expose three equipment slots.")
 	check(int(validation.get("capability_count", 0)) == 3, "Reference campaign must expose three capability definitions.")
 	check(int(validation.get("capability_gate_count", 0)) == 3, "Reference campaign must expose three authored capability gates.")
@@ -52,7 +52,7 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/merchant_runtime.gd", "Runtime scene must bind the merchant-aware runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal-aware runtime.")
 	root.add_child(runtime)
 
 	check(runtime.has_method("active_capabilities"), "Runtime must expose derived capabilities.")

@@ -15,6 +15,7 @@ func _initialize() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	test_legacy_migration()
 	test_schema_two_economy_migration()
+	test_schema_three_arsenal_migration()
 	test_default_policy_compatibility()
 	test_canonical_slot_discovery()
 	test_json_round_trip_checksum()
@@ -80,6 +81,25 @@ func test_schema_two_economy_migration() -> void:
 	check(typeof(migrated_payload.get("merchant_stock")) == TYPE_DICTIONARY, "Migration must add merchant stock state.")
 	check(not bool(migrated_payload.get("economy_initialized", true)), "Pre-economy saves must request authored defaults on first load.")
 	check(SaveProfile.checksum_valid(migrated), "Migrated schema 2 profile must receive a valid checksum.")
+
+
+func test_schema_three_arsenal_migration() -> void:
+	var legacy := valid_profile("Schema three Arsenal migration", 83)
+	legacy["schema_version"] = 3
+	var payload: Dictionary = legacy.get("payload", {})
+	payload.erase("loaded_ammo")
+	legacy["payload"] = payload
+	SaveProfile.refresh_checksum(legacy)
+	var migration := SaveProfile.migrate(legacy)
+	check(bool(migration.get("ok", false)), "Schema 3 profile must migrate to the Arsenal-aware schema.")
+	check(bool(migration.get("migrated", false)), "Schema 3 Arsenal migration must report a change.")
+	check(int(migration.get("from_version", -1)) == 3, "Schema 3 migration must preserve the source version.")
+	var migrated: Dictionary = migration.get("profile", {})
+	var migrated_payload: Dictionary = migrated.get("payload", {})
+	check(int(migrated.get("schema_version", 0)) == SaveProfile.CURRENT_SCHEMA, "Schema 3 profile must migrate to the current schema.")
+	check(typeof(migrated_payload.get("loaded_ammo")) == TYPE_DICTIONARY, "Migration must add loaded-magazine state.")
+	check((migrated_payload.get("loaded_ammo", {}) as Dictionary).is_empty(), "Pre-Arsenal saves must not guess loaded rounds.")
+	check(SaveProfile.checksum_valid(migrated), "Migrated schema 3 profile must receive a valid checksum.")
 
 
 func test_default_policy_compatibility() -> void:

@@ -7,6 +7,7 @@ const ItemValidator = preload("res://src/content/item_validator.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")
 
 var campaigns: Array = []
 var active_campaign: Dictionary = {}
@@ -804,6 +805,9 @@ func find_item_usages(item_id: String) -> PackedStringArray:
 		for equipped_value in (starting_equipment_value as Dictionary).values():
 			if str(equipped_value) == item_id:
 				usages.append("starting equipment")
+	for weapon_id in ArsenalCatalog.ranged_weapon_ids(item_definitions):
+		if ArsenalCatalog.weapon_ammunition_id(ItemCatalog.item(item_definitions, weapon_id)) == item_id:
+			usages.append("ranged weapon %s ammunition" % weapon_id)
 	var object_result := ObjectCatalog.load_catalogs(active_campaign_path, active_campaign)
 	var object_definitions: Dictionary = object_result.get("definitions", {})
 	for object_id in object_definitions.keys():

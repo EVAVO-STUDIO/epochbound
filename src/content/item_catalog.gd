@@ -5,7 +5,7 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 
 const SUPPORTED_SCHEMA := 1
-const ALLOWED_ITEM_KINDS := ["consumable", "material", "key", "equipment"]
+const ALLOWED_ITEM_KINDS := ["consumable", "material", "key", "equipment", "ammunition"]
 const ALLOWED_EFFECT_TYPES := ["none", "heal"]
 
 
@@ -250,6 +250,51 @@ static func default_item_catalog() -> Dictionary:
 					"max_health_bonus": 0,
 					"move_speed_bonus": 0,
 					"capabilities": ["illuminate_dark"]
+				}
+			}
+,
+			{
+				"id": "trail_bolts",
+				"display_name": "Trail Bolts",
+				"kind": "ammunition",
+				"description": "Compact brass-fletched bolts for a field dartcaster.",
+				"stack_limit": 60,
+				"value": 2,
+				"use_effect": {"type": "none"},
+				"ammunition": {
+					"damage_bonus": 0,
+					"knockback_bonus": 1.0,
+					"projectile_color": "f2c66d"
+				}
+			},
+			{
+				"id": "trail_dartcaster",
+				"display_name": "Trail Dartcaster",
+				"kind": "equipment",
+				"description": "A compact spring-driven field weapon for controlled ranged attacks.",
+				"stack_limit": 1,
+				"value": 44,
+				"use_effect": {"type": "none"},
+				"equipment": {
+					"slot": "weapon",
+					"attack_bonus": 0,
+					"defense_bonus": 0,
+					"max_health_bonus": 0,
+					"move_speed_bonus": 0,
+					"capabilities": [],
+					"ranged": {
+						"ammo_item_id": "trail_bolts",
+						"magazine_size": 4,
+						"damage_bonus": 1,
+						"projectile_speed": 340.0,
+						"projectile_range": 270.0,
+						"projectile_radius": 4.0,
+						"fire_cooldown": 0.42,
+						"reload_time": 0.85,
+						"knockback_distance": 14.0,
+						"muzzle_offset": 15.0,
+						"projectile_color": "f2c66d"
+					}
 				}
 			}
 		]

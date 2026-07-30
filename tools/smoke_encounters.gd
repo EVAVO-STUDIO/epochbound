@@ -15,7 +15,8 @@ const COMBAT_RUNTIME_PATHS := [
 	"res://src/save_runtime.gd",
 	"res://src/equipment_runtime.gd",
 	"res://src/merchant_runtime.gd",
-	"res://src/arsenal_runtime.gd"
+	"res://src/arsenal_runtime.gd",
+	"res://src/boss_runtime.gd"
 ]
 
 var failures: Array[String] = []
@@ -29,7 +30,7 @@ func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass catalog and placement validation.")
 	check(int(validation.get("definition_count", 0)) == 7, "Reference campaign must expose seven reusable object definitions.")
-	check(int(validation.get("placement_count", 0)) == 12, "Reference campaign must expose twelve object placements.")
+	check(int(validation.get("placement_count", 0)) == 14, "Reference campaign must expose fourteen object placements.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")

@@ -145,3 +145,6 @@ jobs:
           run_godot_test res://tools/smoke_arsenal_runtime.gd "Arsenal ranged combat reloads and durable magazines"
           run_godot_test res://tools/smoke_arsenal_studio.gd "Arsenal Studio editor state"
           run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"
+          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"
+          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"
+          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"

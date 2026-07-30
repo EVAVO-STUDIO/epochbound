@@ -123,7 +123,7 @@ func run_audit_for_path(campaign_path: String) -> Dictionary:
 
 func render_report(report: Dictionary) -> void:
 	findings_tree.clear()
-	var root := findings_tree.create_item()
+	var root: TreeItem = findings_tree.create_item()
 	var blockers := int(report.get("blocker_count", 0))
 	var warnings := int(report.get("warning_count", 0))
 	summary_label.text = "%s — %d blocker(s), %d warning(s)" % [str(report.get("campaign_id", "Campaign")), blockers, warnings]
@@ -140,13 +140,13 @@ func render_report(report: Dictionary) -> void:
 		if typeof(finding_value) != TYPE_DICTIONARY:
 			continue
 		var finding: Dictionary = finding_value
-		var item := findings_tree.create_item(root)
+		var item: TreeItem = findings_tree.create_item(root)
 		var severity := str(finding.get("severity", "info"))
 		item.set_text(0, severity.to_upper())
 		item.set_text(1, str(finding.get("code", "")))
 		item.set_text(2, str(finding.get("context", "")))
 		item.set_text(3, str(finding.get("message", "")))
-		var color := Color("d98b7b") if severity == "blocker" else Color("e4c06a") if severity == "warning" else Color("86b9a4")
+		var color: Color = Color("d98b7b") if severity == "blocker" else Color("e4c06a") if severity == "warning" else Color("86b9a4")
 		item.set_custom_color(0, color)
 	export_button.disabled = false
 
@@ -156,11 +156,11 @@ func export_last_report() -> void:
 		return
 	var campaign_id := str(last_report.get("campaign_id", "campaign"))
 	var destination := "user://audit_reports/%s-audit.json" % campaign_id
-	var result := export_last_report_to(destination)
+	var result: Dictionary = export_last_report_to(destination)
 	if bool(result.get("ok", false)):
 		summary_label.text = "Audit exported to %s" % destination
 	else:
-		summary_label.text = "Audit export failed: %s" % "; ".join(result.get("errors", []))
+		summary_label.text = "Audit export failed: %s" % join_messages(result.get("errors", []))
 
 
 func export_last_report_to(path: String) -> Dictionary:
@@ -169,12 +169,21 @@ func export_last_report_to(path: String) -> Dictionary:
 	var directory_error := DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
 		return {"ok": false, "errors": ["Could not create the audit report directory."]}
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return {"ok": false, "errors": ["Could not write %s." % path]}
 	file.store_string(JSON.stringify(last_report, "\t", true) + "\n")
 	file.flush()
 	return {"ok": true, "path": path, "errors": []}
+
+
+func join_messages(value: Variant) -> String:
+	if typeof(value) != TYPE_ARRAY:
+		return str(value)
+	var output := PackedStringArray()
+	for message_value in value:
+		output.append(str(message_value))
+	return "; ".join(output)
 
 
 func open_report_folder() -> void:

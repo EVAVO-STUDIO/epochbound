@@ -26,6 +26,7 @@ try {
     $Tests = @(
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
+        @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
         @("Smoke test Encounter Studio and base combat", "res://tools/smoke_encounters.gd"),
         @("Smoke test Combat Director zones and behaviour", "res://tools/smoke_combat_director.gd"),

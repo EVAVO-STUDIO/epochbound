@@ -156,7 +156,22 @@ try {
         "--script", "res://tools/smoke_arsenal_validation_edges.gd"
     )
 
-    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."
+    Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
+    "--headless", "--path", $ProjectRoot,
+    "--script", "res://tools/smoke_boss_runtime.gd"
+)
+
+Invoke-GodotStep "Smoke test Boss and Phase Studio editor state" @(
+    "--headless", "--path", $ProjectRoot,
+    "--script", "res://tools/smoke_boss_studio.gd"
+)
+
+Invoke-GodotStep "Smoke test malformed boss arenas phases patterns rewards and reinforcements" @(
+    "--headless", "--path", $ProjectRoot,
+    "--script", "res://tools/smoke_boss_validation_edges.gd"
+)
+
+Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."
 }
 finally {
     Pop-Location

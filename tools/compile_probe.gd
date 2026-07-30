@@ -38,6 +38,7 @@ const TARGETS := [
 	"res://src/content/cinematic_validator.gd",
 	"res://src/content/campaign_package.gd",
 	"res://src/content/package_release_validator.gd",
+	"res://src/content/campaign_audit.gd",
 	"res://src/game/encounter_zone_model.gd",
 	"res://src/game/companion_model.gd",
 	"res://src/game/inventory_model.gd",
@@ -75,6 +76,8 @@ const TARGETS := [
 	"res://addons/epochbound_cinematic_studio/plugin.gd",
 	"res://addons/epochbound_package_studio/package_studio.gd",
 	"res://addons/epochbound_package_studio/plugin.gd",
+	"res://addons/epochbound_campaign_audit/campaign_audit_studio.gd",
+	"res://addons/epochbound_campaign_audit/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
@@ -107,6 +110,9 @@ const TARGETS := [
 	"res://tools/smoke_campaign_packages.gd",
 	"res://tools/smoke_package_studio.gd",
 	"res://tools/smoke_package_validation_edges.gd",
+	"res://tools/smoke_campaign_audit.gd",
+	"res://tools/smoke_campaign_audit_studio.gd",
+	"res://tools/smoke_campaign_audit_edges.gd",
 	"res://src/app.tscn"
 ]
 
@@ -124,7 +130,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, all thirteen editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: runtime, all fourteen editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

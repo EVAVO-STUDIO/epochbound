@@ -72,6 +72,18 @@ jobs:
           if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
+      - name: Run deterministic campaign production audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/audit_campaigns.gd 2>&1 | tee "$log_file"
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
       - name: Run complete executable regression suite
         shell: bash
         run: |

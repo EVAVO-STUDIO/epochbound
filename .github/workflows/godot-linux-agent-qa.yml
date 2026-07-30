@@ -1,0 +1,27 @@
+name: Godot Linux Agent QA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-linux-agent-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-agent-qa:
+    uses: EVAVO-STUDIO/godot-game-test-lab/.github/workflows/reusable-godot-linux-sandbox.yml@9d81ab2135cdcf24bd5f682843b53d897bbc1579
+    with:
+      lab_sha: 9d81ab2135cdcf24bd5f682843b53d897bbc1579
+      target_sha: ${{ github.sha }}
+      profile_path: .evavo/godot-lab-linux.json
+      retention_days: 14

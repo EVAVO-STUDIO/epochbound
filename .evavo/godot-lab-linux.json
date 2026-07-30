@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "2.0",
+  "projectSubpath": ".",
+  "minimumGodotVersion": "4.6.2",
+  "engineFlavor": "standard",
+  "visual": {
+    "required": true,
+    "scene": "res://src/app.tscn",
+    "frames": 300,
+    "fps": 30,
+    "width": 1280,
+    "height": 720,
+    "renderingMethod": "gl_compatibility",
+    "userArguments": []
+  },
+  "export": {
+    "required": false,
+    "preset": ""
+  },
+  "journeys": [
+    {
+      "id": "keyboard-core-actions",
+      "required": true,
+      "device": "keyboard_mouse",
+      "maxFrames": 480,
+      "settleFrames": 90,
+      "requiredActions": [
+        {"name": "interact", "devices": ["keyboard"]},
+        {"name": "attack", "devices": ["keyboard"]},
+        {"name": "era_shift", "devices": ["keyboard"]}
+      ],
+      "steps": [
+        {"type": "key_tap", "physicalKeycode": 69, "holdFrames": 2},
+        {"type": "wait", "frames": 20},
+        {"type": "key_tap", "physicalKeycode": 32, "holdFrames": 2},
+        {"type": "wait", "frames": 20},
+        {"type": "key_tap", "physicalKeycode": 81, "holdFrames": 2},
+        {"type": "checkpoint", "id": "keyboard-core"}
+      ],
+      "assertions": [
+        {"type": "scene_loaded"},
+        {"type": "input_action_exists", "action": "interact"},
+        {"type": "input_action_exists", "action": "attack"},
+        {"type": "input_action_exists", "action": "era_shift"}
+      ],
+      "ux": {
+        "minimumVisibleControls": 1,
+        "maximumOutOfBoundsInteractive": 24,
+        "maximumOverlappingInteractivePairs": 96,
+        "maximumSmallInteractiveTargets": 48,
+        "failOnBlackFrame": true
+      }
+    },
+    {
+      "id": "gamepad-core-actions",
+      "required": true,
+      "device": "gamepad",
+      "maxFrames": 480,
+      "settleFrames": 90,
+      "requiredActions": [
+        {"name": "interact", "devices": ["gamepad"]},
+        {"name": "attack", "devices": ["gamepad"]},
+        {"name": "era_shift", "devices": ["gamepad"]}
+      ],
+      "steps": [
+        {"type": "joy_button_tap", "buttonIndex": 0, "holdFrames": 2},
+        {"type": "wait", "frames": 20},
+        {"type": "joy_button_tap", "buttonIndex": 1, "holdFrames": 2},
+        {"type": "wait", "frames": 20},
+        {"type": "joy_button_tap", "buttonIndex": 2, "holdFrames": 2},
+        {"type": "checkpoint", "id": "gamepad-core"}
+      ],
+      "assertions": [
+        {"type": "scene_loaded"},
+        {"type": "input_action_exists", "action": "interact"},
+        {"type": "input_action_exists", "action": "attack"},
+        {"type": "input_action_exists", "action": "era_shift"}
+      ],
+      "ux": {
+        "minimumVisibleControls": 1,
+        "maximumOutOfBoundsInteractive": 24,
+        "maximumOverlappingInteractivePairs": 96,
+        "maximumSmallInteractiveTargets": 48,
+        "failOnBlackFrame": true
+      }
+    },
+    {
+      "id": "menu-surface-audit",
+      "required": false,
+      "device": "mixed",
+      "maxFrames": 420,
+      "settleFrames": 90,
+      "requiredActions": [
+        {"name": "inventory_toggle", "devices": ["keyboard", "gamepad"]},
+        {"name": "story_journal", "devices": ["keyboard", "gamepad"]},
+        {"name": "pause_game", "devices": ["keyboard", "gamepad"]}
+      ],
+      "steps": [
+        {"type": "action_tap", "action": "inventory_toggle"},
+        {"type": "wait", "frames": 20},
+        {"type": "action_tap", "action": "story_journal"},
+        {"type": "wait", "frames": 20},
+        {"type": "action_tap", "action": "pause_game"},
+        {"type": "checkpoint", "id": "menu-surfaces"}
+      ],
+      "assertions": [
+        {"type": "scene_loaded"}
+      ],
+      "ux": {
+        "minimumVisibleControls": 1,
+        "maximumOutOfBoundsInteractive": 24,
+        "maximumOverlappingInteractivePairs": 96,
+        "maximumSmallInteractiveTargets": 48,
+        "failOnBlackFrame": true
+      }
+    }
+  ]
+}

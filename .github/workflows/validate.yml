@@ -8,15 +8,43 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: epochbound-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  integrate-cinematic:
+    name: Integrate cinematic branch source
+    if: github.event_name == 'push' && github.ref == 'refs/heads/work/cinematic-timeline-foundation-20260730'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cinematic branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/cinematic-timeline-foundation-20260730
+          fetch-depth: 0
+      - name: Apply one-time integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f tools/apply_cinematic_integration.py ]; then
+            echo "Cinematic integration already committed."
+            exit 0
+          fi
+          python tools/apply_cinematic_integration.py
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: integrate Cinematic and Timeline Studio"
+          git push origin HEAD:work/cinematic-timeline-foundation-20260730
+
   validate:
     name: Godot 4.6.2 validation
+    needs: integrate-cinematic
+    if: always() && (needs.integrate-cinematic.result == 'success' || needs.integrate-cinematic.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -148,3 +176,6 @@ jobs:
           run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"
           run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"
           run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"
+          run_godot_test res://tools/smoke_cinematic_runtime.gd "Cinematic playback skip and durable completion"
+          run_godot_test res://tools/smoke_cinematic_studio.gd "Cinematic and Timeline Studio editor state"
+          run_godot_test res://tools/smoke_cinematic_validation_edges.gd "Malformed cinematic maps steps targets effects and checkpoints"

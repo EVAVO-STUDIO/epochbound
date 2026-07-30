@@ -21,7 +21,7 @@ func run_smoke_test() -> void:
 	check(validation.get("ok", false), "Reference campaign must pass Combat Director validation.")
 	check(int(validation.get("zone_count", 0)) == 3, "Reference campaign must expose three encounter zones.")
 	check(int(validation.get("definition_count", 0)) == 7, "Reference object catalog must retain seven definitions.")
-	check(int(validation.get("placement_count", 0)) == 12, "Reference campaign must retain twelve placements.")
+	check(int(validation.get("placement_count", 0)) == 14, "Reference campaign must retain fourteen placements.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 	check(campaign_result.get("ok", false), "Reference campaign must load.")
@@ -75,7 +75,7 @@ func probe_runtime_scene() -> void:
 	if script_value is GDScript:
 		var runtime_path := str((script_value as GDScript).resource_path)
 		check(
-			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"],
+			runtime_path in ["res://src/combat_director_runtime.gd", "res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"],
 			"Runtime scene must bind a Combat Director-capable runtime."
 		)
 	root.add_child(runtime)
@@ -97,7 +97,6 @@ func probe_runtime_scene() -> void:
 		runtime.free()
 		return
 
-	# Entering attack range must start a visible windup without immediate damage.
 	var hound: Dictionary = entities[hound_index]
 	hound["position"] = Vector2(400, 216)
 	hound["mode"] = "chase"
@@ -121,7 +120,6 @@ func probe_runtime_scene() -> void:
 	runtime.call("update_runtime_entities", 0.35)
 	check(int(runtime.get("player_health")) == player_health_before - expected_player_damage, "Completed windup must apply authored attack damage after active defence.")
 
-	# Player damage must stagger and knock the enemy away.
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
 	hound["position"] = Vector2(416, 216)
@@ -139,7 +137,6 @@ func probe_runtime_scene() -> void:
 	check(knockback_value is Vector2 and (knockback_value as Vector2).length_squared() > 0.0, "Damaged enemy must receive knockback velocity.")
 	check(int(runtime.get("combo_count")) >= 1, "Successful hit must advance the combat chain.")
 
-	# An enemy outside its authored leash must return to its spawn rather than chase forever.
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
 	hound["position"] = Vector2(580, 216)
@@ -155,7 +152,6 @@ func probe_runtime_scene() -> void:
 	hound = entities[hound_index]
 	check(str(hound.get("mode", "")) == "return", "Enemy outside its leash must enter return mode.")
 
-	# Defeating every member must persist the zone clear state.
 	var session_value: Variant = runtime.get("session_state")
 	var session: Dictionary = session_value if typeof(session_value) == TYPE_DICTIONARY else {}
 	session["bellweather:ash_hound"] = "defeated"

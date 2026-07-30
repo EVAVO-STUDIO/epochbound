@@ -56,6 +56,10 @@ func run_smoke_test() -> void:
 	check(not bool(runtime.call("can_open_save_overlay")), "Manual saving must remain blocked while a boss arena is active.")
 	var connection := connection_by_id(dictionary_property(runtime, "map_data"), "west_to_bellweather")
 	check(not bool(runtime.call("travel_through", connection)), "Authored arena lock must block the Underworks exit during the fight.")
+	if runtime.has_method("finish_cinematic") and not str(runtime.get("active_cinematic_id")).is_empty():
+		check(str(runtime.get("active_cinematic_id")) == "underworks_sentinel_intro", "Boss engagement must launch its authored introduction.")
+		runtime.call("finish_cinematic", true)
+		check(str(runtime.get("active_cinematic_id")).is_empty(), "Skipping the introduction must return control to the same boss arena.")
 
 	runtime.call("shift_to_next_era")
 	check(str(runtime.get("current_era_id")) == "ashen", "Boss arena must permit the authored era shift.")
@@ -114,7 +118,12 @@ func run_smoke_test() -> void:
 	check(array_property(runtime, "projectiles").is_empty(), "Boss completion must clear unresolved arena projectiles.")
 	check(float(runtime.get("transition_lock")) == 0.0, "Boss completion must clear the phase transition lock.")
 	check(str(runtime.get("dialogue")).is_empty(), "Boss completion must clear stale arena-lock dialogue.")
-	check(bool(runtime.call("can_open_save_overlay")), "Saving must become available after durable arena completion.")
+	if runtime.has_method("finish_cinematic"):
+		check(str(runtime.get("active_cinematic_id")) == "underworks_sentinel_defeat", "Durable boss completion must launch the authored conclusion.")
+		check(not bool(runtime.call("can_open_save_overlay")), "Saving must remain blocked during the boss conclusion.")
+		runtime.call("finish_cinematic", false)
+		check(str(runtime.get("active_cinematic_id")).is_empty(), "Completing the conclusion must restore gameplay control.")
+	check(bool(runtime.call("can_open_save_overlay")), "Saving must become available after durable arena completion and its conclusion.")
 
 	cleanup(runtime)
 	finish()
@@ -151,7 +160,7 @@ func cleanup(runtime: Node) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Boss runtime smoke test passed: engagement, era phases, phase clamping, patterns, reinforcements, arena locks and durable outcomes are coherent.")
+		print("Boss runtime smoke test passed: engagement, era phases, phase clamping, patterns, reinforcements, arena locks, cinematics and durable outcomes are coherent.")
 		quit(0)
 		return
 	for failure in failures:

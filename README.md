@@ -42,9 +42,11 @@ The repository now provides:
 32. Inventory-backed ammunition, explicit reloads and deterministic moving projectiles
 33. Player and enemy ranged attacks that respect map collision, cover and existing combat feedback
 34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter
-35. Pause, resume and safe transition flow
+35. Authored boss arenas, health-threshold phases, deterministic patterns and reinforcements
+36. Cross-era phase changes, locked exits and durable boss outcomes
+37. Pause, resume and safe transition flow
 
-The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy, ammunition, projectile, reload and interaction contracts for the future pixel-art pipeline.
+The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy, ammunition, projectile, reload, boss-phase and interaction contracts for the future pixel-art pipeline.
 
 ## Campaign Studio
 
@@ -221,7 +223,6 @@ The reference loadout includes the Brass Hook, Museum Field Coat and Museum Flas
 
 Save schema 4 persists equipped item IDs, wallets, merchant stock and loaded ranged magazines. Schema-1 profiles migrate with empty equipment, while schema-2 profiles retain equipment and initialise the authored economy once; every restored slot, balance and stock record validates against current campaign definitions.
 
-
 ## Merchant & Economy Studio
 
 The **Trade** main-screen editor authors currencies, merchant stock, prices, availability and reusable NPC trade bindings while keeping every traded good inside Item Forge inventory. It can:
@@ -259,6 +260,22 @@ The reference Arsenal includes **Archive Bolts**, the four-round **Clockglass Da
 
 Save schema 4 stores exact loaded rounds by stable weapon ID. Schema-3 profiles retain their previous durable state and migrate with empty magazines rather than guessing how reserve ammunition had been distributed. State Studio exposes a dedicated Loaded Ammo inspector.
 
+## Boss & Phase Studio
+
+The **Boss** main-screen editor turns reusable enemy definitions into authored arena encounters while preserving Combat Director movement and windups, Arsenal projectile travel, Story Studio effects and durable world-state outcomes. It can:
+
+- bind a boss to an authored encounter zone and arena bounds;
+- lock selected map connections while the encounter remains unresolved;
+- author era-specific and shared health-threshold phases;
+- sequence aimed, fan, radial, strike and pause pattern steps;
+- tune phase movement, damage, cooldown, windup and projectile overrides;
+- activate dormant reinforcement placements at exact phases;
+- define one-time defeat effects and stable outcome keys;
+- clamp oversized damage at required phase boundaries;
+- reject unsafe arenas, broken references and unfair pattern records;
+- roll back invalid editor writes.
+
+The reference **Underworks Sentinel** now has Verdant and Ashen opening measures followed by the shared **Last Accession** phase at 55% health. The final phase releases two Curator Echoes, keeps the Bellweather exit locked until the complete arena is cleared, and grants its authored rewards once through the existing story, currency and durable-state contracts.
 
 ## Content locations
 
@@ -279,6 +296,8 @@ Read:
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md) for the complete manual merchant and economy review;
 - [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md) for ammunition, ranged weapons, reloads, projectiles and ranged-combat quality rules;
 - [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;
+- [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md) for boss profiles, arenas, phase thresholds, patterns and fairness rules;
+- [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md) for the complete manual boss encounter review;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -322,9 +341,9 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all ten editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all eleven editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
-3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock and transaction validation;
+3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock, ammunition, ranged attack and boss-profile validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
 5. executable object-catalog, placement, persistence and base-combat smoke tests;
 6. executable zone activation, windup, damage, stagger, leash return and clear-state smoke tests;
@@ -344,7 +363,10 @@ The validation gate performs:
 20. malformed currency, merchant, price, stock and saved-economy rejection tests;
 21. executable ranged firing, reload completion, cancellation, projectile collision, enemy shots and exact loaded-magazine restoration tests;
 22. executable Arsenal Studio weapon, ammunition and enemy-profile editor tests;
-23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests.
+23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests;
+24. executable boss engagement, phase-boundary, pattern, reinforcement, arena-lock and durable-outcome tests;
+25. executable Boss & Phase Studio editor-state and rollback tests;
+26. malformed boss arena, phase, pattern, reward and reinforcement rejection tests.
 
 ## Design pillars
 
@@ -367,6 +389,7 @@ The validation gate performs:
 - Equipment choices that alter combat, movement, exploration and story through one shared capability contract
 - Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation
 - Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage
+- Boss encounters that preserve readable timing, required phases, safe arena exits and durable one-time outcomes
 
 ## Documentation
 
@@ -385,9 +408,11 @@ The validation gate performs:
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md): manual merchant, controller, balance and persistence review
 - [`docs/ARSENAL_STUDIO.md`](docs/ARSENAL_STUDIO.md): ammunition, ranged weapon, projectile and save-state production rules
 - [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review
+- [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md): boss arena, phase, pattern and reinforcement production rules
+- [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md): manual boss fairness, controller and durability review
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: alternate ammunition, merchant restocking and regional scarcity, bosses, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: alternate ammunition, merchant restocking and regional scarcity, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.

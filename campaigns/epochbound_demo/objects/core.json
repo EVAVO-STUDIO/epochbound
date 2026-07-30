@@ -134,28 +134,186 @@
 			"solid": true,
 			"collision_radius": 10,
 			"interaction_radius": 0,
-			"max_health": 18,
-			"move_speed": 30,
-			"awareness_radius": 220,
+			"max_health": 54,
+			"move_speed": 32,
+			"awareness_radius": 230,
 			"attack_radius": 160,
-			"attack_damage": 3,
-			"attack_cooldown": 1.4,
-			"attack_windup": 0.45,
+			"attack_damage": 4,
+			"attack_cooldown": 1.45,
+			"attack_windup": 0.58,
 			"patrol_radius": 18,
 			"leash_radius": 0,
 			"return_speed_multiplier": 0.9,
-			"target_memory": 1.0,
-			"stagger_duration": 0.18,
-			"knockback_distance": 16,
-			"contact_knockback": 12,
+			"target_memory": 1.1,
+			"stagger_duration": 0.16,
+			"knockback_distance": 12,
+			"contact_knockback": 14,
 			"ranged_attack": {
 				"projectile_speed": 210,
-				"projectile_range": 240,
+				"projectile_range": 260,
 				"projectile_radius": 4,
 				"knockback_distance": 18,
 				"projectile_color": "e4674d"
 			},
-			"reward": 3
+			"reward": 3,
+			"boss": {
+				"enabled": true,
+				"arena_zone_id": "underworks_gallery_watch",
+				"outcome_state_key": "underworks:boss:sentinel",
+				"intro_message": "The Underworks Sentinel closes the catalogue and seals the gallery.",
+				"defeat_message": "The Sentinel releases the missing accession and the gallery breathes again.",
+				"lock_connection_ids": [
+					"west_to_bellweather"
+				],
+				"allow_era_shift": true,
+				"arena_bounds": {
+					"left": 280,
+					"right": 590,
+					"top": 112,
+					"bottom": 312
+				},
+				"defeat_effects": [
+					{
+						"type": "grant_clock_shards",
+						"amount": 5
+					},
+					{
+						"type": "grant_currency",
+						"currency_id": "archive_chits",
+						"amount": 15
+					},
+					{
+						"type": "set_state",
+						"key": "underworks:boss:archive_released",
+						"value": true
+					}
+				],
+				"phases": [
+					{
+						"id": "catalogue_measure",
+						"display_name": "Catalogue Measure",
+						"health_ratio_at_or_below": 1.0,
+						"available_eras": [
+							"verdant"
+						],
+						"on_enter_message": "The Sentinel indexes every living movement.",
+						"transition_duration": 0.55,
+						"move_speed_multiplier": 0.78,
+						"attack_cooldown_multiplier": 1.0,
+						"attack_damage_multiplier": 1.0,
+						"attack_windup": 0.58,
+						"reinforcement_placements": [],
+						"ranged_attack_override": {
+							"projectile_speed": 190,
+							"projectile_color": "d6c879"
+						},
+						"attack_pattern": [
+							{
+								"type": "aimed_shot",
+								"count": 1,
+								"damage_multiplier": 1.0
+							},
+							{
+								"type": "pause",
+								"duration": 0.5
+							},
+							{
+								"type": "fan_shot",
+								"count": 3,
+								"spread_degrees": 28,
+								"damage_multiplier": 0.85
+							},
+							{
+								"type": "pause",
+								"duration": 0.5
+							}
+						]
+					},
+					{
+						"id": "cinder_measure",
+						"display_name": "Cinder Measure",
+						"health_ratio_at_or_below": 1.0,
+						"available_eras": [
+							"ashen"
+						],
+						"on_enter_message": "The burned catalogue remembers how the gallery ended.",
+						"transition_duration": 0.55,
+						"move_speed_multiplier": 0.92,
+						"attack_cooldown_multiplier": 0.92,
+						"attack_damage_multiplier": 1.0,
+						"attack_windup": 0.55,
+						"reinforcement_placements": [],
+						"ranged_attack_override": {
+							"projectile_speed": 220,
+							"projectile_color": "e4674d"
+						},
+						"attack_pattern": [
+							{
+								"type": "fan_shot",
+								"count": 3,
+								"spread_degrees": 34,
+								"damage_multiplier": 0.9
+							},
+							{
+								"type": "pause",
+								"duration": 0.5
+							},
+							{
+								"type": "aimed_shot",
+								"count": 1,
+								"damage_multiplier": 1.1
+							},
+							{
+								"type": "pause",
+								"duration": 0.45
+							}
+						]
+					},
+					{
+						"id": "last_accession",
+						"display_name": "Last Accession",
+						"health_ratio_at_or_below": 0.55,
+						"available_eras": [],
+						"on_enter_message": "Two curator echoes step out of the missing hour.",
+						"transition_duration": 0.7,
+						"move_speed_multiplier": 1.15,
+						"attack_cooldown_multiplier": 0.82,
+						"attack_damage_multiplier": 1.15,
+						"attack_windup": 0.48,
+						"reinforcement_placements": [
+							"curator_echo_west",
+							"curator_echo_east"
+						],
+						"ranged_attack_override": {
+							"projectile_speed": 250,
+							"projectile_range": 280,
+							"projectile_color": "f08a56"
+						},
+						"attack_pattern": [
+							{
+								"type": "fan_shot",
+								"count": 5,
+								"spread_degrees": 52,
+								"damage_multiplier": 0.82
+							},
+							{
+								"type": "pause",
+								"duration": 0.55
+							},
+							{
+								"type": "radial_burst",
+								"count": 8,
+								"spread_degrees": 360,
+								"damage_multiplier": 0.72
+							},
+							{
+								"type": "pause",
+								"duration": 0.65
+							}
+						]
+					}
+				]
+			}
 		}
 	]
 }

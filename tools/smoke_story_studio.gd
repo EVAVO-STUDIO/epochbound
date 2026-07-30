@@ -52,7 +52,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"],
 			"Runtime scene must bind a story-capable runtime."
 		)
 	root.add_child(runtime)
@@ -70,7 +70,6 @@ func probe_runtime_scene() -> void:
 	check(typeof(runtime_conversations) == TYPE_DICTIONARY and (runtime_conversations as Dictionary).size() == 1, "Runtime must load one conversation definition.")
 	check(typeof(runtime_quests) == TYPE_DICTIONARY and (runtime_quests as Dictionary).size() == 2, "Runtime must load two quest definitions.")
 
-	# The first Archivist branch starts the missing-hour quest.
 	check(bool(runtime.call("start_conversation", "archivist_missing_hour")), "Archivist conversation must start.")
 	check(str(runtime.get("active_node_id")) == "greeting", "Conversation must begin at its authored start node.")
 	runtime.call("enter_story_node", "questions")
@@ -83,7 +82,6 @@ func probe_runtime_scene() -> void:
 	check(StoryModel.quest_status(progress, "the_missing_hour") == StoryModel.STATUS_ACTIVE, "Choosing the branch must start The Missing Hour.")
 	check(StoryModel.quest_stage_id(progress, "the_missing_hour") == "trace_the_name", "The Missing Hour must start at trace_the_name.")
 
-	# Morrow's already-authored persistent clue advances the first objective.
 	var state := runtime_dictionary(runtime, "session_state")
 	state["bellweather:companion:well_name_scent"] = "discovered"
 	runtime.set("session_state", state)
@@ -91,7 +89,6 @@ func probe_runtime_scene() -> void:
 	progress = runtime_dictionary(runtime, "quest_progress")
 	check(StoryModel.quest_stage_id(progress, "the_missing_hour") == "forge_the_lens", "Well evidence must advance the quest to lens crafting.")
 
-	# Owning the crafted key item advances to the return stage.
 	var inventory := runtime_dictionary(runtime, "inventory")
 	var item_definitions := runtime_dictionary(runtime, "item_definitions")
 	var add_result := InventoryModel.add_item(inventory, item_definitions, "clockglass_lens", 1)
@@ -101,7 +98,6 @@ func probe_runtime_scene() -> void:
 	progress = runtime_dictionary(runtime, "quest_progress")
 	check(StoryModel.quest_stage_id(progress, "the_missing_hour") == "return_to_archivist", "Crafting the lens must advance the return objective.")
 
-	# The gated return response removes the lens, sets a durable flag and completes the quest exactly once.
 	runtime.call("start_conversation", "archivist_missing_hour")
 	runtime.call("enter_story_node", "questions")
 	choices = runtime.call("active_choices") as Array
@@ -119,13 +115,11 @@ func probe_runtime_scene() -> void:
 	check(InventoryModel.count(inventory, "museum_tonic") == 2, "Quest completion must grant exactly one Museum Tonic.")
 	check(int(runtime.get("clock_shards")) == 3, "Quest completion must grant three clock shards.")
 
-	# Re-evaluation cannot duplicate completed quest rewards.
 	runtime.call("evaluate_story_progress")
 	inventory = runtime_dictionary(runtime, "inventory")
 	check(InventoryModel.count(inventory, "museum_tonic") == 2, "Completed quest rewards must be idempotent.")
 	check(int(runtime.get("clock_shards")) == 3, "Completed quest shard rewards must be idempotent.")
 
-	# A second quest consumes Combat Director's stable clear-state record.
 	var quiet_effects := [{"type": "start_quest", "quest_id": "quiet_the_hunt"}]
 	runtime.call("apply_story_effects", quiet_effects, false)
 	state = runtime_dictionary(runtime, "session_state")

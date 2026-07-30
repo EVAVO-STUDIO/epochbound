@@ -61,7 +61,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/companion_runtime.gd", "res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"],
 			"Runtime scene must bind a companion-capable runtime."
 		)
 	root.add_child(runtime)
@@ -73,7 +73,6 @@ func probe_runtime_scene() -> void:
 		runtime.free()
 		return
 
-	# Stay creates a stable hold position and moves back after displacement.
 	runtime.set("companion", Vector2(270, 230))
 	runtime.call("set_companion_command", "stay")
 	check(str(runtime.get("companion_command")) == "stay", "Stay command must become active.")
@@ -84,7 +83,6 @@ func probe_runtime_scene() -> void:
 	var stayed_value: Variant = runtime.get("companion")
 	check(stayed_value is Vector2 and (stayed_value as Vector2).x < 292.0, "Displaced companion must move back toward its hold position.")
 
-	# Seek selects and resolves a cue, persists it and returns to follow.
 	runtime.set("current_era_id", "verdant")
 	runtime.set("companion", Vector2(270, 230))
 	runtime.call("set_companion_command", "seek")
@@ -103,11 +101,9 @@ func probe_runtime_scene() -> void:
 	check(str(runtime.get("companion_command")) == "follow", "Companion must return to follow after discovery.")
 	check(str(runtime.get("dialogue")).contains("VALE"), "Discovery must present the authored clue message.")
 
-	# A discovered cue cannot be rewarded twice.
 	runtime.call("reveal_companion_cue", target)
 	check(int(runtime.get("clock_shards")) == shards_before + 1, "Discovered cue must not duplicate its reward.")
 
-	# Guard and recall remain explicit, deterministic commands.
 	runtime.set("dialogue", "")
 	runtime.call("set_companion_command", "guard")
 	check(str(runtime.get("companion_command")) == "guard", "Guard command must become active.")

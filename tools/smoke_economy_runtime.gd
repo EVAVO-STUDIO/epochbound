@@ -127,7 +127,7 @@ func probe_runtime_scene() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/boss_runtime.gd", "Runtime scene must bind the Boss runtime.")
 	root.add_child(runtime)
 	check(runtime.has_method("open_merchant"), "Runtime must expose merchant entry.")
 	check(runtime.has_method("activate_merchant_selection"), "Runtime must expose guarded transaction activation.")
@@ -213,7 +213,7 @@ class StoryModelCondition:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Economy runtime smoke test passed: catalogs, atomic buy/sell, capability-gated merchants, story rewards and schema-3 restoration are coherent.")
+		print("Economy runtime smoke test passed: catalogs, atomic buy/sell, capability-gated merchants, story rewards and current-schema restoration are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -1,16 +1,16 @@
 extends SceneTree
 
-const EquipmentValidator = preload("res://src/content/arsenal_validator.gd")
+const FinalValidator = preload("res://src/content/boss_validator.gd")
 
 
 func _initialize() -> void:
-	var report: Dictionary = EquipmentValidator.validate_all()
+	var report: Dictionary = FinalValidator.validate_all()
 	for warning in report.get("warnings", []):
 		print_rich("[color=yellow]WARNING[/color] %s" % warning)
 	for error in report.get("errors", []):
 		push_error(str(error))
 	print(
-		"Content validation: %d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d equipment item(s), %d equipment slot(s), %d capability definition(s), %d capability gate(s), %d currency definition(s), %d merchant(s), %d merchant binding(s), %d stock entry(s), %d ammunition type(s), %d ranged weapon(s), %d ranged enemy profile(s), %d warning(s), %d error(s)." % [
+		"Content validation: %d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d equipment item(s), %d equipment slot(s), %d capability definition(s), %d capability gate(s), %d currency definition(s), %d merchant(s), %d merchant binding(s), %d stock entry(s), %d ammunition type(s), %d ranged weapon(s), %d ranged enemy profile(s), %d boss definition(s), %d boss placement(s), %d boss phase(s), %d boss pattern step(s), %d boss reinforcement(s), %d warning(s), %d error(s)." % [
 			report.get("campaign_count", 0),
 			report.get("map_count", 0),
 			report.get("definition_count", 0),
@@ -33,6 +33,11 @@ func _initialize() -> void:
 			report.get("ammunition_count", 0),
 			report.get("ranged_weapon_count", 0),
 			report.get("ranged_enemy_count", 0),
+			report.get("boss_count", 0),
+			report.get("boss_placement_count", 0),
+			report.get("boss_phase_count", 0),
+			report.get("boss_pattern_step_count", 0),
+			report.get("boss_reinforcement_count", 0),
 			report.get("warnings", []).size(),
 			report.get("errors", []).size()
 		]

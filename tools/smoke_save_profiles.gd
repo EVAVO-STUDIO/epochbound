@@ -39,7 +39,7 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal-aware save runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/boss_runtime.gd", "Runtime scene must bind the Boss-aware save runtime.")
 	root.add_child(runtime)
 	check(runtime.has_method("capture_save_profile"), "Runtime must expose deterministic profile capture.")
 	check(runtime.has_method("load_profile_from_slot"), "Runtime must expose slot restoration.")
@@ -91,7 +91,6 @@ func run_smoke_test() -> void:
 	check(bool(write_result.get("ok", false)), "Captured profile must write atomically.")
 	check(FileAccess.file_exists(SaveProfileStore.slot_path(CAMPAIGN_ID, SLOT_ID)), "Save slot file must exist after writing.")
 
-	# Occupied manual slots require a second confirmation and empty load slots fail clearly.
 	runtime.call("refresh_save_slot_cache")
 	runtime.set("save_overlay_mode", 0)
 	var original_read: Dictionary = SaveProfileStore.read_profile(CAMPAIGN_ID, SLOT_ID)
@@ -113,7 +112,6 @@ func run_smoke_test() -> void:
 	check(not bool(empty_load), "Loading an empty slot must fail without mutating runtime state.")
 	check("EMPTY" in str(runtime.get("save_notice")), "Empty-slot load feedback must be explicit.")
 
-	# Destroy the live state before loading so restoration proves every durable field.
 	runtime.set("player", Vector2(320, 224))
 	runtime.set("companion", Vector2(280, 232))
 	runtime.set("player_health", 32)

@@ -44,7 +44,7 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/arsenal_runtime.gd", "Runtime scene must bind the Arsenal runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/boss_runtime.gd", "Runtime scene must bind the Boss runtime built on Arsenal.")
 	root.add_child(runtime)
 	check(runtime.has_method("start_reload"), "Runtime must expose explicit reload behaviour.")
 	check(runtime.has_method("update_projectiles"), "Runtime must expose deterministic projectile updates.")
@@ -77,7 +77,6 @@ func run_smoke_test() -> void:
 	check(int(loaded.get(WEAPON_ID, 0)) == 4, "Completed reload must fill the authored four-round magazine.")
 	check(InventoryModel.count(dictionary_property(runtime, "inventory"), AMMO_ID) == 4, "Completed reload must remove exactly four reserve rounds.")
 
-	# Player projectile damage is delayed until the moving projectile reaches the target.
 	check(bool(runtime.call("activate_map", "bellweather_crossing", "", "ashen", false)), "Ashen Bellweather must activate for ranged testing.")
 	runtime.set("player", Vector2(380, 216))
 	runtime.set("facing", Vector2.RIGHT)
@@ -96,7 +95,6 @@ func run_smoke_test() -> void:
 		check(int((entities[hound_index] as Dictionary).get("health", 0)) < health_before, "Projectile arrival must damage the authored enemy.")
 		check(int(dictionary_property(runtime, "loaded_ammo").get(WEAPON_ID, 0)) == 3, "Firing must consume one loaded round.")
 
-	# Switching weapons cancels a reload without consuming its reserve.
 	runtime.set("loaded_ammo", {WEAPON_ID: 0})
 	var before_cancel := InventoryModel.count(dictionary_property(runtime, "inventory"), AMMO_ID)
 	check(bool(runtime.call("start_reload")), "Reload must restart after the magazine is emptied.")
@@ -105,7 +103,6 @@ func run_smoke_test() -> void:
 	check(InventoryModel.count(dictionary_property(runtime, "inventory"), AMMO_ID) == before_cancel, "Cancelled reload must preserve every reserve round.")
 	check(bool(runtime.call("equip_specific_item", WEAPON_ID)), "Dartcaster must re-equip after cancellation.")
 
-	# Enemy ranged attacks spawn a projectile and damage only after travel.
 	var object_definitions := dictionary_property(runtime, "object_definitions")
 	var sentinel: Dictionary = object_definitions.get("underworks_sentinel", {})
 	check(ArsenalCatalog.is_ranged_enemy(sentinel), "Underworks Sentinel must resolve as a ranged enemy.")
@@ -119,7 +116,6 @@ func run_smoke_test() -> void:
 	runtime.call("update_projectiles", 0.4)
 	check(int(runtime.get("player_health")) < 30, "Enemy projectile arrival must damage the player through active defence.")
 
-	# Loaded magazines persist through schema-4 save capture and normal slot restoration.
 	inventory = dictionary_property(runtime, "inventory")
 	if InventoryModel.count(inventory, WEAPON_ID) <= 0:
 		InventoryModel.add_item(inventory, item_definitions, WEAPON_ID, 1)

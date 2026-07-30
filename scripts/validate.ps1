@@ -157,21 +157,36 @@ try {
     )
 
     Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
-    "--headless", "--path", $ProjectRoot,
-    "--script", "res://tools/smoke_boss_runtime.gd"
-)
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_boss_runtime.gd"
+    )
 
-Invoke-GodotStep "Smoke test Boss and Phase Studio editor state" @(
-    "--headless", "--path", $ProjectRoot,
-    "--script", "res://tools/smoke_boss_studio.gd"
-)
+    Invoke-GodotStep "Smoke test Boss and Phase Studio editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_boss_studio.gd"
+    )
 
-Invoke-GodotStep "Smoke test malformed boss arenas phases patterns rewards and reinforcements" @(
-    "--headless", "--path", $ProjectRoot,
-    "--script", "res://tools/smoke_boss_validation_edges.gd"
-)
+    Invoke-GodotStep "Smoke test malformed boss arenas phases patterns rewards and reinforcements" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_boss_validation_edges.gd"
+    )
 
-Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."
+    Invoke-GodotStep "Smoke test cinematic playback skip and durable completion" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_cinematic_runtime.gd"
+    )
+
+    Invoke-GodotStep "Smoke test Cinematic and Timeline Studio editor state" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_cinematic_studio.gd"
+    )
+
+    Invoke-GodotStep "Smoke test malformed cinematic maps steps targets effects and checkpoints" @(
+        "--headless", "--path", $ProjectRoot,
+        "--script", "res://tools/smoke_cinematic_validation_edges.gd"
+    )
+
+    Write-Host "`nEpochbound project and all twelve authoring systems passed complete cinematic-aware validation."
 }
 finally {
     Pop-Location

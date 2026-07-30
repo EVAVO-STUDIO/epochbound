@@ -1,4 +1,5 @@
 name: Repair Boss PR 12
+# Registered trigger commit.
 
 on:
   push:

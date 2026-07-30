@@ -179,6 +179,11 @@
 			"completion_effects": [
 				{
 					"type": "set_state",
+					"key": "underworks:cinematic:archive_released",
+					"value": true
+				},
+				{
+					"type": "set_state",
 					"key": "cinematic:underworks_sentinel_defeat",
 					"value": "completed"
 				}

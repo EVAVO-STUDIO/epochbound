@@ -114,5 +114,15 @@
 	},
 	"economy_files": [
 		"economy/core.json"
-	]
+	],
+	"cinematic_files": [
+		"cinematics/core.json"
+	],
+	"intro_cinematic_id": "storm_door_opening",
+	"boss_cinematics": {
+		"underworks_sentinel": {
+			"intro_cinematic_id": "underworks_sentinel_intro",
+			"defeat_cinematic_id": "underworks_sentinel_defeat"
+		}
+	}
 }

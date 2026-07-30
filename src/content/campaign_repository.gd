@@ -5,6 +5,7 @@ const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const CinematicCatalog = preload("res://src/content/cinematic_catalog.gd")
 const BUILTIN_ROOT := "res://campaigns"
 const USER_ROOT := "user://campaigns"
 const DEFAULT_ROOT := BUILTIN_ROOT
@@ -131,6 +132,10 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	var economy_catalog_result := save_json(economy_catalog_path, EconomyCatalog.default_catalog())
 	if not economy_catalog_result.get("ok", false):
 		return economy_catalog_result
+	var cinematic_catalog_path := campaign_directory.path_join("cinematics").path_join("core.json")
+	var cinematic_catalog_result := save_json(cinematic_catalog_path, CinematicCatalog.default_catalog())
+	if not cinematic_catalog_result.get("ok", false):
+		return cinematic_catalog_result
 	var map_id := "first_crossing"
 	var map_path := campaign_directory.path_join("maps").path_join(map_id + ".json")
 	var map_result := save_json(map_path, default_map(map_id, "First Crossing"))
@@ -148,6 +153,7 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 		"story_catalog_path": story_catalog_path,
 		"capability_catalog_path": capability_catalog_path,
 		"economy_catalog_path": economy_catalog_path,
+		"cinematic_catalog_path": cinematic_catalog_path,
 		"map_path": map_path,
 		"errors": []
 	}
@@ -225,6 +231,8 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"story_files": ["story/core.json"],
 		"capability_files": ["capabilities/core.json"],
 		"economy_files": ["economy/core.json"],
+		"cinematic_files": ["cinematics/core.json"],
+		"intro_cinematic_id": "arrival",
 		"equipment_slots": [
 			{"id": "weapon", "display_name": "Weapon"},
 			{"id": "body", "display_name": "Body"},

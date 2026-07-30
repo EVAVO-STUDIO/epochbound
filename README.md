@@ -44,7 +44,9 @@ The repository now provides:
 34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter
 35. Authored boss arenas, health-threshold phases, deterministic patterns and reinforcements
 36. Cross-era phase changes, locked exits and durable boss outcomes
-37. Pause, resume and safe transition flow
+37. Skippable cinematic timelines with camera, actor blocking, fades and dialogue
+38. Save-safe skip equivalence, campaign openings and boss introductions and conclusions
+39. Pause, resume and safe transition flow
 
 The runtime currently uses Godot drawing primitives so it remains executable before final artwork exists. These placeholders establish composition, scale, timing, camera, traversal, encounter, companion, inventory, story, save-state, loadout, capability-gating, merchant, economy, ammunition, projectile, reload, boss-phase and interaction contracts for the future pixel-art pipeline.
 
@@ -277,6 +279,21 @@ The **Boss** main-screen editor turns reusable enemy definitions into authored a
 
 The reference **Underworks Sentinel** now has Verdant and Ashen opening measures followed by the shared **Last Accession** phase at 55% health. The final phase releases two Curator Echoes, keeps the Bellweather exit locked until the complete arena is cleared, and grants its authored rewards once through the existing story, currency and durable-state contracts.
 
+## Cinematic & Timeline Studio
+
+The **Cinematic** main-screen editor authors skippable, save-safe presentation timelines using the same maps, placements, Story effects and durable state as the rest of the campaign. It can:
+
+- author camera targets, pans and constrained zoom;
+- block Eli, Morrow and placed actors along timed paths;
+- present era-aware dialogue with confirm or timed advancement;
+- author fades, waits, era transitions, checkpoints and typed effects;
+- trigger sequences from campaign openings, interactions and boss profiles;
+- guarantee that skipping applies the same durable completion outcome;
+- block save operations while transient timeline state is unresolved;
+- preview ordered steps and roll back invalid source edits.
+
+The reference campaign includes **The Door Beneath Bellweather**, **The Sentinel Seals the Gallery** and **The Missing Accession**. Watched and skipped paths publish stable completion keys, reevaluate story progression and request autosave only after normal gameplay control returns.
+
 ## Content locations
 
 Source campaigns live under `res://campaigns`. Installed player campaigns are discovered under `user://campaigns`.
@@ -298,6 +315,8 @@ Read:
 - [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;
 - [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md) for boss profiles, arenas, phase thresholds, patterns and fairness rules;
 - [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md) for the complete manual boss encounter review;
+- [`docs/CINEMATIC_TIMELINE_STUDIO.md`](docs/CINEMATIC_TIMELINE_STUDIO.md) for timeline steps, triggers, skip equivalence and save-safety rules;
+- [`docs/CINEMATIC_PLAYTEST_CHECKLIST.md`](docs/CINEMATIC_PLAYTEST_CHECKLIST.md) for the complete manual cinematic review;
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md) for the reusable object and placement contract;
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md) for the campaign and world-map contract.
 
@@ -341,7 +360,7 @@ Set-Location C:\GitRepos\epochbound
 
 The validation gate performs:
 
-1. direct loading and compilation of the runtime, critical resources and all eleven editor plugins;
+1. direct loading and compilation of the runtime, critical resources and all twelve editor plugins;
 2. headless project import with logged parser and plugin errors treated as failures;
 3. complete campaign, map, object, placement, encounter-zone, companion, item, recipe, conversation, quest, save-policy, equipment, capability, gate, currency, merchant, stock, ammunition, ranged attack and boss-profile validation;
 4. executable terrain, collision, navigation, recovery and cross-map smoke tests;
@@ -366,7 +385,10 @@ The validation gate performs:
 23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests;
 24. executable boss engagement, phase-boundary, pattern, reinforcement, arena-lock and durable-outcome tests;
 25. executable Boss & Phase Studio editor-state and rollback tests;
-26. malformed boss arena, phase, pattern, reward and reinforcement rejection tests.
+26. malformed boss arena, phase, pattern, reward and reinforcement rejection tests;
+27. executable cinematic playback, camera, dialogue, skip-equivalence and durable-completion tests;
+28. executable Cinematic & Timeline Studio editor-state and rollback tests;
+29. malformed cinematic map, era, target, effect and checkpoint rejection tests.
 
 ## Design pillars
 
@@ -390,6 +412,7 @@ The validation gate performs:
 - Merchant transactions that reuse stable item, story, capability and save-state contracts without partial mutation
 - Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage
 - Boss encounters that preserve readable timing, required phases, safe arena exits and durable one-time outcomes
+- Cinematics that remain skippable, text-readable and progression-equivalent without serialising transient presentation state
 
 ## Documentation
 
@@ -410,9 +433,11 @@ The validation gate performs:
 - [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review
 - [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md): boss arena, phase, pattern and reinforcement production rules
 - [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md): manual boss fairness, controller and durability review
+- [`docs/CINEMATIC_TIMELINE_STUDIO.md`](docs/CINEMATIC_TIMELINE_STUDIO.md): cinematic timeline, trigger and save-safety production rules
+- [`docs/CINEMATIC_PLAYTEST_CHECKLIST.md`](docs/CINEMATIC_PLAYTEST_CHECKLIST.md): manual cinematic pacing, skip and durability review
 - [`docs/OBJECT_FORMAT.md`](docs/OBJECT_FORMAT.md): object catalog, placement and persistent-state schema
 - [`docs/CAMPAIGN_FORMAT.md`](docs/CAMPAIGN_FORMAT.md): campaign and map schema and migration rules
 
 ## Next production layers
 
-The next vertical slices will build on the current contracts rather than replace them: alternate ammunition, merchant restocking and regional scarcity, cinematics, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.
+The next vertical slices will build on the current contracts rather than replace them: alternate ammunition, merchant restocking and regional scarcity, campaign packaging and import/export, localisation, cloud-save integration, and automated affordability, capability-order, quest-reachability, save-compatibility, companion-recovery, damage and softlock probes.

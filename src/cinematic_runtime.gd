@@ -129,7 +129,7 @@ func engage_boss(placement_id: String, object_id: String, definition_data: Dicti
 	if flow != Flow.GAME:
 		return
 	var boss_record := CinematicBossCatalog.boss_record(definition_data)
-	var cinematic_id := str(boss_record.get("intro_cinematic_id", "")).strip_edges()
+	var cinematic_id := boss_cinematic_id(object_id, "intro_cinematic_id", boss_record)
 	if not cinematic_id.is_empty():
 		start_cinematic(cinematic_id)
 
@@ -144,7 +144,7 @@ func finalize_boss_outcomes() -> void:
 		var definition_data := context_definition(context)
 		var outcome_key := str(context.get("outcome_state_key", CinematicBossCatalog.outcome_state_key(definition_data)))
 		var boss_record := CinematicBossCatalog.boss_record(definition_data)
-		var cinematic_id := str(boss_record.get("defeat_cinematic_id", "")).strip_edges()
+		var cinematic_id := boss_cinematic_id(str(context.get("object_id", "")), "defeat_cinematic_id", boss_record)
 		if not cinematic_id.is_empty() and session_state.get(outcome_key) != "defeated":
 			pending.append({"outcome_key": outcome_key, "cinematic_id": cinematic_id})
 	super.finalize_boss_outcomes()
@@ -154,6 +154,19 @@ func finalize_boss_outcomes() -> void:
 		if session_state.get(str(record.get("outcome_key", ""))) == "defeated":
 			start_cinematic(str(record.get("cinematic_id", "")), true)
 			break
+
+
+func boss_cinematic_id(object_id: String, field: String, boss_record: Dictionary) -> String:
+	var authored := str(boss_record.get(field, "")).strip_edges()
+	if not authored.is_empty():
+		return authored
+	var mapping_value: Variant = campaign.get("boss_cinematics", {})
+	if typeof(mapping_value) != TYPE_DICTIONARY:
+		return ""
+	var record_value: Variant = (mapping_value as Dictionary).get(object_id, {})
+	if typeof(record_value) != TYPE_DICTIONARY:
+		return ""
+	return str((record_value as Dictionary).get(field, "")).strip_edges()
 
 
 func interact() -> void:

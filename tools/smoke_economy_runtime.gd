@@ -127,7 +127,7 @@ func probe_runtime_scene() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/boss_runtime.gd", "Runtime scene must bind the Boss runtime.")
+		check(str((script_value as GDScript).resource_path) in ["res://src/boss_runtime.gd", "res://src/cinematic_runtime.gd"], "Runtime scene must bind the Boss runtime.")
 	root.add_child(runtime)
 	check(runtime.has_method("open_merchant"), "Runtime must expose merchant entry.")
 	check(runtime.has_method("activate_merchant_selection"), "Runtime must expose guarded transaction activation.")

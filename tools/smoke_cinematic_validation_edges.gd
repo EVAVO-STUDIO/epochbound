@@ -74,7 +74,7 @@ func run_validation_edges() -> void:
 	check(contains_fragment(errors, "completion_effects must be an array"), "Malformed completion effects must be rejected.")
 
 	var duplicate_catalog := CinematicCatalog.default_catalog()
-	var duplicate := (duplicate_catalog.get("cinematics", []) as Array)[0].duplicate(true)
+	var duplicate: Dictionary = ((duplicate_catalog.get("cinematics", []) as Array)[0] as Dictionary).duplicate(true)
 	(duplicate_catalog.get("cinematics", []) as Array).append(duplicate)
 	errors.clear()
 	warnings.clear()

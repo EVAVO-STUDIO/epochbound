@@ -41,11 +41,11 @@ func run_smoke_test() -> void:
 	if timeline_list_value is ItemList:
 		check((timeline_list_value as ItemList).item_count == 7, "Timeline preview must expose all opening steps.")
 
-	var valid := studio.call("parse_json_lines", '{"id":"wait","type":"wait","duration":0.5}\n{"id":"line","type":"dialogue","text":"Hello","advance_on_confirm":true}', "test timeline")
+	var valid: Variant = studio.call("parse_json_lines", '{"id":"wait","type":"wait","duration":0.5}\n{"id":"line","type":"dialogue","text":"Hello","advance_on_confirm":true}', "test timeline")
 	check(typeof(valid) == TYPE_DICTIONARY and bool((valid as Dictionary).get("ok", false)), "Editor must parse valid JSON-line steps.")
 	if typeof(valid) == TYPE_DICTIONARY:
 		check((valid as Dictionary).get("entries", []).size() == 2, "Timeline parser must retain complete step records.")
-	var malformed := studio.call("parse_json_lines", "not-json", "test timeline")
+	var malformed: Variant = studio.call("parse_json_lines", "not-json", "test timeline")
 	check(typeof(malformed) == TYPE_DICTIONARY and not bool((malformed as Dictionary).get("ok", true)), "Editor must reject malformed timeline source.")
 
 	var catalog_path := str(studio.get("active_catalog_path"))

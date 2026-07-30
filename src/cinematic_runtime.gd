@@ -54,7 +54,7 @@ func load_campaign(path: String) -> bool:
 func load_fallback_campaign() -> void:
 	clear_cinematic_state()
 	super.load_fallback_campaign()
-	cinematic_definitions = definitions_from_catalog(CinematicCatalog.default_catalog())
+	cinematic_definitions = definitions_from_cinematic_catalog(CinematicCatalog.default_catalog())
 
 
 func load_cinematic_catalogs() -> bool:
@@ -67,7 +67,7 @@ func load_cinematic_catalogs() -> bool:
 	return true
 
 
-func definitions_from_catalog(catalog: Dictionary) -> Dictionary:
+func definitions_from_cinematic_catalog(catalog: Dictionary) -> Dictionary:
 	var output: Dictionary = {}
 	for value in catalog.get("cinematics", []):
 		if typeof(value) == TYPE_DICTIONARY:

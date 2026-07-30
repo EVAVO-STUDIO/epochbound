@@ -1,5 +1,6 @@
 name: Apply Package and Release Studio
 # Registered direct-main trigger.
+# Second trigger after workflow registration.
 
 on:
   push:

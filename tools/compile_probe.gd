@@ -79,6 +79,7 @@ const TARGETS := [
 	"res://addons/epochbound_campaign_audit/campaign_audit_studio.gd",
 	"res://addons/epochbound_campaign_audit/plugin.gd",
 	"res://tools/validate_content.gd",
+	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
 	"res://tools/smoke_combat_director.gd",

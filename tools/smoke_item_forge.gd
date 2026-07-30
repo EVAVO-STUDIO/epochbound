@@ -74,7 +74,7 @@ func probe_runtime_scene() -> void:
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
 		check(
-			str((script_value as GDScript).resource_path) in ["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd"],
+			str((script_value as GDScript).resource_path) in ["res://src/inventory_runtime.gd", "res://src/story_runtime.gd", "res://src/save_runtime.gd", "res://src/equipment_runtime.gd", "res://src/merchant_runtime.gd", "res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"],
 			"Runtime scene must bind an inventory-capable runtime."
 		)
 	root.add_child(runtime)
@@ -107,7 +107,6 @@ func probe_runtime_scene() -> void:
 	runtime.call("close_inventory")
 	check(not bool(runtime.get("inventory_open")), "Inventory overlay must close.")
 
-	# Bellweather companion discovery grants brass once.
 	var bell_map: Dictionary = runtime.get("map_data")
 	var well_cue := find_cue(bell_map, "well_name_scent")
 	check(not well_cue.is_empty(), "Bellweather well cue must exist.")
@@ -118,7 +117,6 @@ func probe_runtime_scene() -> void:
 	inventory = runtime_inventory(runtime)
 	check(InventoryModel.count(inventory, "brass_filings") == 3, "Discovered cue must not duplicate item rewards.")
 
-	# Bellweather clock shard grants one clockglass fragment once.
 	var crossing_pickup := entity_index(runtime_entities(runtime), "crossing_shard")
 	check(crossing_pickup >= 0, "Bellweather clock shard must instantiate.")
 	if crossing_pickup >= 0:
@@ -129,7 +127,6 @@ func probe_runtime_scene() -> void:
 		inventory = runtime_inventory(runtime)
 		check(InventoryModel.count(inventory, "clockglass_fragment") == 1, "Collected pickup must not duplicate its item grant.")
 
-	# Clockwood discoveries supply resin and teach the lens recipe.
 	var activated: Variant = runtime.call("activate_map", "clockwood_edge", "from_bellweather", "ashen", false)
 	check(bool(activated), "Runtime must travel to Clockwood Edge.")
 	var clockwood_map: Dictionary = runtime.get("map_data")

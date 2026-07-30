@@ -1,4 +1,5 @@
 name: Run Cinematic integration
+# Registered trigger commit.
 
 on:
   push:

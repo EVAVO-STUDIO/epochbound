@@ -118,3 +118,6 @@ jobs:
           run_godot_test res://tools/smoke_campaign_packages.gd "Deterministic campaign package export and install"
           run_godot_test res://tools/smoke_package_studio.gd "Package and Release Studio editor state"
           run_godot_test res://tools/smoke_package_validation_edges.gd "Malformed archive paths scripts and hashes"
+          run_godot_test res://tools/smoke_campaign_audit.gd "Deterministic campaign production audit"
+          run_godot_test res://tools/smoke_campaign_audit_studio.gd "Campaign Audit Studio editor state and export"
+          run_godot_test res://tools/smoke_campaign_audit_edges.gd "Campaign audit blocker and warning detection"

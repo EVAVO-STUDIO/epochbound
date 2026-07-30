@@ -10,6 +10,7 @@ const BossRepository = preload("res://src/content/campaign_repository.gd")
 
 const BOSS_BANNER_DURATION := 1.8
 const BOSS_ARENA_LINE_WIDTH := 2.0
+const BOSS_ARENA_LOCK_MESSAGE := "The arena remains sealed while the guardian's pattern is active."
 
 var engaged_bosses: Dictionary = {}
 var boss_contexts: Dictionary = {}
@@ -400,11 +401,20 @@ func finalize_boss_outcomes() -> void:
 			if not messages.is_empty():
 				message += "  " + "  ".join(messages)
 			show_boss_banner(message)
+		release_boss_arena_transients()
 		engaged_bosses.erase(placement_id)
 		boss_phase_ids.erase(placement_id)
 		boss_pattern_indices.erase(placement_id)
 		boss_contexts.erase(placement_id)
 		last_durable_fingerprint = durable_progress_fingerprint()
+
+
+func release_boss_arena_transients() -> void:
+	projectiles.clear()
+	cancel_reload(false)
+	transition_lock = 0.0
+	if dialogue == BOSS_ARENA_LOCK_MESSAGE:
+		dialogue = ""
 
 
 func move_actor(actor_id: String, desired_position: Vector2) -> void:
@@ -430,7 +440,7 @@ func travel_through(connection: Dictionary) -> bool:
 	if not context.is_empty():
 		var definition_data := context_definition(context)
 		if BossCatalog.locked_connections(definition_data).has(str(connection.get("id", ""))):
-			dialogue = "The arena remains sealed while the guardian's pattern is active."
+			dialogue = BOSS_ARENA_LOCK_MESSAGE
 			return false
 	return super.travel_through(connection)
 

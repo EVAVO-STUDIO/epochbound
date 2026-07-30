@@ -1,40 +1,90 @@
 name: Validate Godot Project
 
 on:
-  push:
-    branches:
-      - main
-      - "work/**"
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact 40-character current main commit SHA
+        required: true
+        type: string
+      request_source:
+        description: Governed dispatcher identity
+        required: true
+        default: evavo-development-studio
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: epochbound-validation-${{ github.ref }}
-  cancel-in-progress: true
+  group: epochbound-validation-${{ inputs.expected_sha }}
+  cancel-in-progress: false
 
 jobs:
   validate:
-    name: Godot 4.6.2 validation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: Exact Godot 4.6.2 validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GODOT_VERSION: "4.6.2"
+      GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+      GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+      GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - name: Validate governed dispatch
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_SOURCE: ${{ inputs.request_source }}
+        run: |
+          set -euo pipefail
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid expected_sha" >&2; exit 1; }
+          [[ "${REQUEST_SOURCE}" == "evavo-development-studio" ]] || { echo "Unsupported request_source" >&2; exit 1; }
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || { echo "Validation must be dispatched from main" >&2; exit 1; }
+          [[ "${EXPECTED_SHA}" == "${GITHUB_SHA}" ]] || { echo "expected_sha must equal the dispatched main SHA" >&2; exit 1; }
 
-      - name: Download official Godot 4.6.2 editor
+      - name: Check out exact mainline candidate
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact mainline candidate and clean source
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${EXPECTED_SHA}" ]]
+          git show-ref --verify --quiet refs/remotes/origin/main
+          git merge-base --is-ancestor "${EXPECTED_SHA}" origin/main
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Validate release workflow policy
+        run: python3 tools/check_release_workflow_policy.py
+
+      - name: Download and verify official Godot 4.6.2 editor
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 3 \
-            --output godot.zip \
-            "https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip"
-          unzip -q godot.zip -d .godot-bin
-          mv .godot-bin/Godot_v4.6.2-stable_linux.x86_64 .godot-bin/godot
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt \
+            > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
           chmod +x .godot-bin/godot
-          .godot-bin/godot --version
+          version="$(.godot-bin/godot --version)"
+          [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
+          rm -rf .godot-download
 
       - name: Compile runtime scenes editors validators and tests
         shell: bash
@@ -133,3 +183,45 @@ jobs:
           run_godot_test res://tools/smoke_campaign_audit.gd "Deterministic campaign production audit"
           run_godot_test res://tools/smoke_campaign_audit_studio.gd "Campaign Audit Studio editor state and export"
           run_godot_test res://tools/smoke_campaign_audit_edges.gd "Campaign audit blocker and warning detection"
+
+      - name: Confirm validation did not modify tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]
+
+      - name: Write bounded validation receipt
+        if: success()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "schemaVersion": "1.0",
+              "repository": "EVAVO-STUDIO/epochbound",
+              "candidateSha": os.environ["EXPECTED_SHA"],
+              "godotVersion": "4.6.2",
+              "workflow": "exact-manual",
+              "campaignAudit": "passed",
+              "regressionSuite": "passed",
+              "deployment": "disabled",
+          }
+          path = Path(os.environ["RUNNER_TEMP"]) / "epochbound-validation-receipt.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload bounded validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-validation-${{ inputs.expected_sha }}
+          path: ${{ runner.temp }}/epochbound-validation-receipt.json
+          if-no-files-found: warn
+          retention-days: 14

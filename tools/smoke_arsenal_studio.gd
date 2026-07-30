@@ -60,9 +60,8 @@ func run_smoke_test() -> void:
 	if enabled_value is CheckBox:
 		check((enabled_value as CheckBox).button_pressed, "Underworks Sentinel must expose its ranged profile.")
 	if range_value is SpinBox:
-		check(float((range_value as SpinBox).value) == 240.0, "Enemy form must preserve its projectile range.")
+		check(float((range_value as SpinBox).value) == 260.0, "Enemy form must preserve the phased Sentinel's base projectile range.")
 
-	# Invalid item edits must restore both the file and in-memory catalogue.
 	var item_path := str(studio.get("active_item_path"))
 	var valid_item_read := Repository.read_json(item_path)
 	check(bool(valid_item_read.get("ok", false)), "Arsenal rollback test must read the valid item catalogue.")
@@ -87,7 +86,6 @@ func run_smoke_test() -> void:
 			restored_ammo_id = str((((record_value as Dictionary).get("equipment", {}) as Dictionary).get("ranged", {}) as Dictionary).get("ammo_item_id", ""))
 	check(restored_ammo_id == "archive_bolts", "Invalid ranged item edit must restore the prior ammunition reference.")
 
-	# Invalid enemy profiles receive the same transactional rollback.
 	var object_path := str(studio.get("active_object_path"))
 	var invalid_objects: Dictionary = (studio.get("active_object_catalog") as Dictionary).duplicate(true)
 	for index in range((invalid_objects.get("objects", []) as Array).size()):

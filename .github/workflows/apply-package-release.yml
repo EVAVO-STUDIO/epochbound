@@ -1,4 +1,5 @@
 name: Apply Package and Release Studio
+# Registered direct-main trigger.
 
 on:
   push:

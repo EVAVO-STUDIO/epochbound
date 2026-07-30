@@ -1,0 +1,189 @@
+{
+	"schema_version": 1,
+	"cinematics": [
+		{
+			"id": "storm_door_opening",
+			"display_name": "The Door Beneath Bellweather",
+			"map_id": "bellweather_crossing",
+			"available_eras": [
+				"verdant"
+			],
+			"skippable": true,
+			"letterbox": true,
+			"trigger_once": true,
+			"completion_state_key": "cinematic:storm_door_opening",
+			"steps": [
+				{
+					"id": "fade_from_black",
+					"type": "fade",
+					"direction": "in",
+					"duration": 0.65
+				},
+				{
+					"id": "frame_the_well",
+					"type": "camera",
+					"target": "world",
+					"position": {
+						"x": 326,
+						"y": 194
+					},
+					"zoom": 1.0,
+					"duration": 0.8
+				},
+				{
+					"id": "storm_memory",
+					"type": "dialogue",
+					"speaker": "ELI",
+					"text": "The storm is gone. The museum door is not. Somehow the road remembers both.",
+					"duration": 3.0,
+					"advance_on_confirm": true
+				},
+				{
+					"id": "morrow_checks_the_air",
+					"type": "move_actor",
+					"actor": "companion",
+					"position": {
+						"x": 292,
+						"y": 224
+					},
+					"duration": 0.65
+				},
+				{
+					"id": "morrow_line",
+					"type": "dialogue",
+					"speaker": "NARRATOR",
+					"text": "Morrow catches a scent older than the rain and waits for Eli to follow.",
+					"duration": 2.8,
+					"advance_on_confirm": true
+				},
+				{
+					"id": "return_to_eli",
+					"type": "camera",
+					"target": "player",
+					"zoom": 1.0,
+					"duration": 0.55
+				},
+				{
+					"id": "opening_checkpoint",
+					"type": "checkpoint",
+					"key": "cinematic:opening_positioned",
+					"value": true
+				}
+			],
+			"completion_effects": [
+				{
+					"type": "set_state",
+					"key": "cinematic:storm_door_opening",
+					"value": "completed"
+				}
+			],
+			"skip_effects": []
+		},
+		{
+			"id": "underworks_sentinel_intro",
+			"display_name": "The Sentinel Seals the Gallery",
+			"map_id": "museum_underworks",
+			"available_eras": [],
+			"skippable": true,
+			"letterbox": true,
+			"trigger_once": false,
+			"completion_state_key": "",
+			"steps": [
+				{
+					"id": "cut_to_sentinel",
+					"type": "camera",
+					"target": "placement:underworks_sentinel",
+					"zoom": 1.15,
+					"duration": 0.55
+				},
+				{
+					"id": "sentinel_closes_catalogue",
+					"type": "dialogue",
+					"speaker": "UNDERWORKS SENTINEL",
+					"text": {
+						"verdant": "UNFILED LIFE DETECTED. THE GALLERY WILL NOW CORRECT ITS RECORD.",
+						"ashen": "THE LAST ACCESSION REMAINS OPEN. YOU WILL COMPLETE IT."
+					},
+					"duration": 2.8,
+					"advance_on_confirm": true
+				},
+				{
+					"id": "frame_the_arena",
+					"type": "camera",
+					"target": "world",
+					"position": {
+						"x": 430,
+						"y": 222
+					},
+					"zoom": 1.0,
+					"duration": 0.5
+				},
+				{
+					"id": "combat_ready",
+					"type": "wait",
+					"duration": 0.3
+				}
+			],
+			"completion_effects": [],
+			"skip_effects": []
+		},
+		{
+			"id": "underworks_sentinel_defeat",
+			"display_name": "The Missing Accession",
+			"map_id": "museum_underworks",
+			"available_eras": [],
+			"skippable": true,
+			"letterbox": true,
+			"trigger_once": true,
+			"completion_state_key": "cinematic:underworks_sentinel_defeat",
+			"steps": [
+				{
+					"id": "hold_on_the_core",
+					"type": "camera",
+					"target": "placement:underworks_sentinel",
+					"zoom": 1.15,
+					"duration": 0.45
+				},
+				{
+					"id": "final_record",
+					"type": "dialogue",
+					"speaker": "UNDERWORKS SENTINEL",
+					"text": "ACCESSION COMPLETE. ELI VALE: RETURNED BEFORE ARRIVAL.",
+					"duration": 3.0,
+					"advance_on_confirm": true
+				},
+				{
+					"id": "archive_release",
+					"type": "effects",
+					"effects": [
+						{
+							"type": "set_state",
+							"key": "underworks:cinematic:archive_released",
+							"value": true
+						}
+					]
+				},
+				{
+					"id": "fade_out_of_gallery",
+					"type": "fade",
+					"direction": "out",
+					"duration": 0.55
+				},
+				{
+					"id": "fade_back_to_play",
+					"type": "fade",
+					"direction": "in",
+					"duration": 0.55
+				}
+			],
+			"completion_effects": [
+				{
+					"type": "set_state",
+					"key": "cinematic:underworks_sentinel_defeat",
+					"value": "completed"
+				}
+			],
+			"skip_effects": []
+		}
+	]
+}

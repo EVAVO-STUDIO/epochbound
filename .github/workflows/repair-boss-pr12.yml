@@ -1,5 +1,5 @@
 name: Repair Boss PR 12
-# Final arena-release patch.
+# Final arena-release patch, registered.
 
 on:
   push:

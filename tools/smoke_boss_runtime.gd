@@ -70,7 +70,6 @@ func run_smoke_test() -> void:
 	var maximum := int((dictionary_property(runtime, "object_definitions").get("underworks_sentinel", {}) as Dictionary).get("max_health", 1))
 	check(int(boss_before.get("health", 0)) == maximum, "Boss must begin at authored maximum health.")
 
-	# A large hit may reach a phase boundary but cannot skip the final authored phase.
 	runtime.call("damage_entity", boss_index, 999, "ELI")
 	entities = array_property(runtime, "runtime_entities")
 	var boss_after: Dictionary = entities[boss_index]
@@ -82,7 +81,6 @@ func run_smoke_test() -> void:
 		var reinforcement_index := entity_index(entities, reinforcement_id)
 		check(reinforcement_index >= 0 and bool((entities[reinforcement_index] as Dictionary).get("active", false)), "Activated reinforcement '%s' must become a live runtime enemy." % reinforcement_id)
 
-	# The final phase begins with a fan pattern. Damage is delayed until moving projectiles resolve.
 	runtime.set("projectiles", [])
 	var object_definitions := dictionary_property(runtime, "object_definitions")
 	var boss_definition: Dictionary = object_definitions.get("underworks_sentinel", {})
@@ -94,7 +92,6 @@ func run_smoke_test() -> void:
 	check(int(runtime.get("player_health")) == player_health_before, "Boss attack-pattern dispatch must not apply instant damage.")
 	check(array_property(runtime, "projectiles").size() == 5, "Last Accession must emit the authored five-shot fan.")
 
-	# Defeat the boss and every activated echo, then verify durable completion and rewards.
 	runtime.set("projectiles", [])
 	var currency_before := EconomyModel.balance(dictionary_property(runtime, "currency_balances"), "archive_chits")
 	var shards_before := int(runtime.get("clock_shards"))
@@ -112,6 +109,9 @@ func run_smoke_test() -> void:
 	check(EconomyModel.balance(dictionary_property(runtime, "currency_balances"), "archive_chits") == currency_before + 15, "Boss completion must grant the authored Archive Chits exactly once.")
 	check(int(runtime.get("clock_shards")) >= shards_before + 5, "Boss completion must grant its authored clock-shard reward.")
 	check((runtime.call("active_arena_context") as Dictionary).is_empty(), "Clearing the arena must release every boss lock.")
+	check(array_property(runtime, "projectiles").is_empty(), "Boss completion must clear unresolved arena projectiles.")
+	check(float(runtime.get("transition_lock")) == 0.0, "Boss completion must clear the phase transition lock.")
+	check(str(runtime.get("dialogue")).is_empty(), "Boss completion must clear stale arena-lock dialogue.")
 	check(bool(runtime.call("can_open_save_overlay")), "Saving must become available after durable arena completion.")
 
 	cleanup(runtime)

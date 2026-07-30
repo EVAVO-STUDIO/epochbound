@@ -56,14 +56,17 @@ try {
         @("Smoke test malformed cinematic maps steps targets effects and checkpoints", "res://tools/smoke_cinematic_validation_edges.gd"),
         @("Smoke test deterministic campaign packaging and installation", "res://tools/smoke_campaign_packages.gd"),
         @("Smoke test Package and Release Studio editor state", "res://tools/smoke_package_studio.gd"),
-        @("Smoke test malformed archive paths scripts and hashes", "res://tools/smoke_package_validation_edges.gd")
+        @("Smoke test malformed archive paths scripts and hashes", "res://tools/smoke_package_validation_edges.gd"),
+        @("Smoke test deterministic campaign production audit", "res://tools/smoke_campaign_audit.gd"),
+        @("Smoke test Campaign Audit Studio editor state and export", "res://tools/smoke_campaign_audit_studio.gd"),
+        @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd")
     )
 
     Invoke-GodotStep "Import project" @("--headless", "--path", $ProjectRoot, "--import")
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all thirteen authoring systems passed complete package-aware validation."
+    Write-Host "`nEpochbound project and all fourteen authoring systems passed complete audit-aware validation."
 }
 finally {
     Pop-Location

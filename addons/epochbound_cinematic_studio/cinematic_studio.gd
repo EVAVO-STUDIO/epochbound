@@ -427,11 +427,12 @@ func parse_json_lines(source: String, label: String) -> Dictionary:
 		var line := raw_line.strip_edges()
 		if line.is_empty():
 			continue
-		var parsed: Variant = JSON.parse_string(line)
-		if typeof(parsed) != TYPE_DICTIONARY:
-			errors.append("%s line %d must be one JSON object." % [label, line_number])
+		var parser := JSON.new()
+		var parse_error := parser.parse(line)
+		if parse_error != OK or typeof(parser.data) != TYPE_DICTIONARY:
+			errors.append("%s line %d must be one valid JSON object." % [label, line_number])
 		else:
-			entries.append(parsed)
+			entries.append(parser.data)
 	return {"ok": errors.is_empty(), "entries": entries, "errors": errors}
 
 

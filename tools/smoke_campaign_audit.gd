@@ -21,7 +21,7 @@ func run_test() -> void:
 	check(int(metrics.get("quest_count", 0)) == 2, "Reference audit must inspect both authored quests.")
 	check(int(metrics.get("restorative_source_count", 0)) >= 1, "Reference campaign must expose a restorative source.")
 	check(JSON.stringify(first) == JSON.stringify(second), "Repeated audits must produce deterministic JSON output.")
-	check(findings_are_sorted(first.get("findings", [])), "Audit findings must remain sorted by severity and stable code.")
+	check(findings_are_sorted(first.get("findings", [])), "Audit findings must remain sorted by severity rank and stable code.")
 	finish()
 
 
@@ -33,12 +33,7 @@ func findings_are_sorted(value: Variant) -> bool:
 		if typeof(finding_value) != TYPE_DICTIONARY:
 			return false
 		var finding: Dictionary = finding_value
-		var key := "%s|%s|%s|%s" % [
-			str(finding.get("severity", "")),
-			str(finding.get("code", "")),
-			str(finding.get("context", "")),
-			str(finding.get("message", ""))
-		]
+		var key: String = CampaignAudit.finding_key(finding)
 		if not previous.is_empty() and previous.naturalnocasecmp_to(key) > 0:
 			return false
 		previous = key

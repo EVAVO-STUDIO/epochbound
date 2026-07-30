@@ -17,7 +17,7 @@ concurrency:
 jobs:
   integrate-cinematic:
     name: Integrate cinematic branch source
-    if: github.event_name == 'push' && github.ref == 'refs/heads/work/cinematic-timeline-foundation-20260730'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/work/cinematic-timeline-foundation-20260730') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'work/cinematic-timeline-foundation-20260730')
     runs-on: ubuntu-latest
     steps:
       - name: Check out cinematic branch

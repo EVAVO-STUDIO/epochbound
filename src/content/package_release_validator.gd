@@ -19,8 +19,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	for value in Repository.scan_campaigns(root):
 		if typeof(value) != TYPE_DICTIONARY:
 			continue
-		var entry: Dictionary = value
-		var report := validate_release_only(str(entry.get("path", "")))
+		var report := validate_release_only(str((value as Dictionary).get("path", "")))
 		append_messages(errors, report.get("errors", []))
 		append_messages(warnings, report.get("warnings", []))
 		release_count += int(report.get("release_count", 0))
@@ -67,10 +66,12 @@ static func validate_release_only(campaign_path: String) -> Dictionary:
 	var campaign: Dictionary = result.get("data", {})
 	var campaign_id := str(campaign.get("id", campaign_path))
 	var release_value: Variant = campaign.get("release", {})
-	if typeof(release_value) != TYPE_DICTIONARY:
-		errors.append("%s: release must be an object." % campaign_id)
-		return {"ok": false, "errors": errors, "warnings": warnings, "release_count": 0}
-	var release: Dictionary = release_value
+	var release: Dictionary
+	if typeof(release_value) != TYPE_DICTIONARY or (release_value as Dictionary).is_empty():
+		release = CampaignPackage.default_release(campaign_id)
+		warnings.append("%s: release metadata is not authored yet; Package Studio will use development defaults until it is saved." % campaign_id)
+	else:
+		release = release_value as Dictionary
 	validate_semver(str(release.get("version", "")), "%s/release/version" % campaign_id, errors)
 	validate_semver(str(release.get("minimum_runtime", "")), "%s/release/minimum_runtime" % campaign_id, errors)
 	var channel := str(release.get("channel", ""))
@@ -95,7 +96,6 @@ static func validate_semver(value: String, prefix: String, errors: Array[String]
 
 
 static func append_messages(target: Array[String], value: Variant) -> void:
-	if typeof(value) != TYPE_ARRAY:
-		return
-	for message in value:
-		target.append(str(message))
+	if typeof(value) == TYPE_ARRAY:
+		for message in value:
+			target.append(str(message))

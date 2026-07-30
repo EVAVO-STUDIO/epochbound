@@ -15,17 +15,17 @@ func run_test() -> void:
 	DirAccess.make_dir_recursive_absolute(ROOT)
 	check(not CampaignPackage.safe_archive_path("campaign/../escape.json"), "Path traversal entries must be rejected.")
 
-	var script_path := ROOT + "/script.zip"
-	var script_data := "extends Node".to_utf8_buffer()
+	var script_path: String = ROOT + "/script.zip"
+	var script_data: PackedByteArray = "extends Node".to_utf8_buffer()
 	write_zip(script_path, {
 		CampaignPackage.MANIFEST_PATH: manifest_bytes([file_record("logic.gd", script_data)]),
 		"campaign/logic.gd": script_data
 	})
 	check(not bool(CampaignPackage.inspect_package(script_path).get("ok", false)), "Executable script content must be rejected.")
 
-	var mismatch_path := ROOT + "/mismatch.zip"
-	var campaign_data := "{\"schema_version\":1,\"id\":\"edge_test\"}".to_utf8_buffer()
-	var mismatch_record := file_record("campaign.json", campaign_data)
+	var mismatch_path: String = ROOT + "/mismatch.zip"
+	var campaign_data: PackedByteArray = "{\"schema_version\":1,\"id\":\"edge_test\"}".to_utf8_buffer()
+	var mismatch_record: Dictionary = file_record("campaign.json", campaign_data)
 	mismatch_record["sha256"] = "00"
 	write_zip(mismatch_path, {
 		CampaignPackage.MANIFEST_PATH: manifest_bytes([mismatch_record]),
@@ -61,8 +61,10 @@ func write_zip(path: String, entries: Dictionary) -> void:
 		names.append(str(key))
 	names.sort()
 	for name in names:
+		var data_value: Variant = entries.get(name, PackedByteArray())
+		var data: PackedByteArray = data_value as PackedByteArray if data_value is PackedByteArray else PackedByteArray()
 		check(writer.start_file(name, 420, CampaignPackage.FIXED_ZIP_TIME) == OK, "Fixture entry must start.")
-		check(writer.write_file(entries[name]) == OK, "Fixture entry must write.")
+		check(writer.write_file(data) == OK, "Fixture entry must write.")
 		check(writer.close_file() == OK, "Fixture entry must close.")
 	check(writer.close() == OK, "Fixture package must close.")
 

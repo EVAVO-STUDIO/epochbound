@@ -46,10 +46,8 @@ jobs:
 
           for branch in "${branches[@]}"; do
             if [ "$branch" = "noop-verification-should-not-persist" ]; then
-              branch_sha="$(git rev-parse "origin/$branch")"
-              main_sha="$(git rev-parse origin/main)"
-              if [ "$branch_sha" != "$main_sha" ]; then
-                echo "Refusing cleanup: $branch is not identical to main."
+              if ! git merge-base --is-ancestor "origin/$branch" origin/main; then
+                echo "Refusing cleanup: $branch contains work not present in main."
                 exit 1
               fi
               echo "Audited temporary verification branch: $branch"

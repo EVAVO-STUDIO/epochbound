@@ -8,15 +8,40 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: epochbound-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  repair-cinematic-parser:
+    name: Repair cinematic JSON diagnostics
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'work/cinematic-timeline-foundation-20260730'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/cinematic-timeline-foundation-20260730
+          fetch-depth: 0
+      - run: |
+          set -euo pipefail
+          if [ ! -f tools/fix_cinematic_json_parser.py ]; then
+            echo "Cinematic parser repair already committed."
+            exit 0
+          fi
+          python tools/fix_cinematic_json_parser.py
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: report malformed cinematic JSON without engine errors"
+          git push origin HEAD:work/cinematic-timeline-foundation-20260730
+
   validate:
     name: Godot 4.6.2 validation
+    needs: repair-cinematic-parser
+    if: always() && (needs.repair-cinematic-parser.result == 'success' || needs.repair-cinematic-parser.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

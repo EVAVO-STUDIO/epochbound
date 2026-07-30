@@ -18,6 +18,9 @@ const FIXED_ZIP_TIME := 315532800
 const ALLOWED_EXTENSIONS := PackedStringArray([
 	"json", "png", "jpg", "jpeg", "webp", "ogg", "wav", "mp3", "txt", "md"
 ])
+const RELEASE_FIELDS := PackedStringArray([
+	"version", "channel", "package_name", "minimum_runtime", "license"
+])
 
 
 static func default_release(campaign_id: String) -> Dictionary:
@@ -134,15 +137,21 @@ static func inspect_package(package_path: String) -> Dictionary:
 	if not errors.is_empty():
 		reader.close()
 		return {"ok": false, "errors": errors}
-	var manifest_result := parse_json_bytes(reader.read_file(MANIFEST_PATH), MANIFEST_PATH)
+	var manifest_bytes: PackedByteArray = reader.read_file(MANIFEST_PATH)
+	if manifest_bytes.size() > MAX_FILE_BYTES:
+		reader.close()
+		return fail("Package manifest exceeds the configured size limit.")
+	var manifest_result := parse_json_bytes(manifest_bytes, MANIFEST_PATH)
 	if not bool(manifest_result.get("ok", false)):
 		reader.close()
 		return manifest_result
 	var manifest: Dictionary = manifest_result.get("data", {})
 	validate_manifest_header(manifest, errors)
 	var records_value: Variant = manifest.get("files", [])
-	var records: Array = records_value as Array if typeof(records_value) == TYPE_ARRAY else []
-	if typeof(records_value) != TYPE_ARRAY:
+	var records: Array = []
+	if typeof(records_value) == TYPE_ARRAY:
+		records = records_value as Array
+	else:
 		errors.append("Package manifest files must be an array.")
 	if records.size() > MAX_FILES:
 		errors.append("Manifest declares too many files.")
@@ -190,7 +199,8 @@ static func inspect_package(package_path: String) -> Dictionary:
 			campaign = campaign_result.get("data", {})
 			if str(campaign.get("id", "")) != str(manifest.get("campaign_id", "")):
 				errors.append("Campaign ID does not match package manifest.")
-			if JSON.stringify(release_record(campaign)) != JSON.stringify(manifest.get("release", {})):
+			var manifest_release_value: Variant = manifest.get("release", {})
+			if typeof(manifest_release_value) != TYPE_DICTIONARY or not release_records_match(release_record(campaign), manifest_release_value as Dictionary):
 				errors.append("Campaign release metadata does not match package manifest.")
 		else:
 			append_messages(errors, campaign_result.get("errors", []))
@@ -352,7 +362,7 @@ static func validate_manifest_header(manifest: Dictionary, errors: Array[String]
 	if typeof(release_value) != TYPE_DICTIONARY:
 		errors.append("Manifest release must be an object.")
 		return
-	var release: Dictionary = release_value
+	var release: Dictionary = release_value as Dictionary
 	if not semantic_version_valid(str(release.get("version", ""))) or not semantic_version_valid(str(release.get("minimum_runtime", ""))):
 		errors.append("Manifest release versions are invalid.")
 	if not ["development", "alpha", "beta", "release"].has(str(release.get("channel", ""))):
@@ -362,6 +372,13 @@ static func validate_manifest_header(manifest: Dictionary, errors: Array[String]
 		errors.append("Manifest package_name must be a normalised identifier.")
 	if str(release.get("license", "")).strip_edges().is_empty():
 		errors.append("Manifest licence is required.")
+
+
+static func release_records_match(left: Dictionary, right: Dictionary) -> bool:
+	for field in RELEASE_FIELDS:
+		if str(left.get(field, "")) != str(right.get(field, "")):
+			return false
+	return true
 
 
 static func safe_archive_path(path: String) -> bool:

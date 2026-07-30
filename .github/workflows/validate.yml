@@ -8,58 +8,13 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: epochbound-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply-package-release:
-    name: Apply Package Studio directly to main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Apply reviewed implementation and restore read-only CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import base64
-          import zlib
-          from pathlib import Path
-
-          chunk_root = Path('.github/package-release')
-          chunks = sorted(chunk_root.glob('part-*'))
-          if not chunks:
-              raise SystemExit('Package Studio staging chunks are missing.')
-          payload = ''.join(path.read_text(encoding='utf-8').strip() for path in chunks)
-          source = zlib.decompress(base64.b64decode(payload)).decode('utf-8')
-          exec(compile(source, 'apply_package_release.py', 'exec'))
-
-          workflow = Path('.github/workflows/validate.yml')
-          text = workflow.read_text(encoding='utf-8')
-          start = text.index('  apply-package-release:\n')
-          end = text.index('\n  validate:\n', start)
-          text = text[:start] + text[end:]
-          text = text.replace('permissions:\n  contents: write', 'permissions:\n  contents: read', 1)
-          workflow.write_text(text, encoding='utf-8', newline='\n')
-          PY
-          rm -rf .github/package-release
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: build Package and Release Studio"
-          git push origin HEAD:main
-
   validate:
     name: Godot 4.6.2 validation
     runs-on: ubuntu-latest
@@ -87,18 +42,11 @@ jobs:
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 60s .godot-bin/godot \
-            --headless \
-            --path "$GITHUB_WORKSPACE" \
-            --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
+          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
       - name: Import project and reject hidden parser errors
         shell: bash
@@ -106,19 +54,11 @@ jobs:
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 90s .godot-bin/godot \
-            --headless \
-            --path "$GITHUB_WORKSPACE" \
-            --import 2>&1 | tee "$log_file"
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --import 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            echo "Godot import emitted parser or resource errors."
-            exit 1
-          fi
+          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
       - name: Validate complete campaign content
         shell: bash
@@ -126,48 +66,27 @@ jobs:
           set -euo pipefail
           log_file="$(mktemp)"
           set +e
-          timeout 60s .godot-bin/godot \
-            --headless \
-            --path "$GITHUB_WORKSPACE" \
-            --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
           godot_status=${PIPESTATUS[0]}
           set -e
-          if [ "$godot_status" -ne 0 ]; then
-            exit "$godot_status"
-          fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-            exit 1
-          fi
+          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
       - name: Run complete executable regression suite
         shell: bash
         run: |
           set -euo pipefail
-
           run_godot_test() {
-            local script_path="$1"
-            local label="$2"
-            local log_file
+            local script_path="$1" label="$2" log_file
             log_file="$(mktemp)"
-            echo ""
-            echo "==> ${label}"
+            echo ""; echo "==> ${label}"
             set +e
-            timeout 60s .godot-bin/godot \
-              --headless \
-              --path "$GITHUB_WORKSPACE" \
-              --script "$script_path" 2>&1 | tee "$log_file"
+            timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script "$script_path" 2>&1 | tee "$log_file"
             local godot_status=${PIPESTATUS[0]}
             set -e
-            if [ "$godot_status" -ne 0 ]; then
-              echo "${label} failed with exit code ${godot_status}."
-              exit "$godot_status"
-            fi
-            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then
-              echo "${label} emitted a Godot parser or runtime error."
-              exit 1
-            fi
+            if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
           }
-
           run_godot_test res://tools/smoke_world_model.gd "World model and traversal"
           run_godot_test res://tools/smoke_encounters.gd "Encounter catalogs placements and combat"
           run_godot_test res://tools/smoke_combat_director.gd "Combat Director zones and behaviour"
@@ -196,3 +115,6 @@ jobs:
           run_godot_test res://tools/smoke_cinematic_runtime.gd "Cinematic playback skip and durable completion"
           run_godot_test res://tools/smoke_cinematic_studio.gd "Cinematic and Timeline Studio editor state"
           run_godot_test res://tools/smoke_cinematic_validation_edges.gd "Malformed cinematic maps steps targets effects and checkpoints"
+          run_godot_test res://tools/smoke_campaign_packages.gd "Deterministic campaign package export and install"
+          run_godot_test res://tools/smoke_package_studio.gd "Package and Release Studio editor state"
+          run_godot_test res://tools/smoke_package_validation_edges.gd "Malformed archive paths scripts and hashes"

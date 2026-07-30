@@ -1,0 +1,27 @@
+name: Run Cinematic integration
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/run-cinematic-integration.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/cinematic-timeline-foundation-20260730
+          fetch-depth: 0
+      - run: python tools/apply_cinematic_integration.py
+      - run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: integrate Cinematic and Timeline Studio"
+          git push origin HEAD:work/cinematic-timeline-foundation-20260730

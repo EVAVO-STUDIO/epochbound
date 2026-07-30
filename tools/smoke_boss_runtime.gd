@@ -46,6 +46,8 @@ func run_smoke_test() -> void:
 	check(runtime.has_method("finalize_boss_outcomes"), "Runtime must expose durable boss completion.")
 
 	check(bool(runtime.call("activate_map", "museum_underworks", "from_bellweather", "verdant", false)), "Museum Underworks must activate for boss testing.")
+	# Flow.GAME is enum value 4 in the shared runtime contract.
+	runtime.call("change_flow", 4)
 	runtime.set("player", Vector2(320, 224))
 	runtime.set("companion", Vector2(294, 238))
 	runtime.call("update_boss_engagements")

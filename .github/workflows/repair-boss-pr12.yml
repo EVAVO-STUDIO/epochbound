@@ -1,0 +1,177 @@
+name: Repair Boss PR 12
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repair-boss-pr12.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Boss branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/boss-phase-foundation-20260730
+          fetch-depth: 0
+
+      - name: Apply source-controlled Boss regression wiring
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str, label: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              if new in text:
+                  return
+              if text.count(old) != 1:
+                  raise SystemExit(f"{label}: expected one occurrence, found {text.count(old)}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+          workflow = Path(".github/workflows/validate.yml")
+          workflow_text = workflow.read_text(encoding="utf-8")
+          arsenal_line = '          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"\n'
+          boss_lines = (
+              '          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"\n'
+              '          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"\n'
+              '          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"\n'
+          )
+          if boss_lines not in workflow_text:
+              if workflow_text.count(arsenal_line) != 1:
+                  raise SystemExit("Permanent validation workflow Arsenal marker missing")
+              workflow.write_text(
+                  workflow_text.replace(arsenal_line, arsenal_line + boss_lines, 1),
+                  encoding="utf-8",
+                  newline="\n",
+              )
+
+          ps = Path("scripts/validate.ps1")
+          ps_text = ps.read_text(encoding="utf-8")
+          old_completion = '    Write-Host "`nEpochbound project and all ten authoring systems passed complete Arsenal-aware validation."\n'
+          new_completion = '''    Invoke-GodotStep "Smoke test Boss phases patterns reinforcements and outcomes" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_runtime.gd"
+          )
+
+          Invoke-GodotStep "Smoke test Boss and Phase Studio editor state" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_studio.gd"
+          )
+
+          Invoke-GodotStep "Smoke test malformed boss arenas phases patterns rewards and reinforcements" @(
+              "--headless", "--path", $ProjectRoot,
+              "--script", "res://tools/smoke_boss_validation_edges.gd"
+          )
+
+          Write-Host "`nEpochbound project and all eleven authoring systems passed complete boss-aware validation."
+          '''
+          if "res://tools/smoke_boss_runtime.gd" not in ps_text:
+              if ps_text.count(old_completion) != 1:
+                  raise SystemExit("PowerShell completion marker missing")
+              ps.write_text(ps_text.replace(old_completion, new_completion, 1), encoding="utf-8", newline="\n")
+
+          for path in sorted(Path("tools").glob("smoke_*.gd")):
+              if path.name.startswith("smoke_boss_"):
+                  continue
+              text = path.read_text(encoding="utf-8")
+              text = text.replace(
+                  '"res://src/arsenal_runtime.gd"]',
+                  '"res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"]',
+              )
+              text = text.replace(
+                  '== "res://src/arsenal_runtime.gd"',
+                  'in ["res://src/arsenal_runtime.gd", "res://src/boss_runtime.gd"]',
+              )
+              if path.name == "smoke_encounters.gd":
+                  text = text.replace(
+                      '== 12, "Reference campaign must expose twelve object placements."',
+                      '== 14, "Reference campaign must expose fourteen object placements."',
+                  )
+              if path.name == "smoke_combat_director.gd":
+                  text = text.replace(
+                      '== 12, "Reference campaign must retain twelve placements."',
+                      '== 14, "Reference campaign must retain fourteen placements."',
+                  )
+              path.write_text(text, encoding="utf-8", newline="\n")
+
+          readme = Path("README.md")
+          readme_text = readme.read_text(encoding="utf-8")
+          if "## Boss & Phase Studio" not in readme_text:
+              readme_text = readme_text.replace(
+                  "34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter\n35. Pause, resume and safe transition flow",
+                  "34. Schema-4 loaded-magazine persistence and a ranged Underworks encounter\n35. Authored boss arenas, health-threshold phases, deterministic patterns and reinforcements\n36. Cross-era phase changes, locked exits and durable boss outcomes\n37. Pause, resume and safe transition flow",
+                  1,
+              )
+              boss_section = '''## Boss & Phase Studio
+
+          The **Boss** main-screen editor turns reusable enemy definitions into authored arena encounters while preserving Combat Director movement and windups, Arsenal projectile travel, Story Studio effects and durable world-state outcomes. It can:
+
+          - bind a boss to an authored encounter zone and arena bounds;
+          - lock selected map connections while the encounter remains unresolved;
+          - author era-specific and shared health-threshold phases;
+          - sequence aimed, fan, radial, strike and pause pattern steps;
+          - tune phase movement, damage, cooldown, windup and projectile overrides;
+          - activate dormant reinforcement placements at exact phases;
+          - define one-time defeat effects and stable outcome keys;
+          - clamp oversized damage at required phase boundaries;
+          - reject unsafe arenas, broken references and unfair pattern records;
+          - roll back invalid editor writes.
+
+          The reference **Underworks Sentinel** now has Verdant and Ashen opening measures followed by the shared **Last Accession** phase at 55% health. The final phase releases two Curator Echoes, keeps the Bellweather exit locked until the complete arena is cleared, and grants its authored rewards once through the existing story, currency and durable-state contracts.
+
+          '''
+              readme_text = readme_text.replace("## Content locations\n", boss_section + "## Content locations\n", 1)
+              readme_text = readme_text.replace(
+                  "- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;",
+                  "- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md) for the complete manual Arsenal review;\n- [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md) for boss profiles, arenas, phase thresholds, patterns and fairness rules;\n- [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md) for the complete manual boss encounter review;",
+                  1,
+              )
+              readme_text = readme_text.replace(
+                  "1. direct loading and compilation of the runtime, critical resources and all ten editor plugins;",
+                  "1. direct loading and compilation of the runtime, critical resources and all eleven editor plugins;",
+                  1,
+              )
+              readme_text = readme_text.replace(
+                  "23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests.",
+                  "23. malformed ammunition, ranged weapon, enemy projectile and saved-magazine rejection tests;\n24. executable boss engagement, phase-boundary, pattern, reinforcement, arena-lock and durable-outcome tests;\n25. executable Boss & Phase Studio editor-state and rollback tests;\n26. malformed boss arena, phase, pattern, reward and reinforcement rejection tests.",
+                  1,
+              )
+              readme_text = readme_text.replace(
+                  "- Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage",
+                  "- Ranged combat that uses visible travel, explicit reloads and inventory-backed ammunition instead of unexplained hitscan damage\n- Boss encounters that preserve readable timing, required phases, safe arena exits and durable one-time outcomes",
+                  1,
+              )
+              readme_text = readme_text.replace(
+                  "- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review",
+                  "- [`docs/ARSENAL_PLAYTEST_CHECKLIST.md`](docs/ARSENAL_PLAYTEST_CHECKLIST.md): manual ranged-combat, reload, controller and durability review\n- [`docs/BOSS_PHASE_STUDIO.md`](docs/BOSS_PHASE_STUDIO.md): boss arena, phase, pattern and reinforcement production rules\n- [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md): manual boss fairness, controller and durability review",
+                  1,
+              )
+              readme_text = readme_text.replace(
+                  "alternate ammunition, merchant restocking and regional scarcity, bosses, cinematics",
+                  "alternate ammunition, merchant restocking and regional scarcity, cinematics",
+                  1,
+              )
+              readme.write_text(readme_text, encoding="utf-8", newline="\n")
+
+          helper = Path(".github/workflows/apply-boss-test-wiring.yml")
+          if helper.exists():
+              helper.unlink()
+
+      - name: Commit repaired Boss branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Boss branch already repaired."
+            exit 0
+          fi
+          git commit -m "fix: align Boss Studio regressions and documentation"
+          git push origin HEAD:work/boss-phase-foundation-20260730

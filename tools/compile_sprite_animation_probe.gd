@@ -14,6 +14,7 @@ const TARGETS := [
 	"res://tools/smoke_sprite_animation_studio.gd",
 	"res://tools/smoke_sprite_animation_validation_edges.gd",
 	"res://tools/smoke_sprite_campaign_scaffold.gd",
+	"res://tools/smoke_sprite_package_validation.gd",
 	"res://src/app.tscn"
 ]
 
@@ -31,7 +32,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Sprite animation compile probe passed: catalogues, validators, runtime, editor, scaffolding and tests load cleanly.")
+		print("Sprite animation compile probe passed: catalogues, validators, runtime, editor, scaffolding, package safety and tests load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

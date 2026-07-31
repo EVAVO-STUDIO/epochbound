@@ -1,7 +1,13 @@
 extends SceneTree
 
+const Repository = preload("res://src/content/campaign_repository.gd")
+const CampaignPackage = preload("res://src/content/campaign_package.gd")
 const AudioMoodCatalog = preload("res://src/content/audio_mood_catalog.gd")
-const AudioMoodValidator = preload("res://src/content/audio_mood_validator.gd")
+const AudioMoodValidator = preload("res://src/content/audio_mood_strict_validator.gd")
+
+const TEMP_ROOT := "user://audio_mood_validation_edges"
+const TEMP_CAMPAIGN := TEMP_ROOT + "/campaign.json"
+const TEMP_AUDIO := TEMP_ROOT + "/audio/core.json"
 
 var failures: Array[String] = []
 
@@ -13,23 +19,26 @@ func _initialize() -> void:
 func run_test() -> void:
 	var invalid: Dictionary = AudioMoodCatalog.default_profile()
 	invalid["id"] = "Bad Profile"
-	var music: Dictionary = invalid.get("music", {})
+	var music: Dictionary = (invalid.get("music", {}) as Dictionary).duplicate(true)
 	music["tempo_bpm"] = 320.0
+	music["root_midi"] = 45.5
 	music["waveform"] = "sampled_copy"
-	music["scale"] = [0]
+	music["scale"] = [0, 2.5, 3]
 	music["melody_steps"] = []
 	invalid["music"] = music
-	var ambience: Dictionary = invalid.get("ambience", {})
+	var ambience: Dictionary = (invalid.get("ambience", {}) as Dictionary).duplicate(true)
 	ambience["kind"] = "copyrighted_sample"
 	ambience["gain"] = 2.0
 	invalid["ambience"] = ambience
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 	AudioMoodValidator.validate_profile_record(invalid, "edge", errors, warnings)
-	check(errors.size() >= 6, "Malformed audio profile must produce independent validation errors.")
+	check(errors.size() >= 8, "Malformed audio profile must produce independent validation errors.")
 	check(contains_text(errors, "tempo_bpm"), "Out-of-range tempo must be rejected.")
 	check(contains_text(errors, "waveform"), "Unsupported waveform must be rejected.")
 	check(contains_text(errors, "ambience"), "Unsupported ambience kind and gain must be rejected.")
+	check(contains_text(errors, "root_midi must be an integer"), "Fractional root notes must be rejected instead of truncated.")
+	check(contains_text(errors, "scale[1] must be an integer"), "Fractional scale entries must be rejected instead of truncated.")
 	var definitions: Dictionary = {
 		"fallback": AudioMoodCatalog.default_profile(),
 		"target": {
@@ -46,12 +55,38 @@ func run_test() -> void:
 	]
 	var resolved: Dictionary = AudioMoodCatalog.resolved_profile(definitions, bindings, "clockwood_edge", "ashen")
 	check(str(resolved.get("id", "")) == "target", "Specific audio bindings must outrank wildcard bindings.")
+	test_unknown_title_profile()
+	CampaignPackage.remove_tree(TEMP_ROOT)
 	finish()
+
+
+func test_unknown_title_profile() -> void:
+	CampaignPackage.remove_tree(TEMP_ROOT)
+	var catalog: Dictionary = AudioMoodCatalog.default_catalog()
+	catalog["title_profile_id"] = "missing_title_profile"
+	check(bool(Repository.save_json(TEMP_AUDIO, catalog).get("ok", false)), "Temporary Audio catalogue must save.")
+	check(bool(Repository.save_json(TEMP_CAMPAIGN, {
+		"schema_version": 1,
+		"id": "audio_edge",
+		"audio_files": ["audio/core.json"]
+	}).get("ok", false)), "Temporary campaign manifest must save.")
+	var report: Dictionary = AudioMoodValidator.validate_audio_integrity_only(TEMP_CAMPAIGN)
+	check(not bool(report.get("ok", false)), "Unknown authored title profile must fail strict Audio validation.")
+	check(contains_text_variant(report.get("errors", []), "title_profile_id references unknown"), "Unknown title-profile rejection must be explicit.")
 
 
 func contains_text(messages: Array[String], fragment: String) -> bool:
 	for message in messages:
 		if message.contains(fragment):
+			return true
+	return false
+
+
+func contains_text_variant(value: Variant, fragment: String) -> bool:
+	if typeof(value) != TYPE_ARRAY:
+		return false
+	for message in value as Array:
+		if str(message).contains(fragment):
 			return true
 	return false
 
@@ -63,7 +98,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood validation edge smoke test passed: malformed synthesis, ambience and binding records are rejected.")
+		print("Audio and Mood validation edge smoke test passed: malformed synthesis, fractional patterns, title profiles and bindings are rejected.")
 		quit(0)
 		return
 	for failure in failures:

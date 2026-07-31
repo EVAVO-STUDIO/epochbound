@@ -24,6 +24,9 @@
 	"recipe_files": ["recipes/core.json"],
 	"story_files": ["story/core.json"],
 	"capability_files": ["capabilities/core.json"],
+	"economy_files": ["economy/core.json"],
+	"cinematic_files": ["cinematics/core.json"],
+	"presentation_files": ["presentation/core.json"],
 	"equipment_slots": [
 		{"id": "weapon", "display_name": "Weapon"},
 		{"id": "body", "display_name": "Body"},
@@ -75,8 +78,6 @@
 		"companion_enabled": true,
 		"era_shifting_enabled": true
 	},
-	"economy_files": ["economy/core.json"],
-	"cinematic_files": ["cinematics/core.json"],
 	"intro_cinematic_id": "storm_door_opening",
 	"boss_cinematics": {
 		"underworks_sentinel": {

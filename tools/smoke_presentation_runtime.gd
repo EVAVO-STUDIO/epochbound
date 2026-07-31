@@ -43,6 +43,12 @@ func run_test() -> void:
 		finish()
 		return
 	root.add_child(runtime)
+	await process_frame
+	var audio: Node = runtime.get_node_or_null("AudioMood")
+	check(audio != null, "Full runtime scene must include AudioMood.")
+	if audio != null:
+		check(str(audio.get_script().resource_path) == "res://src/audio_mood_runtime.gd", "Full runtime scene must use the hardened Audio adapter.")
+		check(bool(audio.call("generator_players_ready")), "Full scene gate must confirm Audio generator playback readiness.")
 	var camera: Node = runtime.get_node_or_null("PresentationCamera")
 	check(camera is Camera2D, "Runtime scene must include the profile-driven PresentationCamera.")
 	if camera != null:
@@ -68,7 +74,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Presentation runtime smoke test passed: profiles, camera feel, era resolution, CanvasLayer isolation and original HUD treatment are coherent.")
+		print("Presentation runtime smoke test passed: Audio readiness, profiles, camera feel, era resolution, CanvasLayer isolation and original HUD treatment are coherent.")
 		quit(0)
 		return
 	for failure in failures:

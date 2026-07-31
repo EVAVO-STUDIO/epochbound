@@ -2,9 +2,9 @@
 
 Epochbound is an original Godot 4.6.2 action RPG and campaign-authoring platform built around a boy, his dog, and places that exist in more than one age.
 
-The project draws on broad strengths of premium mid-1990s console adventures: readable low-resolution silhouettes, tactile real-time combat, deliberate camera movement, compact framed interfaces, environmental mystery, strong companion behaviour, and authored surprise. Its world, cast, maps, creatures, dialogue, systems, terminology, procedural visuals, documentation, and future art/audio are original to Epochbound.
+The project draws on broad strengths of premium mid-1990s console adventures: readable low-resolution silhouettes, tactile real-time combat, deliberate camera movement, compact framed interfaces, environmental mystery, strong companion behaviour, authored surprise, restrained synthesis, and location-specific atmosphere. Its world, cast, maps, creatures, dialogue, systems, terminology, procedural visuals, music patterns, sound design, documentation, and future mastered assets are original to Epochbound.
 
-It does **not** reproduce protected characters, locations, sprites, portraits, dialogue, music, sound effects, story scenes, maps, or exact interface designs from Secret of Evermore or any other existing game.
+It does **not** reproduce protected characters, locations, sprites, portraits, dialogue, music, sound effects, story scenes, maps, samples, or exact interface designs from Secret of Evermore or any other existing game.
 
 ## Current playable foundation
 
@@ -27,10 +27,11 @@ The reference campaign, **The Hours Beneath**, currently provides:
 15. Deterministic campaign packages with manifests, SHA-256 verification, staging, and safe installation
 16. Repository-wide campaign audits for reachability, capability sources, economy recovery, quest starts, and save safety
 17. Original map/era presentation profiles with camera feel, atmosphere, restrained screen texture, framed HUD, procedural silhouettes, and tactile impact feedback
+18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking, and event-driven sound feedback
 
-The runtime still uses procedural drawing for much of its blockout art. These visuals establish scale, silhouette, colour, feedback, camera, interface, collision, combat, and cinematic contracts before the final pixel-art and audio pipeline is introduced.
+The runtime still uses procedural drawing and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, feedback, camera, interface, collision, combat, cinematic, musical, ambience, and mix contracts before final pixel art and mastered audio replace the generated assets.
 
-## Fifteen connected Godot authoring tools
+## Sixteen connected Godot authoring tools
 
 Godot’s main-screen toolbar exposes:
 
@@ -50,6 +51,7 @@ Cinematic
 Package
 Audit
 Presentation
+Audio
 ```
 
 Every tool writes inspectable campaign data and reuses stable IDs across the same runtime. No editor creates a hidden parallel database.
@@ -114,7 +116,11 @@ Runs deterministic production probes and exports machine-readable blocker/warnin
 
 Authors original 16-bit palette, atmosphere, camera deadzone/follow/look-ahead, bounded shake, screen texture, and actor-motion profiles by map and era.
 
-## Original 16-bit presentation pass
+### Audio
+
+Authors original procedural music scales and patterns, ambience character, dynamic combat gain, menu/dialogue/cinematic ducking, and safe crossfade timing by map and era.
+
+## Original 16-bit presentation and audio pass
 
 The current Presentation layer adds:
 
@@ -129,12 +135,25 @@ The current Presentation layer adds:
 - notched health bars and a compact original framed interface;
 - restrained scanline, dither, and vignette treatment.
 
-This is a production blockout, not a recreation of another game’s graphics. Final Epochbound sprites and animation can replace the procedural shapes without changing the profile, camera, validation, or campaign contracts.
+The Audio layer adds:
+
+- seven original profiles: one title/prologue profile and six map/era profiles;
+- compact scale-degree melody and bass patterns with authored rests;
+- pulse, triangle, and sine synthesis at a bounded sample rate and gain;
+- deterministic room tone, pollen, insects, embers, cinders, machinery, and furnace ambience;
+- a combat layer that fades over the continuing exploration theme;
+- original feedback for attacks, impacts, damage, pickups, travel, era shifts, menus, dialogue, combat, and cinematics;
+- menu, dialogue, cinematic, and pause ducking;
+- safe fallback profiles for campaigns without valid presentation or audio catalogues.
+
+These systems are production blockouts, not recreations of another game’s graphics or soundtrack. Final Epochbound sprites, animations, recorded ambience, sound effects, and music masters can replace procedural output without changing the authoring, runtime, validation, or campaign contracts.
 
 Read:
 
 - [`docs/PRESENTATION_FEEL_STUDIO.md`](docs/PRESENTATION_FEEL_STUDIO.md)
 - [`docs/PRESENTATION_PLAYTEST_CHECKLIST.md`](docs/PRESENTATION_PLAYTEST_CHECKLIST.md)
+- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)
+- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 
 ## Reference campaign structure
 
@@ -150,6 +169,7 @@ campaigns/epochbound_demo/
   economy/
   cinematics/
   presentation/
+  audio/
 ```
 
 Built-in source campaigns live under `res://campaigns`. Installed player campaigns live under `user://campaigns` and use the same validation/runtime contracts.
@@ -192,16 +212,16 @@ Set-Location C:\GitRepos\epochbound
 
 The gate performs:
 
-- direct compilation of the runtime, resources, validators, all fifteen editor plugins, and every smoke test;
+- direct compilation of the runtime, resources, validators, all sixteen editor plugins, and every smoke test;
 - strict headless project import;
-- complete content validation through Presentation Validator;
+- complete content validation through Audio & Mood Validator;
 - repository-wide campaign production audit;
-- all inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, and Audit regressions;
-- presentation profile/runtime/editor/malformed-content regressions.
+- all inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, and Presentation regressions;
+- audio runtime, editor, profile-resolution, synthesis-data, ambience, and malformed-content regressions.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero.
 
-## Governed GitHub validation
+## GitHub validation
 
 The exact-candidate workflow is manual by design. Dispatch `.github/workflows/validate.yml` from `main` with the current 40-character SHA:
 
@@ -212,9 +232,9 @@ gh workflow run validate.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflow checks out that exact commit, verifies the official Godot 4.6.2 archive against the published SHA-512 sums, runs the complete gate, confirms validation did not modify tracked source, and uploads a bounded receipt.
+The workflow checks out that exact commit, verifies the official Godot 4.6.2 archive against published SHA-512 sums, runs the complete gate, confirms validation did not modify tracked source, and uploads a bounded receipt.
 
-A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad, and menu-surface checks through the EVAVO Godot test lab.
+A permanent read-only Audio & Mood workflow runs compile, import, complete content validation, and the three audio regressions when audio-related source changes. A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad, and menu-surface checks through the EVAVO Godot test lab.
 
 ## Documentation
 
@@ -244,7 +264,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad, an
 - [`docs/CINEMATIC_TIMELINE_STUDIO.md`](docs/CINEMATIC_TIMELINE_STUDIO.md)
 - [`docs/CINEMATIC_PLAYTEST_CHECKLIST.md`](docs/CINEMATIC_PLAYTEST_CHECKLIST.md)
 
-### Release, audit, and presentation
+### Release, audit, presentation, and audio
 
 - [`docs/PACKAGE_RELEASE_STUDIO.md`](docs/PACKAGE_RELEASE_STUDIO.md)
 - [`docs/PACKAGE_PLAYTEST_CHECKLIST.md`](docs/PACKAGE_PLAYTEST_CHECKLIST.md)
@@ -252,6 +272,8 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad, an
 - [`docs/AUDIT_PLAYTEST_CHECKLIST.md`](docs/AUDIT_PLAYTEST_CHECKLIST.md)
 - [`docs/PRESENTATION_FEEL_STUDIO.md`](docs/PRESENTATION_FEEL_STUDIO.md)
 - [`docs/PRESENTATION_PLAYTEST_CHECKLIST.md`](docs/PRESENTATION_PLAYTEST_CHECKLIST.md)
+- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)
+- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 
 ### Formats and vision
 
@@ -271,7 +293,8 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad, an
 - Skippable presentation with progression-equivalent outcomes
 - Campaign portability with strict validation and safe installation
 - Low-resolution authenticity with modern reliability and accessibility
+- Music and sound that reinforce location and action without copying protected works
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final sprite/animation import pipelines, authored audio and music direction, localisation, regional merchant restocking and scarcity, accessibility settings for presentation intensity, and automated progression/affordability/softlock probes.
+The next coherent layers build on these contracts rather than replacing them: final sprite/animation and mastered-audio import pipelines, localisation, regional merchant restocking and scarcity, accessibility settings for presentation and sound intensity, boss phase-specific music stems, and automated progression/affordability/softlock probes.

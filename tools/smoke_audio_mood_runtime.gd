@@ -2,7 +2,7 @@ extends SceneTree
 
 const Repository = preload("res://src/content/campaign_repository.gd")
 const AudioMoodCatalog = preload("res://src/content/audio_mood_catalog.gd")
-const AudioMoodValidator = preload("res://src/content/audio_mood_validator.gd")
+const AudioMoodValidator = preload("res://src/content/audio_mood_strict_validator.gd")
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const RUNTIME_SCENE := "res://src/app.tscn"

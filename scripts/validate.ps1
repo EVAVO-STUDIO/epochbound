@@ -60,14 +60,17 @@ try {
         @("Smoke test malformed archive paths scripts and hashes", "res://tools/smoke_package_validation_edges.gd"),
         @("Smoke test deterministic campaign production audit", "res://tools/smoke_campaign_audit.gd"),
         @("Smoke test Campaign Audit Studio editor state and export", "res://tools/smoke_campaign_audit_studio.gd"),
-        @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd")
+        @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd"),
+        @("Smoke test original 16-bit presentation profiles and overlay", "res://tools/smoke_presentation_runtime.gd"),
+        @("Smoke test Presentation and Feel Studio editor state", "res://tools/smoke_presentation_studio.gd"),
+        @("Smoke test malformed presentation colours camera values atmosphere and bindings", "res://tools/smoke_presentation_validation_edges.gd")
     )
 
     Invoke-GodotStep "Import project" @("--headless", "--path", $ProjectRoot, "--import")
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all fourteen authoring systems passed complete audit-aware validation."
+    Write-Host "`nEpochbound project and all fifteen authoring systems passed complete presentation-aware validation."
 }
 finally {
     Pop-Location

@@ -1,10 +1,19 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource path="res://src/cinematic_runtime.gd" type="Script" id="1_app"]
 [ext_resource path="res://src/presentation_overlay.gd" type="Script" id="2_presentation"]
+[ext_resource path="res://src/presentation_camera.gd" type="Script" id="3_camera"]
 
 [node name="Epochbound" type="Node2D"]
 script = ExtResource("1_app")
 
-[node name="PresentationOverlay" type="Node2D" parent="."]
+[node name="PresentationCamera" type="Camera2D" parent="."]
+position = Vector2(320, 180)
+enabled = true
+script = ExtResource("3_camera")
+
+[node name="PresentationLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]
 script = ExtResource("2_presentation")

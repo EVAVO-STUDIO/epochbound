@@ -1,4 +1,5 @@
 name: Run Presentation Validation Once
+# Registered one-time validation trigger.
 
 on:
   push:

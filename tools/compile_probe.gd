@@ -18,6 +18,8 @@ const TARGETS := [
 	"res://src/boss_runtime.gd",
 	"res://src/cinematic_runtime.gd",
 	"res://src/presentation_overlay.gd",
+	"res://src/presentation_overlay_canvas.gd",
+	"res://src/presentation_camera.gd",
 	"res://src/content/combat_director_validator.gd",
 	"res://src/content/companion_validator.gd",
 	"res://src/content/item_catalog.gd",

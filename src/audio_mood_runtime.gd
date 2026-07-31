@@ -1,8 +1,12 @@
 extends "res://src/audio_mood_controller.gd"
 
+const Catalog = preload("res://src/content/audio_mood_catalog.gd")
 const RUNTIME_SAMPLE_RATE := 22050.0
 const RUNTIME_BUFFER_LENGTH := 0.35
 const RUNTIME_MAX_FRAMES_PER_FILL := 4096
+const RUNTIME_FLOW_SPLASH := 0
+const RUNTIME_FLOW_TITLE := 1
+const RUNTIME_FLOW_GAME := 4
 
 var ambience_sample_clock := 0
 
@@ -49,9 +53,9 @@ func fill_ambience() -> void:
 	var frames := mini(playback.get_frames_available(), RUNTIME_MAX_FRAMES_PER_FILL)
 	if frames <= 0:
 		return
-	var kind := AudioMoodCatalog.text(active_profile, "ambience", "kind", "room_tone")
-	var tone_hz := clampf(AudioMoodCatalog.number(active_profile, "ambience", "tone_hz", 52.0), 20.0, 1200.0)
-	var motion := clampf(AudioMoodCatalog.number(active_profile, "ambience", "motion", 0.22), 0.0, 1.0)
+	var kind := Catalog.text(active_profile, "ambience", "kind", "room_tone")
+	var tone_hz := clampf(Catalog.number(active_profile, "ambience", "tone_hz", 52.0), 20.0, 1200.0)
+	var motion := clampf(Catalog.number(active_profile, "ambience", "motion", 0.22), 0.0, 1.0)
 	for _frame_index in range(frames):
 		var noise := deterministic_noise(ambience_sample_clock * 13)
 		ambience_filter = lerpf(ambience_filter, noise, 0.002 + motion * 0.018)
@@ -64,7 +68,7 @@ func fill_ambience() -> void:
 
 
 func update_events() -> void:
-	var flow := runtime_integer("flow", FLOW_SPLASH)
+	var flow := runtime_integer("flow", RUNTIME_FLOW_SPLASH)
 	var map_id := current_map_id()
 	var era_id := runtime_string("current_era_id")
 	var cinematic_id := runtime_string("active_cinematic_id")
@@ -77,10 +81,10 @@ func update_events() -> void:
 	var combat_active := combat_is_active()
 	var travel_queued := false
 	if previous_flow >= 0 and flow != previous_flow:
-		if flow == FLOW_GAME:
+		if flow == RUNTIME_FLOW_GAME:
 			queue_sound("travel")
 			travel_queued = true
-		elif flow == FLOW_TITLE:
+		elif flow == RUNTIME_FLOW_TITLE:
 			queue_sound("menu_open")
 	if not previous_map_id.is_empty() and map_id != previous_map_id and not travel_queued:
 		queue_sound("travel")

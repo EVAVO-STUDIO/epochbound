@@ -55,23 +55,32 @@ func update_adventure_feedback(delta: float) -> void:
 	)
 	if presentation_active and runtime_number("transition_lock", 0.0) <= 0.15:
 		area_banner_timer = maxf(0.0, area_banner_timer - delta)
-	if presentation_active and runtime_string("dialogue").is_empty() and runtime_number("transition_lock", 0.0) <= 0.0:
+	var prompt_active := (
+		presentation_active
+		and runtime_string("dialogue").is_empty()
+		and runtime_number("transition_lock", 0.0) <= 0.0
+	)
+	if prompt_active:
 		var next_prompt := resolve_context_prompt()
-		var next_key := str(next_prompt.get("key", ""))
-		if next_key != context_prompt_target_key:
-			context_prompt_alpha = minf(context_prompt_alpha, 0.32)
-		context_prompt = next_prompt
-		context_prompt_target_key = next_key
-		context_prompt_alpha = move_toward(
-			context_prompt_alpha,
-			1.0 if not context_prompt.is_empty() else 0.0,
-			delta * PROMPT_FADE_SPEED
-		)
+		if not next_prompt.is_empty():
+			var next_key := str(next_prompt.get("key", ""))
+			if next_key != context_prompt_target_key:
+				context_prompt_alpha = minf(context_prompt_alpha, 0.32)
+			context_prompt = next_prompt
+			context_prompt_target_key = next_key
+			context_prompt_alpha = move_toward(context_prompt_alpha, 1.0, delta * PROMPT_FADE_SPEED)
+		else:
+			fade_context_prompt(delta)
 	else:
+		fade_context_prompt(delta)
+	feedback_last_flow = current_flow
+
+
+func fade_context_prompt(delta: float) -> void:
+	context_prompt_alpha = move_toward(context_prompt_alpha, 0.0, delta * PROMPT_FADE_SPEED)
+	if context_prompt_alpha <= 0.01:
 		context_prompt.clear()
 		context_prompt_target_key = ""
-		context_prompt_alpha = move_toward(context_prompt_alpha, 0.0, delta * PROMPT_FADE_SPEED)
-	feedback_last_flow = current_flow
 
 
 func current_feedback_map_key() -> String:

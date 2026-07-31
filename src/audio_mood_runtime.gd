@@ -1,6 +1,7 @@
 extends "res://src/audio_mood_controller.gd"
 
 const Catalog = preload("res://src/content/audio_mood_catalog.gd")
+const StrictValidator = preload("res://src/content/audio_mood_strict_validator.gd")
 const RUNTIME_SAMPLE_RATE := 22050.0
 const RUNTIME_BUFFER_LENGTH := 0.35
 const RUNTIME_MAX_FRAMES_PER_FILL := 4096
@@ -33,6 +34,33 @@ func create_generator_player(player_name: String) -> AudioStreamPlayer:
 	add_child(player)
 	player.play()
 	return player
+
+
+func initialize_from_runtime() -> void:
+	var runtime := runtime_root()
+	if runtime == null:
+		return
+	var campaign_value: Variant = runtime.get("campaign")
+	var campaign: Dictionary = campaign_value as Dictionary if typeof(campaign_value) == TYPE_DICTIONARY else {}
+	var campaign_path := str(runtime.get("campaign_path"))
+	var campaign_id := str(campaign.get("id", "fallback"))
+	loaded_campaign_key = "%s|%s" % [campaign_path, campaign_id]
+	var result: Dictionary = Catalog.load_catalogs(campaign_path, campaign)
+	definitions = result.get("definitions", {})
+	bindings.clear()
+	var bindings_value: Variant = result.get("bindings", [])
+	if typeof(bindings_value) == TYPE_ARRAY:
+		for binding_value in bindings_value as Array:
+			if typeof(binding_value) == TYPE_DICTIONARY:
+				bindings.append((binding_value as Dictionary).duplicate(true))
+	title_profile_id = str(result.get("title_profile_id", Catalog.DEFAULT_PROFILE_ID))
+	if not campaign_path.is_empty():
+		var validation: Dictionary = StrictValidator.validate_audio_only(campaign_path)
+		if not bool(validation.get("ok", false)):
+			definitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+			bindings.clear()
+			title_profile_id = Catalog.DEFAULT_PROFILE_ID
+	resolve_active_profile(true)
 
 
 func resolve_active_profile(force: bool) -> void:

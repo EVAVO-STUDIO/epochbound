@@ -60,6 +60,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate Sprite Animation integration contract
+        run: python3 tools/check_sprite_animation_contract.py
+
       - name: Download and verify official Godot 4.6.2
         shell: bash
         run: |

@@ -5,6 +5,7 @@ const MOTION_DISTANCE_RESET := 48.0
 const WALK_FRAME_DISTANCE_MIN := 3.0
 const WALK_FRAME_DISTANCE_MAX := 8.0
 const DEPTH_EPSILON := 0.001
+const OCCLUDING_LANDMARKS := PackedStringArray(["tree", "dead_tree", "ruin"])
 
 var travel_distance_by_key: Dictionary = {}
 var last_depth_order := PackedStringArray()
@@ -111,6 +112,7 @@ func draw_runtime_entity_overlays() -> void:
 				var entity_value: Variant = record.get("entity", {})
 				if typeof(entity_value) == TYPE_DICTIONARY:
 					draw_entity_sprite(entity_value as Dictionary)
+	draw_landmark_foregrounds()
 
 
 func depth_records() -> Array:
@@ -171,9 +173,79 @@ func depth_order_keys() -> PackedStringArray:
 	return output
 
 
+func current_era_landmarks() -> Array:
+	var runtime := runtime_root()
+	if runtime == null:
+		return []
+	var map_value: Variant = runtime.get("map_data")
+	if typeof(map_value) != TYPE_DICTIONARY:
+		return []
+	var era_id := str(runtime.get("current_era_id"))
+	for era_value in (map_value as Dictionary).get("eras", []):
+		if typeof(era_value) != TYPE_DICTIONARY:
+			continue
+		var era: Dictionary = era_value as Dictionary
+		if str(era.get("id", "")) == era_id:
+			var landmarks_value: Variant = era.get("landmarks", [])
+			return landmarks_value as Array if typeof(landmarks_value) == TYPE_ARRAY else []
+	return []
+
+
+func draw_landmark_foregrounds() -> void:
+	for landmark_value in current_era_landmarks():
+		if typeof(landmark_value) != TYPE_DICTIONARY:
+			continue
+		var landmark: Dictionary = landmark_value as Dictionary
+		var kind := str(landmark.get("kind", ""))
+		if not OCCLUDING_LANDMARKS.has(kind):
+			continue
+		var position_value: Variant = landmark.get("position", {})
+		var world_position := Repository.data_to_vector(position_value, Vector2.ZERO)
+		var position := world_to_screen(world_position)
+		var size_value := maxf(8.0, float(landmark.get("size", 24.0)))
+		draw_landmark_foreground(kind, position, size_value)
+
+
+func draw_landmark_foreground(kind: String, position: Vector2, size_value: float) -> void:
+	var ink := profile_color("ink", "13161a")
+	var shadow := profile_color("shadow", "263033")
+	var midtone := profile_color("midtone", "59665c")
+	var light := profile_color("light", "d7c99b")
+	match kind:
+		"tree":
+			var canopy_y := position.y - size_value * 0.82
+			draw_circle(Vector2(position.x - size_value * 0.28, canopy_y), size_value * 0.44, ink)
+			draw_circle(Vector2(position.x + size_value * 0.24, canopy_y - size_value * 0.08), size_value * 0.40, ink)
+			draw_circle(Vector2(position.x, canopy_y - size_value * 0.30), size_value * 0.42, ink)
+			draw_rect(Rect2(position.x - size_value * 0.56, canopy_y - size_value * 0.06, size_value * 1.12, size_value * 0.38), midtone)
+			draw_rect(Rect2(position.x - size_value * 0.30, canopy_y - size_value * 0.40, size_value * 0.60, size_value * 0.34), shadow)
+			draw_rect(Rect2(position.x - 2.0, canopy_y - size_value * 0.46, 4.0, 4.0), light)
+		"dead_tree":
+			var crown := position + Vector2(0, -size_value * 0.72)
+			draw_line(crown, crown + Vector2(-size_value * 0.46, -size_value * 0.40), ink, 4.0)
+			draw_line(crown, crown + Vector2(size_value * 0.42, -size_value * 0.52), ink, 4.0)
+			draw_line(crown + Vector2(-size_value * 0.18, -size_value * 0.16), crown + Vector2(-size_value * 0.58, -size_value * 0.08), shadow, 3.0)
+			draw_line(crown + Vector2(size_value * 0.16, -size_value * 0.20), crown + Vector2(size_value * 0.56, -size_value * 0.12), shadow, 3.0)
+		"ruin":
+			var top := position.y - size_value * 0.72
+			draw_rect(Rect2(position.x - size_value * 0.52, top, size_value * 1.04, maxf(5.0, size_value * 0.14)), ink)
+			draw_rect(Rect2(position.x - size_value * 0.46, top + 2.0, size_value * 0.92, maxf(2.0, size_value * 0.07)), midtone)
+			draw_rect(Rect2(position.x - size_value * 0.50, top, maxf(6.0, size_value * 0.13), size_value * 0.50), shadow)
+			draw_rect(Rect2(position.x + size_value * 0.37, top, maxf(6.0, size_value * 0.13), size_value * 0.50), shadow)
+
+
+func landmark_foreground_count() -> int:
+	var count := 0
+	for landmark_value in current_era_landmarks():
+		if typeof(landmark_value) == TYPE_DICTIONARY and OCCLUDING_LANDMARKS.has(str((landmark_value as Dictionary).get("kind", ""))):
+			count += 1
+	return count
+
+
 func animation_polish_contract_ok() -> bool:
 	return (
 		sprite_runtime_contract_ok()
 		and walk_frame_distance(SpriteAnimationCatalog.default_profile(), 6) >= WALK_FRAME_DISTANCE_MIN
 		and walk_frame_distance(SpriteAnimationCatalog.default_profile(), 6) <= WALK_FRAME_DISTANCE_MAX
+		and landmark_foreground_count() > 0
 	)

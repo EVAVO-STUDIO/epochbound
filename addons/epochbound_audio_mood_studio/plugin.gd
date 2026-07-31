@@ -1,11 +1,13 @@
 @tool
 extends EditorPlugin
 
+const AudioMoodStudio = preload("res://addons/epochbound_audio_mood_studio/audio_mood_studio_current.gd")
+
 var studio: Control
 
 
 func _enter_tree() -> void:
-	studio = preload("res://addons/epochbound_audio_mood_studio/audio_mood_studio.gd").new()
+	studio = AudioMoodStudio.new()
 	studio.name = "AudioMoodStudio"
 	get_editor_interface().get_editor_main_screen().add_child(studio)
 	_make_visible(false)

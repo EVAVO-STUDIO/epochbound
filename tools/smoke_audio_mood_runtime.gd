@@ -40,14 +40,35 @@ func run_test() -> void:
 	var controller: Node = runtime.get_node_or_null("AudioMood")
 	check(controller != null, "Runtime scene must include AudioMood.")
 	if controller != null:
-		check(controller.get_node_or_null("Music") is AudioStreamPlayer, "AudioMood must create a Music generator player.")
-		check(controller.get_node_or_null("Ambience") is AudioStreamPlayer, "AudioMood must create an Ambience generator player.")
-		check(controller.get_node_or_null("SFX") is AudioStreamPlayer, "AudioMood must create an SFX generator player.")
+		check(str(controller.get_script().resource_path) == "res://src/audio_mood_runtime.gd", "Runtime scene must use the hardened Audio and Mood adapter.")
+		var music := controller.get_node_or_null("Music") as AudioStreamPlayer
+		var ambience := controller.get_node_or_null("Ambience") as AudioStreamPlayer
+		var sfx := controller.get_node_or_null("SFX") as AudioStreamPlayer
+		check(music != null and music.bus == "Music", "Music generator must route through the Music bus.")
+		check(ambience != null and ambience.bus == "Ambience", "Ambience generator must route through the Ambience bus.")
+		check(sfx != null and sfx.bus == "SFX", "SFX generator must route through the SFX bus.")
+		check(bool(controller.call("generator_players_ready")), "All generator playback objects must be ready after startup priming.")
+		check(int(controller.get("music_sample_clock")) > 0, "Music buffer must be primed immediately after playback starts.")
+		check(int(controller.call("ambience_clock_value")) > 0, "Ambience must use and advance its own sample clock.")
 		controller.call("queue_sound", "shift")
 		check(int(controller.call("queued_sfx_count")) >= 3, "Era-shift feedback must queue a three-voice original stinger.")
 		runtime.set("flow", 4)
 		controller.call("resolve_active_profile", true)
 		check(str(controller.get("active_profile_id")) == "bellweather_verdant", "Gameplay must resolve the current map and era audio profile.")
+		controller.set("previous_flow", 1)
+		controller.set("previous_map_id", "previous_map")
+		controller.set("previous_era_id", str(runtime.get("current_era_id")))
+		controller.set("previous_player_health", int(runtime.get("player_health")))
+		controller.set("previous_companion_health", int(runtime.get("companion_health")))
+		controller.set("previous_attack_timer", float(runtime.get("player_attack_timer")))
+		controller.set("previous_clock_shards", int(runtime.get("clock_shards")))
+		controller.set("previous_menu_open", false)
+		controller.set("previous_dialogue", str(runtime.get("dialogue")))
+		controller.set("previous_cinematic_id", str(runtime.get("active_cinematic_id")))
+		controller.set("previous_combat_active", bool(controller.call("combat_is_active")))
+		var voices_before := int(controller.call("queued_sfx_count"))
+		controller.call("update_events")
+		check(int(controller.call("queued_sfx_count")) == voices_before + 1, "Entering gameplay and changing maps in one frame must queue one travel cue, not two.")
 	root.remove_child(runtime)
 	runtime.free()
 	finish()
@@ -60,7 +81,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood runtime smoke test passed: profiles, generator players, stingers and map/era resolution are coherent.")
+		print("Audio and Mood runtime smoke test passed: profiles, buses, primed buffers, independent ambience timing and event cues are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -25,7 +25,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	for value in Repository.scan_campaigns(root):
 		if typeof(value) != TYPE_DICTIONARY:
 			continue
-		var report := validate_presentation_only(str((value as Dictionary).get("path", "")))
+		var report: Dictionary = validate_presentation_only(str((value as Dictionary).get("path", "")))
 		append_messages(errors, report.get("errors", []))
 		append_messages(warnings, report.get("warnings", []))
 		profile_count += int(report.get("presentation_profile_count", 0))
@@ -41,7 +41,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 
 static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var base_report: Dictionary = BaseValidator.validate_campaign_path(campaign_path)
-	var presentation_report := validate_presentation_only(campaign_path)
+	var presentation_report: Dictionary = validate_presentation_only(campaign_path)
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
@@ -75,27 +75,29 @@ static func validate_presentation_only(campaign_path: String) -> Dictionary:
 		errors.append("%s: presentation_files must be an array." % campaign_id)
 		return make_report(errors, warnings, 0, 0)
 	var seen_paths: Dictionary = {}
-	for relative_value in files_value:
+	for relative_value in files_value as Array:
 		var relative_path := str(relative_value)
 		if not PresentationCatalog.safe_relative_json_path(relative_path):
 			errors.append("%s: unsafe presentation catalog path '%s'." % [campaign_id, relative_path])
 		elif seen_paths.has(relative_path):
 			errors.append("%s: presentation_files repeats '%s'." % [campaign_id, relative_path])
 		seen_paths[relative_path] = true
-	var catalog_result := PresentationCatalog.load_catalogs(campaign_path, campaign)
+	var catalog_result: Dictionary = PresentationCatalog.load_catalogs(campaign_path, campaign)
 	append_messages(errors, catalog_result.get("errors", []))
 	append_messages(warnings, catalog_result.get("warnings", []))
 	var definitions: Dictionary = catalog_result.get("definitions", {})
 	var bindings_value: Variant = catalog_result.get("bindings", [])
-	var bindings: Array = bindings_value if typeof(bindings_value) == TYPE_ARRAY else []
+	var bindings: Array = bindings_value as Array if typeof(bindings_value) == TYPE_ARRAY else []
 	var profile_ids := PackedStringArray()
 	for profile_id_value in definitions.keys():
 		profile_ids.append(str(profile_id_value))
 	profile_ids.sort()
+	var sources_value: Variant = catalog_result.get("sources", {})
+	var sources: Dictionary = sources_value as Dictionary if typeof(sources_value) == TYPE_DICTIONARY else {}
 	for profile_id in profile_ids:
 		var profile_data: Dictionary = definitions.get(profile_id, {})
-		validate_profile_record(profile_data, str(catalog_result.get("sources", {}).get(profile_id, campaign_id)), errors, warnings)
-	var map_index := load_map_index(campaign_path, campaign, errors)
+		validate_profile_record(profile_data, str(sources.get(profile_id, campaign_id)), errors, warnings)
+	var map_index: Dictionary = load_map_index(campaign_path, campaign, errors)
 	var covered: Dictionary = {}
 	var seen_bindings: Dictionary = {}
 	for binding_value in bindings:
@@ -116,23 +118,52 @@ static func validate_presentation_only(campaign_path: String) -> Dictionary:
 		if seen_bindings.has(key):
 			errors.append("%s: presentation binding repeats map/era '%s'." % [source, key])
 		seen_bindings[key] = true
-		if map_id != "*" and map_index.has(map_id):
-			var eras: Dictionary = map_index.get(map_id, {})
-			if era_id != "*" and not eras.has(era_id):
-				errors.append("%s: presentation binding references unknown era '%s' on map '%s'." % [source, era_id, map_id])
-			elif era_id == "*":
-				for known_era_value in eras.keys():
-					covered["%s|%s" % [map_id, str(known_era_value)]] = true
-			else:
-				covered[key] = true
+		mark_binding_coverage(map_id, era_id, map_index, covered, source, errors)
 	for map_id_value in map_index.keys():
 		var map_id := str(map_id_value)
-		var eras: Dictionary = map_index.get(map_id, {})
+		var eras_value: Variant = map_index.get(map_id, {})
+		var eras: Dictionary = eras_value as Dictionary if typeof(eras_value) == TYPE_DICTIONARY else {}
 		for era_id_value in eras.keys():
 			var era_id := str(era_id_value)
-			if not covered.has("%s|%s" % [map_id, era_id]) and not seen_bindings.has("*|*"):
+			if not covered.has("%s|%s" % [map_id, era_id]):
 				warnings.append("%s: map '%s' era '%s' has no explicit presentation binding." % [campaign_id, map_id, era_id])
 	return make_report(errors, warnings, definitions.size(), bindings.size())
+
+
+static func mark_binding_coverage(
+	map_id: String,
+	era_id: String,
+	map_index: Dictionary,
+	covered: Dictionary,
+	source: String,
+	errors: Array[String]
+) -> void:
+	if map_id == "*":
+		var era_exists := era_id == "*"
+		for known_map_value in map_index.keys():
+			var known_map := str(known_map_value)
+			var eras_value: Variant = map_index.get(known_map, {})
+			var eras: Dictionary = eras_value as Dictionary if typeof(eras_value) == TYPE_DICTIONARY else {}
+			for known_era_value in eras.keys():
+				var known_era := str(known_era_value)
+				if era_id == "*" or era_id == known_era:
+					covered["%s|%s" % [known_map, known_era]] = true
+					if era_id == known_era:
+						era_exists = true
+		if not era_exists:
+			errors.append("%s: wildcard-map presentation binding references unknown era '%s'." % [source, era_id])
+		return
+	if not map_index.has(map_id):
+		return
+	var eras_value: Variant = map_index.get(map_id, {})
+	var eras: Dictionary = eras_value as Dictionary if typeof(eras_value) == TYPE_DICTIONARY else {}
+	if era_id == "*":
+		for known_era_value in eras.keys():
+			covered["%s|%s" % [map_id, str(known_era_value)]] = true
+	elif not eras.has(era_id):
+		errors.append("%s: presentation binding references unknown era '%s' on map '%s'." % [source, era_id, map_id])
+	else:
+		covered["%s|%s" % [map_id, era_id]] = true
 
 
 static func validate_profile_record(
@@ -150,8 +181,9 @@ static func validate_profile_record(
 	if typeof(palette_value) != TYPE_DICTIONARY:
 		errors.append("%s/%s: palette must be an object." % [source, profile_id])
 	else:
-		var palette: Dictionary = palette_value
-		for key in PALETTE_KEYS:
+		var palette: Dictionary = palette_value as Dictionary
+		for key_value in PALETTE_KEYS:
+			var key := str(key_value)
 			var color_value := str(palette.get(key, ""))
 			if not matches(COLOR_PATTERN, color_value):
 				errors.append("%s/%s/palette/%s must be a six-digit hexadecimal colour." % [source, profile_id, key])
@@ -225,7 +257,7 @@ static func load_map_index(campaign_path: String, campaign: Dictionary, errors: 
 	var value: Variant = campaign.get("map_files", [])
 	if typeof(value) != TYPE_ARRAY:
 		return output
-	for relative_value in value:
+	for relative_value in value as Array:
 		var path := campaign_path.get_base_dir().path_join(str(relative_value))
 		var result: Dictionary = Repository.read_json(path)
 		if not bool(result.get("ok", false)):
@@ -234,9 +266,11 @@ static func load_map_index(campaign_path: String, campaign: Dictionary, errors: 
 		var map_data: Dictionary = result.get("data", {})
 		var map_id := str(map_data.get("id", ""))
 		var eras: Dictionary = {}
-		for era_value in map_data.get("eras", []):
-			if typeof(era_value) == TYPE_DICTIONARY:
-				eras[str((era_value as Dictionary).get("id", ""))] = true
+		var eras_value: Variant = map_data.get("eras", [])
+		if typeof(eras_value) == TYPE_ARRAY:
+			for era_value in eras_value as Array:
+				if typeof(era_value) == TYPE_DICTIONARY:
+					eras[str((era_value as Dictionary).get("id", ""))] = true
 		if not map_id.is_empty():
 			output[map_id] = eras
 	return output
@@ -265,5 +299,5 @@ static func make_report(
 static func append_messages(target: Array[String], value: Variant) -> void:
 	if typeof(value) != TYPE_ARRAY:
 		return
-	for message in value:
+	for message in value as Array:
 		target.append(str(message))

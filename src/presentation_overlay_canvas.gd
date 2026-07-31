@@ -1,9 +1,41 @@
 extends "res://src/presentation_overlay.gd"
 
+const CAMERA_VIEW := Vector2(640, 360)
+
 
 func runtime_root() -> Node:
 	var layer := get_parent()
 	return layer.get_parent() if layer != null else null
+
+
+func runtime_camera_offset() -> Vector2:
+	var immediate_offset := super.runtime_camera_offset()
+	var runtime := runtime_root()
+	if runtime == null:
+		return immediate_offset
+	var camera := runtime.get_node_or_null("PresentationCamera") as Camera2D
+	if camera == null:
+		return immediate_offset
+	return immediate_offset + camera.position - CAMERA_VIEW * 0.5
+
+
+func apply_root_shake() -> void:
+	var runtime := runtime_root()
+	if runtime == null:
+		return
+	if runtime is Node2D:
+		(runtime as Node2D).position = Vector2.ZERO
+	var camera := runtime.get_node_or_null("PresentationCamera") as Camera2D
+	if camera == null:
+		return
+	if shake_timer <= 0.0 or runtime_flow() not in [FLOW_GAME, FLOW_PAUSED] or not active_cinematic_id().is_empty():
+		return
+	var time := Time.get_ticks_msec() * 0.001
+	var shake := Vector2(
+		roundf(sin(time * 67.0) * shake_strength),
+		roundf(cos(time * 53.0) * shake_strength * 0.65)
+	)
+	camera.position += shake
 
 
 func draw_corner_brackets(rect: Rect2, color: Color) -> void:

@@ -16,6 +16,7 @@ var profile_selector: OptionButton
 var status_label: Label
 var binding_label: Label
 var palette_buttons: Dictionary = {}
+var palette_value_labels: Dictionary = {}
 var follow_strength: SpinBox
 var deadzone: SpinBox
 var look_ahead: SpinBox
@@ -35,7 +36,6 @@ var current_campaign: Dictionary = {}
 var current_catalog_path := ""
 var current_catalog: Dictionary = {}
 var profile_ids := PackedStringArray()
-var loading_form := false
 
 
 func _ready() -> void:
@@ -49,6 +49,7 @@ func build_ui() -> void:
 	root_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_box.add_theme_constant_override("separation", 8)
 	add_child(root_box)
+
 	var header := HBoxContainer.new()
 	root_box.add_child(header)
 	var title := Label.new()
@@ -66,6 +67,7 @@ func build_ui() -> void:
 	refresh_button.text = "Refresh"
 	refresh_button.pressed.connect(Callable(self, "refresh_campaigns"))
 	header.add_child(refresh_button)
+
 	var split := HSplitContainer.new()
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_box.add_child(split)
@@ -90,6 +92,7 @@ func build_ui() -> void:
 	validate_button.text = "Validate Campaign"
 	validate_button.pressed.connect(Callable(self, "validate_campaign"))
 	navigation.add_child(validate_button)
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -98,6 +101,7 @@ func build_ui() -> void:
 	form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	form.add_theme_constant_override("separation", 8)
 	scroll.add_child(form)
+
 	var palette_heading := Label.new()
 	palette_heading.text = "PALETTE"
 	palette_heading.add_theme_font_size_override("font_size", 15)
@@ -106,7 +110,8 @@ func build_ui() -> void:
 	palette_grid.columns = 3
 	palette_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	form.add_child(palette_grid)
-	for key in PALETTE_KEYS:
+	for key_value in PALETTE_KEYS:
+		var key := str(key_value)
 		var label := Label.new()
 		label.text = key.replace("_", " ").capitalize()
 		palette_grid.add_child(label)
@@ -115,14 +120,17 @@ func build_ui() -> void:
 		palette_grid.add_child(picker)
 		var value_label := Label.new()
 		value_label.text = "#000000"
-		picker.color_changed.connect(func(color: Color) -> void: value_label.text = "#" + color.to_html(false))
 		palette_grid.add_child(value_label)
+		picker.color_changed.connect(Callable(self, "_on_palette_color_changed").bind(value_label))
 		palette_buttons[key] = picker
+		palette_value_labels[key] = value_label
+
 	add_section_heading(form, "CAMERA FEEL")
 	follow_strength = add_spin(form, "Follow strength", 1.0, 30.0, 0.1)
 	deadzone = add_spin(form, "Deadzone", 0.0, 80.0, 1.0)
 	look_ahead = add_spin(form, "Look ahead", 0.0, 80.0, 1.0)
 	maximum_shake = add_spin(form, "Maximum shake", 0.0, 20.0, 0.5)
+
 	add_section_heading(form, "ATMOSPHERE")
 	var atmosphere_row := HBoxContainer.new()
 	form.add_child(atmosphere_row)
@@ -131,17 +139,20 @@ func build_ui() -> void:
 	atmosphere_label.custom_minimum_size.x = 180
 	atmosphere_row.add_child(atmosphere_label)
 	atmosphere_kind = OptionButton.new()
-	for kind in ATMOSPHERE_KINDS:
+	for kind_value in ATMOSPHERE_KINDS:
+		var kind := str(kind_value)
 		atmosphere_kind.add_item(kind.capitalize())
 		atmosphere_kind.set_item_metadata(atmosphere_kind.item_count - 1, kind)
 	atmosphere_row.add_child(atmosphere_kind)
 	atmosphere_density = add_spin(form, "Particle density", 0.0, 128.0, 1.0)
 	atmosphere_speed = add_spin(form, "Particle speed", 0.0, 80.0, 0.5)
 	atmosphere_opacity = add_spin(form, "Particle opacity", 0.0, 1.0, 0.01)
+
 	add_section_heading(form, "SCREEN TEXTURE")
 	scanline_alpha = add_spin(form, "Scanline alpha", 0.0, 0.25, 0.005)
 	vignette_alpha = add_spin(form, "Vignette alpha", 0.0, 0.8, 0.01)
 	dither_alpha = add_spin(form, "Dither alpha", 0.0, 0.25, 0.005)
+
 	add_section_heading(form, "ACTOR MOTION")
 	movement_bob = add_spin(form, "Movement bob", 0.0, 6.0, 0.1)
 	shadow_scale = add_spin(form, "Shadow scale", 0.5, 2.0, 0.05)
@@ -149,10 +160,16 @@ func build_ui() -> void:
 	save_button.text = "Save Presentation Profile"
 	save_button.pressed.connect(Callable(self, "save_current_profile"))
 	form.add_child(save_button)
+
 	status_label = Label.new()
 	status_label.text = "Select a campaign."
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root_box.add_child(status_label)
+
+
+func _on_palette_color_changed(color: Color, value_label: Label) -> void:
+	if is_instance_valid(value_label):
+		value_label.text = "#" + color.to_html(false)
 
 
 func add_section_heading(parent: VBoxContainer, text: String) -> void:
@@ -228,7 +245,7 @@ func refresh_profiles() -> void:
 	profile_ids.clear()
 	var profiles_value: Variant = current_catalog.get("profiles", [])
 	if typeof(profiles_value) == TYPE_ARRAY:
-		for profile_value in profiles_value:
+		for profile_value in profiles_value as Array:
 			if typeof(profile_value) != TYPE_DICTIONARY:
 				continue
 			var profile_data: Dictionary = profile_value
@@ -251,7 +268,7 @@ func refresh_profiles() -> void:
 func _on_profile_selected(index: int) -> void:
 	if index < 0 or index >= profile_ids.size():
 		return
-	var profile_data := profile_by_id(profile_ids[index])
+	var profile_data: Dictionary = profile_by_id(profile_ids[index])
 	if profile_data.is_empty():
 		return
 	load_profile_into_form(profile_data)
@@ -261,19 +278,24 @@ func profile_by_id(profile_id: String) -> Dictionary:
 	var profiles_value: Variant = current_catalog.get("profiles", [])
 	if typeof(profiles_value) != TYPE_ARRAY:
 		return {}
-	for profile_value in profiles_value:
+	for profile_value in profiles_value as Array:
 		if typeof(profile_value) == TYPE_DICTIONARY and str((profile_value as Dictionary).get("id", "")) == profile_id:
-			return profile_value
+			return profile_value as Dictionary
 	return {}
 
 
 func load_profile_into_form(profile_data: Dictionary) -> void:
-	loading_form = true
 	var palette_value: Variant = profile_data.get("palette", {})
-	var palette: Dictionary = palette_value if typeof(palette_value) == TYPE_DICTIONARY else {}
-	for key in PALETTE_KEYS:
-		var picker: ColorPickerButton = palette_buttons.get(key)
+	var palette: Dictionary = palette_value as Dictionary if typeof(palette_value) == TYPE_DICTIONARY else {}
+	for key_value in PALETTE_KEYS:
+		var key := str(key_value)
+		var picker := palette_buttons.get(key) as ColorPickerButton
+		var value_label := palette_value_labels.get(key) as Label
+		if picker == null:
+			continue
 		picker.color = Color.from_string(str(palette.get(key, "000000")), Color.BLACK)
+		if value_label != null:
+			value_label.text = "#" + picker.color.to_html(false)
 	follow_strength.value = PresentationCatalog.number(profile_data, "camera", "follow_strength", 8.0)
 	deadzone.value = PresentationCatalog.number(profile_data, "camera", "deadzone", 20.0)
 	look_ahead.value = PresentationCatalog.number(profile_data, "camera", "look_ahead", 18.0)
@@ -291,7 +313,6 @@ func load_profile_into_form(profile_data: Dictionary) -> void:
 	dither_alpha.value = PresentationCatalog.number(profile_data, "screen", "dither_alpha", 0.07)
 	movement_bob.value = PresentationCatalog.number(profile_data, "actors", "movement_bob", 1.6)
 	shadow_scale.value = PresentationCatalog.number(profile_data, "actors", "shadow_scale", 1.0)
-	loading_form = false
 
 
 func save_current_profile() -> void:
@@ -299,15 +320,17 @@ func save_current_profile() -> void:
 		status_label.text = "Select a valid profile first."
 		return
 	var profile_id := profile_ids[profile_selector.selected]
-	var profile_data := profile_by_id(profile_id)
+	var profile_data: Dictionary = profile_by_id(profile_id)
 	if profile_data.is_empty():
 		status_label.text = "The selected profile no longer exists."
 		return
 	var snapshot := read_text(current_catalog_path)
 	var palette: Dictionary = {}
-	for key in PALETTE_KEYS:
-		var picker: ColorPickerButton = palette_buttons.get(key)
-		palette[key] = picker.color.to_html(false)
+	for key_value in PALETTE_KEYS:
+		var key := str(key_value)
+		var picker := palette_buttons.get(key) as ColorPickerButton
+		if picker != null:
+			palette[key] = picker.color.to_html(false)
 	profile_data["palette"] = palette
 	profile_data["camera"] = {
 		"follow_strength": follow_strength.value,
@@ -340,7 +363,7 @@ func save_current_profile() -> void:
 		load_catalog()
 		status_label.text = "Presentation save rolled back: %s" % join_messages(validation.get("errors", []))
 		return
-	status_label.text = "Saved %s. %d warning(s)." % [profile_id, (validation.get("warnings", []) as Array).size()]
+	status_label.text = "Saved %s. %d warning(s)." % [profile_id, message_count(validation.get("warnings", []))]
 
 
 func create_default_catalog() -> void:
@@ -358,23 +381,24 @@ func create_default_catalog() -> void:
 	var campaign_save: Dictionary = Repository.save_json(current_campaign_path, current_campaign)
 	if not bool(campaign_save.get("ok", false)):
 		write_text(current_campaign_path, campaign_snapshot)
-		if catalog_existed:
-			write_text(catalog_path, catalog_snapshot)
-		else:
-			DirAccess.remove_absolute(catalog_path)
+		restore_catalog_file(catalog_path, catalog_existed, catalog_snapshot)
 		status_label.text = "Could not bind the presentation catalog to the campaign."
 		return
 	var validation: Dictionary = PresentationValidator.validate_campaign_path(current_campaign_path)
 	if not bool(validation.get("ok", false)):
 		write_text(current_campaign_path, campaign_snapshot)
-		if catalog_existed:
-			write_text(catalog_path, catalog_snapshot)
-		else:
-			DirAccess.remove_absolute(catalog_path)
+		restore_catalog_file(catalog_path, catalog_existed, catalog_snapshot)
 		status_label.text = "Default catalog creation rolled back: %s" % join_messages(validation.get("errors", []))
 		return
 	load_catalog()
 	status_label.text = "Created and validated presentation/core.json."
+
+
+func restore_catalog_file(path: String, existed: bool, snapshot: String) -> void:
+	if existed:
+		write_text(path, snapshot)
+	elif FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
 
 
 func validate_campaign() -> void:
@@ -385,7 +409,7 @@ func validate_campaign() -> void:
 		status_label.text = "Presentation validation passed with %d profile(s), %d binding(s), and %d warning(s)." % [
 			int(validation.get("presentation_profile_count", 0)),
 			int(validation.get("presentation_binding_count", 0)),
-			(validation.get("warnings", []) as Array).size()
+			message_count(validation.get("warnings", []))
 		]
 	else:
 		status_label.text = "Presentation validation failed: %s" % join_messages(validation.get("errors", []))
@@ -410,9 +434,13 @@ func write_text(path: String, value: String) -> bool:
 	return true
 
 
+func message_count(value: Variant) -> int:
+	return (value as Array).size() if typeof(value) == TYPE_ARRAY else 0
+
+
 func join_messages(value: Variant) -> String:
 	var messages := PackedStringArray()
 	if typeof(value) == TYPE_ARRAY:
-		for message in value:
+		for message in value as Array:
 			messages.append(str(message))
 	return " | ".join(messages)

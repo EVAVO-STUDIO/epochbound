@@ -7,6 +7,7 @@ const TARGETS := [
 	"res://src/sprite_animation_overlay.gd",
 	"res://src/sprite_animation_overlay_current.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio_animation_current.gd",
+	"res://addons/epochbound_package_studio/package_studio_current.gd",
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio.gd",
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd",
 	"res://addons/epochbound_sprite_animation_studio/plugin.gd",
@@ -32,7 +33,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Sprite animation compile probe passed: catalogues, validators, runtime, editor, scaffolding, package safety and tests load cleanly.")
+		print("Sprite animation compile probe passed: catalogues, validators, runtime, editors, scaffolding, package safety and tests load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

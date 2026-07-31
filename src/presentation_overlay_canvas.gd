@@ -1,7 +1,10 @@
 extends "res://src/presentation_overlay.gd"
 
+const Catalog = preload("res://src/content/presentation_catalog.gd")
 const PresentationValidator = preload("res://src/content/presentation_validator.gd")
 const CAMERA_VIEW := Vector2(640, 360)
+const GAME_FLOW := 4
+const PAUSED_FLOW := 5
 
 
 func runtime_root() -> Node:
@@ -21,7 +24,7 @@ func initialize_from_runtime() -> void:
 	if bool(validation.get("ok", false)):
 		return
 	presentation_definitions = {
-		PresentationCatalog.DEFAULT_PROFILE_ID: PresentationCatalog.default_profile()
+		Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()
 	}
 	presentation_bindings.clear()
 	loaded_profile_key = ""
@@ -48,7 +51,7 @@ func apply_root_shake() -> void:
 	var camera := runtime.get_node_or_null("PresentationCamera") as Camera2D
 	if camera == null:
 		return
-	if shake_timer <= 0.0 or not [FLOW_GAME, FLOW_PAUSED].has(runtime_flow()) or not active_cinematic_id().is_empty():
+	if shake_timer <= 0.0 or not [GAME_FLOW, PAUSED_FLOW].has(runtime_flow()) or not active_cinematic_id().is_empty():
 		return
 	var time := Time.get_ticks_msec() * 0.001
 	var shake := Vector2(

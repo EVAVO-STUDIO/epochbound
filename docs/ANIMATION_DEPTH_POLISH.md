@@ -1,10 +1,10 @@
 # Grounded Animation and Depth Polish
 
-This pass corrects two presentation fundamentals that matter more than adding extra decorative frames: feet must look connected to movement, and world actors must overlap according to their ground contact.
+This pass corrects three presentation fundamentals that matter more than adding extra decorative frames: feet must look connected to movement, world actors must overlap according to ground contact, and tall scenery needs a foreground portion that can pass over actors.
 
 ## Distance-driven walk cadence
 
-Idle, attack and hurt animations remain time-driven. Walk animation is different: its frame is now derived from actual distance travelled.
+Idle, attack and hurt animations remain time-driven. Walk animation is different: its frame is derived from actual distance travelled.
 
 That prevents several common blockout problems:
 
@@ -18,7 +18,7 @@ A profile's rendered body height and walk-frame count determine a bounded number
 
 ## Shared feet-based depth order
 
-Eli, Morrow and every active runtime entity now enter one deterministic depth list. The list sorts by world-space ground-contact `y`, then by a stable tie-break order.
+Eli, Morrow and every active runtime entity enter one deterministic depth list. The list sorts by world-space ground-contact `y`, then by a stable tie-break order.
 
 This means:
 
@@ -28,7 +28,15 @@ This means:
 - enemies, pickups and interactive props no longer belong to a separate draw pass;
 - identical positions resolve consistently rather than flickering between frames.
 
-Landmarks and map layers remain part of the world renderer. The shared actor/entity pass only controls objects that occupy the playable floor plane.
+## Foreground landmark occlusion
+
+Trees, dead trees and ruins retain their authored world base, but their canopy, high branches or upper masonry are redrawn after the actor/entity depth pass.
+
+This creates the classic low-resolution depth cue where a character can walk behind scenery without requiring a second map, duplicate landmark record or hand-authored mask for the procedural blockout.
+
+The foreground treatment is deliberately limited to the upper portion of the landmark. Collision and navigation still come from map data, and the lower ground contact remains visible enough for movement readability.
+
+Final environment atlases can replace these procedural foregrounds while keeping the same split-layer principle.
 
 ## Paused animation
 
@@ -43,18 +51,21 @@ Dialogue and cinematics may continue to animate because they are visible authore
 - Avoid duplicate contact poses at both the first and last frame of a looping walk.
 - Test slow and fast movement bonuses; cadence must remain grounded at both extremes.
 - Test actors crossing above and below every major prop type.
+- Test actors passing behind trees, dead trees and ruin arches.
+- Keep foreground masks above the actor's head and away from critical interaction prompts.
 - Test ties at the same world `y`; order must remain stable.
 - Test map travel and recovery teleports; they must not advance a large burst of walk frames.
 - Test pause, inventory, Journal, save and merchant overlays during idle, walk and attack states.
 
 ## Automated contract
 
-The Sprite runtime regression now verifies:
+The Sprite runtime regression verifies:
 
 - stationary walk animation does not advance with wall-clock time;
 - travelled distance advances the walk cycle;
 - Morrow retains his own movement-facing direction;
 - player, companion and active entities share one ordered depth list;
+- the reference map exposes a foreground landmark occluder;
 - paused gameplay freezes animation time;
 - the playable scene binds the grounded polish adapter.
 

@@ -1,7 +1,8 @@
 extends SceneTree
 
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
-const Validator = preload("res://src/content/package_release_validator.gd")
+const CampaignInstallService = preload("res://src/content/campaign_install_service.gd")
+const Validator = preload("res://src/content/audio_mood_validator.gd")
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const TEST_ROOT := "user://package_release_smoke"
@@ -19,25 +20,25 @@ func _initialize() -> void:
 func run_test() -> void:
 	CampaignPackage.remove_tree(TEST_ROOT)
 	DirAccess.make_dir_recursive_absolute(TEST_ROOT)
-	var report := Validator.validate_campaign_path(CAMPAIGN_PATH)
-	check(bool(report.get("ok", false)), "Reference campaign must pass release validation.")
-	var export_a := CampaignPackage.export_campaign(CAMPAIGN_PATH, PACKAGE_A)
-	var export_b := CampaignPackage.export_campaign(CAMPAIGN_PATH, PACKAGE_B)
+	var report: Dictionary = Validator.validate_campaign_path(CAMPAIGN_PATH)
+	check(bool(report.get("ok", false)), "Reference campaign must pass the current Audio-aware release validation chain.")
+	var export_a: Dictionary = CampaignPackage.export_campaign(CAMPAIGN_PATH, PACKAGE_A)
+	var export_b: Dictionary = CampaignPackage.export_campaign(CAMPAIGN_PATH, PACKAGE_B)
 	check(bool(export_a.get("ok", false)), "Reference campaign must export to a package.")
 	check(bool(export_b.get("ok", false)), "Reference campaign must export deterministically a second time.")
 	check(str(export_a.get("sha256", "")) == str(export_b.get("sha256", "")), "Identical campaign inputs must produce identical package bytes.")
-	var inspection := CampaignPackage.inspect_package(PACKAGE_A)
+	var inspection: Dictionary = CampaignPackage.inspect_package(PACKAGE_A)
 	check(bool(inspection.get("ok", false)), "Exported package must pass manifest and hash inspection.")
 	check(int(inspection.get("file_count", 0)) > 10, "Reference package must include the complete campaign tree.")
-	var install := CampaignPackage.install_package(PACKAGE_A, false, INSTALL_ROOT)
-	check(bool(install.get("ok", false)), "Validated package must install into an isolated root.")
+	var install: Dictionary = CampaignInstallService.install_package(PACKAGE_A, false, INSTALL_ROOT)
+	check(bool(install.get("ok", false)), "Validated package must install through the current-contract service.")
 	if bool(install.get("ok", false)):
-		var installed_validation := Validator.validate_campaign_path(str(install.get("campaign_path", "")))
-		check(bool(installed_validation.get("ok", false)), "Installed campaign must pass the complete runtime validator.")
-	var duplicate := CampaignPackage.install_package(PACKAGE_A, false, INSTALL_ROOT)
+		var installed_validation: Dictionary = Validator.validate_campaign_path(str(install.get("campaign_path", "")))
+		check(bool(installed_validation.get("ok", false)), "Installed campaign must pass the complete Audio-aware validator.")
+	var duplicate: Dictionary = CampaignInstallService.install_package(PACKAGE_A, false, INSTALL_ROOT)
 	check(not bool(duplicate.get("ok", false)), "Existing campaign installation must not be overwritten without permission.")
-	var replacement := CampaignPackage.install_package(PACKAGE_A, true, INSTALL_ROOT)
-	check(bool(replacement.get("ok", false)), "Explicit replacement must use the validated atomic install path.")
+	var replacement: Dictionary = CampaignInstallService.install_package(PACKAGE_A, true, INSTALL_ROOT)
+	check(bool(replacement.get("ok", false)), "Explicit replacement must use the fully validated atomic install path.")
 	CampaignPackage.remove_tree(TEST_ROOT)
 	finish()
 
@@ -49,7 +50,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Campaign package smoke test passed: deterministic export, manifest inspection, validation, install and replacement are coherent.")
+		print("Campaign package smoke test passed: deterministic export, manifest inspection, current validation, atomic install and replacement are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const CampaignStudio = preload("res://addons/epochbound_campaign_studio/world_builder_studio.gd")
+const CampaignStudio = preload("res://addons/epochbound_campaign_studio/campaign_studio_current.gd")
 
 var studio
 

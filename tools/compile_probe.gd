@@ -21,6 +21,7 @@ const TARGETS := [
 	"res://src/presentation_overlay_canvas.gd",
 	"res://src/presentation_camera.gd",
 	"res://src/audio_mood_controller.gd",
+	"res://src/audio_mood_runtime.gd",
 	"res://src/content/combat_director_validator.gd",
 	"res://src/content/companion_validator.gd",
 	"res://src/content/item_catalog.gd",
@@ -41,6 +42,7 @@ const TARGETS := [
 	"res://src/content/cinematic_catalog.gd",
 	"res://src/content/cinematic_validator.gd",
 	"res://src/content/campaign_package.gd",
+	"res://src/content/campaign_install_service.gd",
 	"res://src/content/package_release_validator.gd",
 	"res://src/content/campaign_audit.gd",
 	"res://src/content/presentation_catalog.gd",
@@ -56,6 +58,8 @@ const TARGETS := [
 	"res://src/game/projectile_model.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio.gd",
 	"res://addons/epochbound_campaign_studio/world_builder_studio.gd",
+	"res://addons/epochbound_campaign_studio/campaign_studio_current.gd",
+	"res://addons/epochbound_campaign_studio/plugin.gd",
 	"res://addons/epochbound_encounter_studio/encounter_canvas.gd",
 	"res://addons/epochbound_encounter_studio/encounter_studio.gd",
 	"res://addons/epochbound_encounter_studio/encounter_studio_controller.gd",
@@ -83,6 +87,7 @@ const TARGETS := [
 	"res://addons/epochbound_cinematic_studio/cinematic_studio.gd",
 	"res://addons/epochbound_cinematic_studio/plugin.gd",
 	"res://addons/epochbound_package_studio/package_studio.gd",
+	"res://addons/epochbound_package_studio/package_studio_current.gd",
 	"res://addons/epochbound_package_studio/plugin.gd",
 	"res://addons/epochbound_campaign_audit/campaign_audit_studio.gd",
 	"res://addons/epochbound_campaign_audit/plugin.gd",
@@ -123,6 +128,7 @@ const TARGETS := [
 	"res://tools/smoke_campaign_packages.gd",
 	"res://tools/smoke_package_studio.gd",
 	"res://tools/smoke_package_validation_edges.gd",
+	"res://tools/smoke_package_current_validation.gd",
 	"res://tools/smoke_campaign_audit.gd",
 	"res://tools/smoke_campaign_audit_studio.gd",
 	"res://tools/smoke_campaign_audit_edges.gd",
@@ -132,6 +138,7 @@ const TARGETS := [
 	"res://tools/smoke_audio_mood_runtime.gd",
 	"res://tools/smoke_audio_mood_studio.gd",
 	"res://tools/smoke_audio_mood_validation_edges.gd",
+	"res://tools/smoke_audio_campaign_scaffold.gd",
 	"res://src/app.tscn"
 ]
 

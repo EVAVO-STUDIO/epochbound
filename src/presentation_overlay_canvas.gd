@@ -1,11 +1,31 @@
 extends "res://src/presentation_overlay.gd"
 
+const PresentationValidator = preload("res://src/content/presentation_validator.gd")
 const CAMERA_VIEW := Vector2(640, 360)
 
 
 func runtime_root() -> Node:
 	var layer := get_parent()
 	return layer.get_parent() if layer != null else null
+
+
+func initialize_from_runtime() -> void:
+	super.initialize_from_runtime()
+	var runtime := runtime_root()
+	if runtime == null:
+		return
+	var campaign_path := str(runtime.get("campaign_path"))
+	if campaign_path.is_empty():
+		return
+	var validation: Dictionary = PresentationValidator.validate_presentation_only(campaign_path)
+	if bool(validation.get("ok", false)):
+		return
+	presentation_definitions = {
+		PresentationCatalog.DEFAULT_PROFILE_ID: PresentationCatalog.default_profile()
+	}
+	presentation_bindings.clear()
+	loaded_profile_key = ""
+	resolve_active_profile(true)
 
 
 func runtime_camera_offset() -> Vector2:

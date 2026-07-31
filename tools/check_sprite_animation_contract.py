@@ -129,7 +129,7 @@ require(
     "src/app.tscn",
     scene,
     [
-        'res://src/sprite_animation_polish_overlay.gd',
+        'res://src/adventure_feedback_overlay.gd',
         '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
     ],
 )
@@ -143,7 +143,25 @@ require(
         "animation_should_freeze",
         "depth_records",
         "depth_order_keys",
+        "draw_landmark_foregrounds",
         "animation_polish_contract_ok",
+    ],
+)
+feedback_overlay = read_text("src/adventure_feedback_overlay.gd")
+require(
+    "src/adventure_feedback_overlay.gd",
+    feedback_overlay,
+    [
+        'extends "res://src/sprite_animation_polish_overlay.gd"',
+        "announce_current_area",
+        "draw_area_banner",
+        "resolve_context_prompt",
+        "nearest_entity_prompt",
+        "nearest_connection_prompt",
+        "nearest_map_interaction_prompt",
+        "authored_requirements_met",
+        "context_prompt_snapshot",
+        "adventure_feedback_contract_ok",
     ],
 )
 project = read_text("project.godot")
@@ -222,4 +240,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, editors, validators and package promotion are wired")

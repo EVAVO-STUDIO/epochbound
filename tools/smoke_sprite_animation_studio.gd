@@ -1,7 +1,6 @@
 extends SceneTree
 
 const SpriteAnimationStudio = preload("res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd")
-const Repository = preload("res://src/content/campaign_repository.gd")
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const CATALOG_PATH := "res://campaigns/epochbound_demo/animation/core.json"
@@ -23,7 +22,11 @@ func run_test() -> void:
 	check(direction_selector != null and direction_selector.item_count == 2, "Sprite Studio must expose only supported 1-row and 4-row direction modes.")
 	var profile: Dictionary = studio.profile_by_id("morrow_field_gait")
 	check(str(profile.get("fallback_style", "")) == "dog", "Sprite Studio must preserve Morrow's dog fallback identity.")
-	check(int((profile.get("animations", {}) as Dictionary).get("walk", {}).get("frames", 0)) == 6, "Sprite Studio must preserve Morrow's six-frame gait.")
+	var animations_value: Variant = profile.get("animations", {})
+	var animations: Dictionary = animations_value as Dictionary if typeof(animations_value) == TYPE_DICTIONARY else {}
+	var walk_value: Variant = animations.get("walk", {})
+	var walk: Dictionary = walk_value as Dictionary if typeof(walk_value) == TYPE_DICTIONARY else {}
+	check(int(walk.get("frames", 0)) == 6, "Sprite Studio must preserve Morrow's six-frame gait.")
 	var before := FileAccess.get_file_as_string(CATALOG_PATH)
 	var atlas_edit := studio.get("atlas_edit") as LineEdit
 	check(atlas_edit != null, "Sprite Studio must expose its atlas path field.")

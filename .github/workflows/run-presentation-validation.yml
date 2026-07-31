@@ -1,0 +1,85 @@
+name: Run Presentation Validation Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/run-presentation-validation.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: epochbound-presentation-validation-once
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate exact Presentation mainline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download and verify official Godot 4.6.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          base_url="https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable"
+          archive="Godot_v4.6.2-stable_linux.x86_64.zip"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt "${base_url}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${archive}" "${base_url}/${archive}"
+          grep -F "  ${archive}" .godot-download/SHA512-SUMS.txt > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${archive}" -d .godot-bin
+          mv .godot-bin/Godot_v4.6.2-stable_linux.x86_64 .godot-bin/godot
+          chmod +x .godot-bin/godot
+          .godot-bin/godot --version
+          rm -rf .godot-download
+
+      - name: Run complete presentation-aware validation
+        id: gate
+        shell: bash
+        run: |
+          set +e
+          pwsh -NoLogo -NoProfile -File ./scripts/validate.ps1 \
+            -GodotExecutable "$GITHUB_WORKSPACE/.godot-bin/godot" 2>&1 | tee /tmp/presentation-validation.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit bounded validation result and remove this workflow
+        shell: bash
+        env:
+          GATE_STATUS: ${{ steps.gate.outputs.status }}
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/run-presentation-validation.yml
+          rm -f .validation/presentation-validation-failure.log
+          if [ "${GATE_STATUS}" -ne 0 ]; then
+            mkdir -p .validation
+            {
+              echo "Epochbound Presentation validation failed on $(git rev-parse HEAD)."
+              echo "Only the final 500 log lines are retained."
+              echo
+              tail -n 500 /tmp/presentation-validation.log
+            } > .validation/presentation-validation-failure.log
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if [ "${GATE_STATUS}" -eq 0 ]; then
+            git commit -m "test: validate Presentation Studio with Godot 4.6.2"
+          else
+            git commit -m "test: capture Presentation Studio validation failure"
+          fi
+          git push origin HEAD:main

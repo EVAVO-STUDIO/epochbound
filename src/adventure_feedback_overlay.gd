@@ -107,7 +107,17 @@ func draw_game_finish() -> void:
 	draw_context_prompt()
 
 
+func feedback_draw_allowed() -> bool:
+	return (
+		runtime_flow() == FEEDBACK_FLOW_GAME
+		and not animation_should_freeze()
+		and active_cinematic_id().is_empty()
+	)
+
+
 func draw_area_banner() -> void:
+	if not feedback_draw_allowed():
+		return
 	if area_banner_timer <= 0.0 or area_banner_title.is_empty():
 		return
 	if runtime_number("transition_lock", 0.0) > 0.35:
@@ -150,6 +160,10 @@ func draw_area_banner() -> void:
 
 
 func draw_context_prompt() -> void:
+	if not feedback_draw_allowed():
+		return
+	if not runtime_string("dialogue").is_empty() or runtime_number("transition_lock", 0.0) > 0.0:
+		return
 	if context_prompt_alpha <= 0.01 or context_prompt.is_empty():
 		return
 	var world_position_value: Variant = context_prompt.get("position", Vector2.ZERO)

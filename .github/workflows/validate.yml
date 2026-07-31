@@ -183,6 +183,9 @@ jobs:
           run_godot_test res://tools/smoke_campaign_audit.gd "Deterministic campaign production audit"
           run_godot_test res://tools/smoke_campaign_audit_studio.gd "Campaign Audit Studio editor state and export"
           run_godot_test res://tools/smoke_campaign_audit_edges.gd "Campaign audit blocker and warning detection"
+          run_godot_test res://tools/smoke_presentation_runtime.gd "Original 16-bit presentation runtime profiles and overlay"
+          run_godot_test res://tools/smoke_presentation_studio.gd "Presentation and Feel Studio editor state"
+          run_godot_test res://tools/smoke_presentation_validation_edges.gd "Malformed presentation colours camera values atmosphere and bindings"
 
       - name: Confirm validation did not modify tracked source
         if: always()
@@ -210,6 +213,7 @@ jobs:
               "godotVersion": "4.6.2",
               "workflow": "exact-manual",
               "campaignAudit": "passed",
+              "presentationValidation": "passed",
               "regressionSuite": "passed",
               "deployment": "disabled",
           }

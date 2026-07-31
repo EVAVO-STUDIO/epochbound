@@ -48,6 +48,8 @@ static func profile_template(
 	attack_frames: int,
 	hurt_frames: int
 ) -> Dictionary:
+	var direction_count := 1 if fallback_style in ["orb", "prop"] else 4
+	var row_stride := direction_count
 	return {
 		"id": profile_id,
 		"display_name": display_name,
@@ -55,24 +57,33 @@ static func profile_template(
 		"frame_size": {"x": frame_size.x, "y": frame_size.y},
 		"render_size": {"x": frame_size.x, "y": frame_size.y},
 		"pivot": {"x": pivot.x, "y": pivot.y},
-		"directions": 4,
+		"directions": direction_count,
 		"fallback_style": fallback_style,
 		"animations": {
 			"idle": {"row": 0, "frames": idle_frames, "fps": 3.0, "loop": true},
-			"walk": {"row": 4, "frames": walk_frames, "fps": 10.0 if fallback_style != "dog" else 12.0, "loop": true},
-			"attack": {"row": 8, "frames": attack_frames, "fps": 15.0, "loop": false},
-			"hurt": {"row": 12, "frames": hurt_frames, "fps": 12.0, "loop": false}
+			"walk": {"row": row_stride, "frames": walk_frames, "fps": 12.0 if fallback_style == "dog" else 10.0, "loop": true},
+			"attack": {"row": row_stride * 2, "frames": attack_frames, "fps": 15.0, "loop": false},
+			"hurt": {"row": row_stride * 3, "frames": hurt_frames, "fps": 12.0, "loop": false}
 		}
 	}
 
 
+static func safe_relative_json_path(path: String) -> bool:
+	return safe_relative_path(path, PackedStringArray(["json"]))
+
+
 static func safe_relative_atlas_path(path: String) -> bool:
-	if path.is_empty():
+	if path.strip_edges().is_empty():
 		return true
-	if path.is_absolute_path():
+	return safe_relative_path(path, PackedStringArray(["png"]))
+
+
+static func safe_relative_path(path: String, extensions: PackedStringArray) -> bool:
+	var normalized := path.strip_edges().replace("\\", "/")
+	if normalized.is_empty() or normalized.is_absolute_path() or normalized.contains(":"):
 		return false
-	var normalized := path.replace("\\", "/")
-	if not normalized.to_lower().ends_with(".png"):
+	var extension := normalized.get_extension().to_lower()
+	if not extensions.has(extension):
 		return false
 	for part in normalized.split("/", false):
 		if part.is_empty() or part == "." or part == "..":
@@ -97,9 +108,6 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 		return fallback_result(errors, warnings)
 	for relative_value in relative_files:
 		var relative_path := str(relative_value)
-		if not Repository.normalise_id(relative_path.get_basename().get_file()).is_empty() and not safe_relative_json_path(relative_path):
-			errors.append("%s: unsafe animation catalogue path '%s'." % [campaign.get("id", campaign_path), relative_path])
-			continue
 		if not safe_relative_json_path(relative_path):
 			errors.append("%s: unsafe animation catalogue path '%s'." % [campaign.get("id", campaign_path), relative_path])
 			continue
@@ -113,30 +121,49 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 			errors.append("%s: unsupported animation catalogue schema version." % path)
 			continue
 		files.append({"path": path, "relative_path": relative_path, "data": data})
-		var profiles_value: Variant = data.get("profiles", [])
-		if typeof(profiles_value) != TYPE_ARRAY:
-			errors.append("%s: profiles must be an array." % path)
-		else:
-			for profile_value in profiles_value as Array:
-				if typeof(profile_value) != TYPE_DICTIONARY:
-					errors.append("%s: every animation profile must be an object." % path)
-					continue
-				merge_profile(profile_value as Dictionary, path, definitions, sources, errors)
-		var bindings_value: Variant = data.get("bindings", [])
-		if typeof(bindings_value) != TYPE_ARRAY:
-			errors.append("%s: bindings must be an array." % path)
-		else:
-			for binding_value in bindings_value as Array:
-				if typeof(binding_value) != TYPE_DICTIONARY:
-					errors.append("%s: every animation binding must be an object." % path)
-					continue
-				var binding: Dictionary = (binding_value as Dictionary).duplicate(true)
-				binding["_source"] = path
-				bindings.append(binding)
+		load_profiles(data, path, definitions, sources, errors)
+		load_bindings(data, path, bindings, errors)
 	if definitions.is_empty():
 		warnings.append("No valid animation profiles were loaded; original procedural animation profiles will be used.")
 		return fallback_result(errors, warnings)
 	return make_result(errors, warnings, files, definitions, bindings, sources)
+
+
+static func load_profiles(
+	data: Dictionary,
+	path: String,
+	definitions: Dictionary,
+	sources: Dictionary,
+	errors: Array[String]
+) -> void:
+	var profiles_value: Variant = data.get("profiles", [])
+	if typeof(profiles_value) != TYPE_ARRAY:
+		errors.append("%s: profiles must be an array." % path)
+		return
+	for profile_value in profiles_value as Array:
+		if typeof(profile_value) != TYPE_DICTIONARY:
+			errors.append("%s: every animation profile must be an object." % path)
+			continue
+		merge_profile(profile_value as Dictionary, path, definitions, sources, errors)
+
+
+static func load_bindings(
+	data: Dictionary,
+	path: String,
+	bindings: Array[Dictionary],
+	errors: Array[String]
+) -> void:
+	var bindings_value: Variant = data.get("bindings", [])
+	if typeof(bindings_value) != TYPE_ARRAY:
+		errors.append("%s: bindings must be an array." % path)
+		return
+	for binding_value in bindings_value as Array:
+		if typeof(binding_value) != TYPE_DICTIONARY:
+			errors.append("%s: every animation binding must be an object." % path)
+			continue
+		var binding: Dictionary = (binding_value as Dictionary).duplicate(true)
+		binding["_source"] = path
+		bindings.append(binding)
 
 
 static func fallback_result(errors: Array[String], warnings: Array[String]) -> Dictionary:
@@ -171,19 +198,14 @@ static func merge_profile(
 	sources[profile_id] = source
 
 
-static func resolved_profile(
-	definitions: Dictionary,
-	bindings: Array,
-	targets: PackedStringArray
-) -> Dictionary:
+static func resolved_profile(definitions: Dictionary, bindings: Array, targets: PackedStringArray) -> Dictionary:
 	var best_profile_id := ""
 	var best_score := -1
 	for binding_value in bindings:
 		if typeof(binding_value) != TYPE_DICTIONARY:
 			continue
-		var binding: Dictionary = binding_value
-		var target := str(binding.get("target", ""))
-		var score := binding_score(target, targets)
+		var binding: Dictionary = binding_value as Dictionary
+		var score := binding_score(str(binding.get("target", "")), targets)
 		if score > best_score:
 			best_score = score
 			best_profile_id = str(binding.get("profile_id", ""))
@@ -195,9 +217,7 @@ static func resolved_profile(
 	for value in definitions.keys():
 		ids.append(str(value))
 	ids.sort()
-	if not ids.is_empty():
-		return (definitions[ids[0]] as Dictionary).duplicate(true)
-	return default_profile()
+	return (definitions[ids[0]] as Dictionary).duplicate(true) if not ids.is_empty() else default_profile()
 
 
 static func binding_score(target: String, targets: PackedStringArray) -> int:
@@ -241,15 +261,6 @@ static func primary_catalog_path(campaign_path: String, campaign: Dictionary) ->
 			if safe_relative_json_path(relative_path):
 				return campaign_path.get_base_dir().path_join(relative_path)
 	return campaign_path.get_base_dir().path_join("animation").path_join("core.json")
-
-
-static func safe_relative_json_path(path: String) -> bool:
-	if path.is_empty() or path.is_absolute_path() or not path.to_lower().ends_with(".json"):
-		return false
-	for part in path.replace("\\", "/").split("/", false):
-		if part.is_empty() or part == "." or part == "..":
-			return false
-	return true
 
 
 static func make_result(

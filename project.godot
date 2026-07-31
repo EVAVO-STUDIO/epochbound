@@ -24,7 +24,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg", "res://addons/epochbound_item_forge/plugin.cfg", "res://addons/epochbound_story_studio/plugin.cfg", "res://addons/epochbound_save_state_studio/plugin.cfg", "res://addons/epochbound_loadout_studio/plugin.cfg", "res://addons/epochbound_trade_studio/plugin.cfg", "res://addons/epochbound_arsenal_studio/plugin.cfg", "res://addons/epochbound_boss_studio/plugin.cfg", "res://addons/epochbound_cinematic_studio/plugin.cfg", "res://addons/epochbound_package_studio/plugin.cfg", "res://addons/epochbound_campaign_audit/plugin.cfg")
+enabled=PackedStringArray("res://addons/epochbound_campaign_studio/plugin.cfg", "res://addons/epochbound_encounter_studio/plugin.cfg", "res://addons/epochbound_combat_director/plugin.cfg", "res://addons/epochbound_companion_studio/plugin.cfg", "res://addons/epochbound_item_forge/plugin.cfg", "res://addons/epochbound_story_studio/plugin.cfg", "res://addons/epochbound_save_state_studio/plugin.cfg", "res://addons/epochbound_loadout_studio/plugin.cfg", "res://addons/epochbound_trade_studio/plugin.cfg", "res://addons/epochbound_arsenal_studio/plugin.cfg", "res://addons/epochbound_boss_studio/plugin.cfg", "res://addons/epochbound_cinematic_studio/plugin.cfg", "res://addons/epochbound_package_studio/plugin.cfg", "res://addons/epochbound_campaign_audit/plugin.cfg", "res://addons/epochbound_presentation_studio/plugin.cfg")
 
 [rendering]
 

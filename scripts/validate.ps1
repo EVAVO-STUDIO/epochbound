@@ -25,6 +25,7 @@ Push-Location $ProjectRoot
 try {
     $Tests = @(
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
+        @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
@@ -68,14 +69,19 @@ try {
         @("Smoke test original procedural music ambience and event feedback", "res://tools/smoke_audio_mood_runtime.gd"),
         @("Smoke test Audio and Mood Studio editor state", "res://tools/smoke_audio_mood_studio.gd"),
         @("Smoke test malformed Audio and Mood synthesis ambience and bindings", "res://tools/smoke_audio_mood_validation_edges.gd"),
-        @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd")
+        @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd"),
+        @("Smoke test frame-based Sprite Animation runtime", "res://tools/smoke_sprite_animation_runtime.gd"),
+        @("Smoke test Sprite and Animation Studio editor state", "res://tools/smoke_sprite_animation_studio.gd"),
+        @("Smoke test malformed Sprite Animation profiles atlases and paths", "res://tools/smoke_sprite_animation_validation_edges.gd"),
+        @("Smoke test Sprite Animation scaffolding for new campaigns", "res://tools/smoke_sprite_campaign_scaffold.gd"),
+        @("Smoke test hash-valid packages with invalid Sprite Animation data", "res://tools/smoke_sprite_package_validation.gd")
     )
 
     Invoke-GodotStep "Import project" @("--headless", "--path", $ProjectRoot, "--import")
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all sixteen authoring systems passed complete audio-aware validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed complete sprite-animation-aware validation."
 }
 finally {
     Pop-Location

@@ -74,7 +74,7 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 	if typeof(file_value) != TYPE_ARRAY:
 		errors.append("%s: presentation_files must be an array." % campaign.get("id", campaign_path))
 		return make_result(errors, warnings, files, definitions, bindings, sources)
-	var relative_files: Array = file_value
+	var relative_files: Array = file_value as Array
 	if relative_files.is_empty():
 		warnings.append("%s: no presentation catalog is declared; the built-in heritage profile will be used." % campaign.get("id", campaign_path))
 		merge_profile(default_profile(), "built-in default", definitions, sources, errors)
@@ -90,12 +90,14 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 			append_messages(errors, result.get("errors", []))
 			continue
 		var data: Dictionary = result.get("data", {})
+		if int(data.get("schema_version", 0)) != SUPPORTED_SCHEMA:
+			errors.append("%s: unsupported presentation schema %s; expected %d." % [path, data.get("schema_version", "missing"), SUPPORTED_SCHEMA])
 		files.append({"path": path, "relative_path": relative_path, "data": data})
 		var profiles_value: Variant = data.get("profiles", [])
 		if typeof(profiles_value) != TYPE_ARRAY:
 			errors.append("%s: profiles must be an array." % path)
 		else:
-			for profile_value in profiles_value:
+			for profile_value in profiles_value as Array:
 				if typeof(profile_value) != TYPE_DICTIONARY:
 					errors.append("%s: every presentation profile must be an object." % path)
 					continue
@@ -104,7 +106,7 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 		if typeof(bindings_value) != TYPE_ARRAY:
 			errors.append("%s: bindings must be an array." % path)
 		else:
-			for binding_value in bindings_value:
+			for binding_value in bindings_value as Array:
 				if typeof(binding_value) == TYPE_DICTIONARY:
 					var binding: Dictionary = (binding_value as Dictionary).duplicate(true)
 					binding["_source"] = path
@@ -157,7 +159,7 @@ static func make_result(
 static func primary_catalog_path(campaign_path: String, campaign: Dictionary) -> String:
 	var value: Variant = campaign.get("presentation_files", [])
 	if typeof(value) == TYPE_ARRAY:
-		for relative_value in value:
+		for relative_value in value as Array:
 			var relative_path := str(relative_value)
 			if safe_relative_json_path(relative_path):
 				return campaign_path.get_base_dir().path_join(relative_path)
@@ -166,7 +168,7 @@ static func primary_catalog_path(campaign_path: String, campaign: Dictionary) ->
 
 static func profile(definitions: Dictionary, profile_id: String) -> Dictionary:
 	var value: Variant = definitions.get(profile_id, {})
-	return value if typeof(value) == TYPE_DICTIONARY else {}
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
 
 
 static func resolved_profile(
@@ -196,10 +198,10 @@ static func resolved_profile(
 			best_score = score
 			best_profile_id = str(binding.get("profile_id", ""))
 	if not best_profile_id.is_empty():
-		var bound_profile := profile(definitions, best_profile_id)
+		var bound_profile: Dictionary = profile(definitions, best_profile_id)
 		if not bound_profile.is_empty():
 			return bound_profile
-	var fallback := profile(definitions, DEFAULT_PROFILE_ID)
+	var fallback: Dictionary = profile(definitions, DEFAULT_PROFILE_ID)
 	if not fallback.is_empty():
 		return fallback
 	var ids := PackedStringArray()
@@ -258,5 +260,5 @@ static func text(
 static func append_messages(target: Array[String], value: Variant) -> void:
 	if typeof(value) != TYPE_ARRAY:
 		return
-	for message in value:
+	for message in value as Array:
 		target.append(str(message))

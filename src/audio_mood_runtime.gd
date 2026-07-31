@@ -5,6 +5,7 @@ const StrictValidator = preload("res://src/content/audio_mood_strict_validator.g
 const RUNTIME_SAMPLE_RATE := 22050.0
 const RUNTIME_BUFFER_LENGTH := 0.35
 const RUNTIME_MAX_FRAMES_PER_FILL := 4096
+const RUNTIME_PRIME_PASSES := 4
 const RUNTIME_FLOW_SPLASH := 0
 const RUNTIME_FLOW_TITLE := 1
 const RUNTIME_FLOW_GAME := 4
@@ -17,9 +18,7 @@ func _ready() -> void:
 	# Godot's generator workflow starts playback before retrieving the playback
 	# object, then fills the available buffer immediately to avoid a startup gap.
 	update_mix(RUNTIME_BUFFER_LENGTH)
-	fill_music()
-	fill_ambience()
-	fill_sfx()
+	prime_generator_buffers()
 
 
 func create_generator_player(player_name: String) -> AudioStreamPlayer:
@@ -34,6 +33,17 @@ func create_generator_player(player_name: String) -> AudioStreamPlayer:
 	add_child(player)
 	player.play()
 	return player
+
+
+func prime_generator_buffers() -> void:
+	for _pass in range(RUNTIME_PRIME_PASSES):
+		var music_before := music_sample_clock
+		var ambience_before := ambience_sample_clock
+		fill_music()
+		fill_ambience()
+		fill_sfx()
+		if music_sample_clock == music_before and ambience_sample_clock == ambience_before:
+			break
 
 
 func initialize_from_runtime() -> void:
@@ -178,3 +188,14 @@ func generator_players_ready() -> bool:
 		and ambience_player.has_stream_playback()
 		and sfx_player.has_stream_playback()
 	)
+
+
+func generator_skip_count() -> int:
+	var total := 0
+	for player in [music_player, ambience_player, sfx_player]:
+		if player == null or not player.has_stream_playback():
+			continue
+		var playback := player.get_stream_playback() as AudioStreamGeneratorPlayback
+		if playback != null:
+			total += playback.get_skips()
+	return total

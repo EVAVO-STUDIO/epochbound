@@ -1,6 +1,6 @@
 extends SceneTree
 
-const FinalValidator = preload("res://src/content/audio_mood_validator.gd")
+const FinalValidator = preload("res://src/content/audio_mood_strict_validator.gd")
 
 
 func _initialize() -> void:

@@ -28,7 +28,7 @@ func apply_root_shake() -> void:
 	var camera := runtime.get_node_or_null("PresentationCamera") as Camera2D
 	if camera == null:
 		return
-	if shake_timer <= 0.0 or runtime_flow() not in [FLOW_GAME, FLOW_PAUSED] or not active_cinematic_id().is_empty():
+	if shake_timer <= 0.0 or not [FLOW_GAME, FLOW_PAUSED].has(runtime_flow()) or not active_cinematic_id().is_empty():
 		return
 	var time := Time.get_ticks_msec() * 0.001
 	var shake := Vector2(

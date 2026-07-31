@@ -4,7 +4,6 @@ const PresentationCatalog = preload("res://src/content/presentation_catalog.gd")
 
 const VIEW := Vector2(640, 360)
 const FLOW_GAME := 4
-const FLOW_PAUSED := 5
 
 var visual_offset := Vector2.ZERO
 var initialized := false
@@ -28,7 +27,7 @@ func _process(delta: float) -> void:
 	if next_context != context_key:
 		context_key = next_context
 		initialized = false
-	if (flow != FLOW_GAME and flow != FLOW_PAUSED) or not cinematic_id.is_empty():
+	if flow != FLOW_GAME or not cinematic_id.is_empty() or modal_surface_open(runtime):
 		position = VIEW * 0.5
 		initialized = false
 		return
@@ -46,6 +45,22 @@ func _process(delta: float) -> void:
 		var weight := 1.0 - exp(-follow_strength * maxf(delta, 0.0))
 		visual_offset = visual_offset.lerp(corrected_target, clampf(weight, 0.0, 1.0))
 	position = VIEW * 0.5 + visual_offset - immediate_offset
+
+
+func modal_surface_open(runtime: Node) -> bool:
+	if bool(runtime.get("inventory_open")):
+		return true
+	if bool(runtime.get("story_journal_open")):
+		return true
+	if bool(runtime.get("save_overlay_open")):
+		return true
+	if bool(runtime.get("merchant_open")):
+		return true
+	if not str(runtime.get("dialogue")).is_empty():
+		return true
+	if not str(runtime.get("active_conversation_id")).is_empty():
+		return true
+	return false
 
 
 func camera_context(runtime: Node) -> String:

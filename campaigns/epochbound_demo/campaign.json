@@ -28,6 +28,7 @@
 	"cinematic_files": ["cinematics/core.json"],
 	"presentation_files": ["presentation/core.json"],
 	"audio_files": ["audio/core.json"],
+	"animation_files": ["animation/core.json"],
 	"equipment_slots": [
 		{"id": "weapon", "display_name": "Weapon"},
 		{"id": "body", "display_name": "Body"},

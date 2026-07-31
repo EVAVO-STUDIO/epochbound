@@ -1,0 +1,229 @@
+{
+	"schema_version": 1,
+	"profiles": [
+		{
+			"id": "bellweather_verdant",
+			"display_name": "Bellweather Verdant",
+			"palette": {
+				"ink": "171b19",
+				"shadow": "2b3730",
+				"midtone": "66735d",
+				"light": "d6c99a",
+				"accent": "c99642",
+				"danger": "a94c3f",
+				"ui_fill": "141916",
+				"ui_frame": "a58b53",
+				"ui_text": "eee5ca"
+			},
+			"camera": {
+				"follow_strength": 8.5,
+				"deadzone": 18.0,
+				"look_ahead": 18.0,
+				"maximum_shake": 5.0
+			},
+			"atmosphere": {
+				"kind": "pollen",
+				"density": 22,
+				"speed": 7.0,
+				"opacity": 0.22
+			},
+			"screen": {
+				"scanline_alpha": 0.028,
+				"vignette_alpha": 0.20,
+				"dither_alpha": 0.055
+			},
+			"actors": {
+				"movement_bob": 1.7,
+				"shadow_scale": 1.0
+			}
+		},
+		{
+			"id": "bellweather_ashen",
+			"display_name": "Bellweather Ashen",
+			"palette": {
+				"ink": "171315",
+				"shadow": "35282a",
+				"midtone": "725147",
+				"light": "d7b47c",
+				"accent": "d46f3f",
+				"danger": "c8443e",
+				"ui_fill": "1a1415",
+				"ui_frame": "9d6b45",
+				"ui_text": "f0dfc2"
+			},
+			"camera": {
+				"follow_strength": 9.0,
+				"deadzone": 15.0,
+				"look_ahead": 20.0,
+				"maximum_shake": 6.0
+			},
+			"atmosphere": {
+				"kind": "embers",
+				"density": 26,
+				"speed": 14.0,
+				"opacity": 0.34
+			},
+			"screen": {
+				"scanline_alpha": 0.032,
+				"vignette_alpha": 0.29,
+				"dither_alpha": 0.085
+			},
+			"actors": {
+				"movement_bob": 1.8,
+				"shadow_scale": 1.08
+			}
+		},
+		{
+			"id": "clockwood_verdant",
+			"display_name": "Clockwood Verdant",
+			"palette": {
+				"ink": "101715",
+				"shadow": "22362f",
+				"midtone": "486a55",
+				"light": "c8c38e",
+				"accent": "d1a84e",
+				"danger": "a34b45",
+				"ui_fill": "101713",
+				"ui_frame": "8d8050",
+				"ui_text": "e5dfc0"
+			},
+			"camera": {
+				"follow_strength": 7.2,
+				"deadzone": 24.0,
+				"look_ahead": 16.0,
+				"maximum_shake": 5.0
+			},
+			"atmosphere": {
+				"kind": "fireflies",
+				"density": 18,
+				"speed": 5.0,
+				"opacity": 0.30
+			},
+			"screen": {
+				"scanline_alpha": 0.026,
+				"vignette_alpha": 0.31,
+				"dither_alpha": 0.065
+			},
+			"actors": {
+				"movement_bob": 1.5,
+				"shadow_scale": 1.1
+			}
+		},
+		{
+			"id": "clockwood_ashen",
+			"display_name": "Clockwood Ashen",
+			"palette": {
+				"ink": "151112",
+				"shadow": "302526",
+				"midtone": "67463c",
+				"light": "cfaa73",
+				"accent": "dc7541",
+				"danger": "cf453e",
+				"ui_fill": "181213",
+				"ui_frame": "8f6144",
+				"ui_text": "ead8bb"
+			},
+			"camera": {
+				"follow_strength": 8.0,
+				"deadzone": 18.0,
+				"look_ahead": 18.0,
+				"maximum_shake": 6.0
+			},
+			"atmosphere": {
+				"kind": "embers",
+				"density": 30,
+				"speed": 12.0,
+				"opacity": 0.38
+			},
+			"screen": {
+				"scanline_alpha": 0.036,
+				"vignette_alpha": 0.36,
+				"dither_alpha": 0.095
+			},
+			"actors": {
+				"movement_bob": 1.7,
+				"shadow_scale": 1.14
+			}
+		},
+		{
+			"id": "underworks_verdant",
+			"display_name": "Underworks Verdant",
+			"palette": {
+				"ink": "101416",
+				"shadow": "263238",
+				"midtone": "53656a",
+				"light": "c4c8ae",
+				"accent": "c99e4c",
+				"danger": "a94b47",
+				"ui_fill": "111719",
+				"ui_frame": "8a7a51",
+				"ui_text": "e5e1c9"
+			},
+			"camera": {
+				"follow_strength": 9.5,
+				"deadzone": 12.0,
+				"look_ahead": 14.0,
+				"maximum_shake": 5.5
+			},
+			"atmosphere": {
+				"kind": "dust",
+				"density": 20,
+				"speed": 4.0,
+				"opacity": 0.26
+			},
+			"screen": {
+				"scanline_alpha": 0.034,
+				"vignette_alpha": 0.40,
+				"dither_alpha": 0.075
+			},
+			"actors": {
+				"movement_bob": 1.4,
+				"shadow_scale": 1.05
+			}
+		},
+		{
+			"id": "underworks_ashen",
+			"display_name": "Underworks Ashen",
+			"palette": {
+				"ink": "130f12",
+				"shadow": "30272d",
+				"midtone": "684a4e",
+				"light": "d0b68d",
+				"accent": "d47b45",
+				"danger": "d04343",
+				"ui_fill": "181215",
+				"ui_frame": "966144",
+				"ui_text": "edddc5"
+			},
+			"camera": {
+				"follow_strength": 10.0,
+				"deadzone": 10.0,
+				"look_ahead": 16.0,
+				"maximum_shake": 7.0
+			},
+			"atmosphere": {
+				"kind": "cinders",
+				"density": 28,
+				"speed": 9.0,
+				"opacity": 0.40
+			},
+			"screen": {
+				"scanline_alpha": 0.038,
+				"vignette_alpha": 0.46,
+				"dither_alpha": 0.11
+			},
+			"actors": {
+				"movement_bob": 1.6,
+				"shadow_scale": 1.12
+			}
+		}
+	],
+	"bindings": [
+		{"map_id": "bellweather_crossing", "era_id": "verdant", "profile_id": "bellweather_verdant"},
+		{"map_id": "bellweather_crossing", "era_id": "ashen", "profile_id": "bellweather_ashen"},
+		{"map_id": "clockwood_edge", "era_id": "verdant", "profile_id": "clockwood_verdant"},
+		{"map_id": "clockwood_edge", "era_id": "ashen", "profile_id": "clockwood_ashen"},
+		{"map_id": "museum_underworks", "era_id": "verdant", "profile_id": "underworks_verdant"},
+		{"map_id": "museum_underworks", "era_id": "ashen", "profile_id": "underworks_ashen"}
+	]
+}

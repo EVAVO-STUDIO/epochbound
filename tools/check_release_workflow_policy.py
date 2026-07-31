@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = {
     "validate": ROOT / ".github/workflows/validate.yml",
     "linux_agent": ROOT / ".github/workflows/godot-linux-agent-qa.yml",
+    "audio_mood": ROOT / ".github/workflows/audio-mood-validation.yml",
 }
 errors: list[str] = []
 
@@ -103,6 +104,23 @@ require(
         "lab_sha: 9d81ab2135cdcf24bd5f682843b53d897bbc1579",
         "inputs.request_source == 'evavo-development-studio'",
         "inputs.expected_sha || 'invalid-request-source'",
+    ],
+)
+require(
+    "audio_mood",
+    sources["audio_mood"],
+    [
+        "actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+        "persist-credentials: false",
+        "ref: ${{ inputs.expected_sha }}",
+        "SHA512-SUMS.txt",
+        "sha512sum --check",
+        "python3 tools/check_release_workflow_policy.py",
+        "smoke_audio_mood_runtime.gd",
+        "smoke_audio_mood_studio.gd",
+        "smoke_audio_mood_validation_edges.gd",
+        "git merge-base --is-ancestor",
+        "git diff --exit-code",
     ],
 )
 

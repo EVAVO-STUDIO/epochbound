@@ -134,6 +134,7 @@ jobs:
           run_test res://tools/smoke_audio_mood_runtime.gd
           run_test res://tools/smoke_audio_mood_studio.gd
           run_test res://tools/smoke_audio_mood_validation_edges.gd
+          run_test res://tools/smoke_audio_campaign_scaffold.gd
           run_test res://tools/smoke_package_current_validation.gd
 
       - name: Confirm validation did not modify tracked source

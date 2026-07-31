@@ -1,0 +1,111 @@
+name: Audio and Mood Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "campaigns/**/audio/**"
+      - "src/audio_mood_controller.gd"
+      - "src/content/audio_mood_*.gd"
+      - "addons/epochbound_audio_mood_studio/**"
+      - "tools/smoke_audio_mood_*.gd"
+      - "src/app.tscn"
+      - "project.godot"
+      - ".github/workflows/audio-mood-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-audio-mood-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-audio-mood:
+    name: Godot 4.6.2 Audio and Mood gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download and verify official Godot 4.6.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          base_url="https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable"
+          archive="Godot_v4.6.2-stable_linux.x86_64.zip"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt "${base_url}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${archive}" "${base_url}/${archive}"
+          grep -F "  ${archive}" .godot-download/SHA512-SUMS.txt > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${archive}" -d .godot-bin
+          mv .godot-bin/Godot_v4.6.2-stable_linux.x86_64 .godot-bin/godot
+          chmod +x .godot-bin/godot
+          .godot-bin/godot --version
+          rm -rf .godot-download
+
+      - name: Compile all runtime and editor entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --import 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Validate complete campaign content
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd
+
+      - name: Run Audio and Mood regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_test() {
+            local script="$1"
+            local log_file
+            log_file="$(mktemp)"
+            set +e
+            timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script "$script" 2>&1 | tee "$log_file"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
+            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+          }
+          run_test res://tools/smoke_audio_mood_runtime.gd
+          run_test res://tools/smoke_audio_mood_studio.gd
+          run_test res://tools/smoke_audio_mood_validation_edges.gd
+
+      - name: Confirm validation did not modify tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]

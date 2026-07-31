@@ -1,5 +1,7 @@
 extends "res://src/sprite_animation_overlay_current.gd"
 
+const AnimationRepository = preload("res://src/content/campaign_repository.gd")
+
 const FLOW_PAUSED := 5
 const MOTION_DISTANCE_RESET := 48.0
 const WALK_FRAME_DISTANCE_MIN := 3.0
@@ -200,7 +202,7 @@ func draw_landmark_foregrounds() -> void:
 		if not OCCLUDING_LANDMARKS.has(kind):
 			continue
 		var position_value: Variant = landmark.get("position", {})
-		var world_position := Repository.data_to_vector(position_value, Vector2.ZERO)
+		var world_position := AnimationRepository.data_to_vector(position_value, Vector2.ZERO)
 		var position := world_to_screen(world_position)
 		var size_value := maxf(8.0, float(landmark.get("size", 24.0)))
 		draw_landmark_foreground(kind, position, size_value)
@@ -247,5 +249,4 @@ func animation_polish_contract_ok() -> bool:
 		sprite_runtime_contract_ok()
 		and walk_frame_distance(SpriteAnimationCatalog.default_profile(), 6) >= WALK_FRAME_DISTANCE_MIN
 		and walk_frame_distance(SpriteAnimationCatalog.default_profile(), 6) <= WALK_FRAME_DISTANCE_MAX
-		and landmark_foreground_count() > 0
 	)

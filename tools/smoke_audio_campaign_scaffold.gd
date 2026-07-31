@@ -2,7 +2,7 @@ extends SceneTree
 
 const CampaignStudio = preload("res://addons/epochbound_campaign_studio/campaign_studio_current.gd")
 const Repository = preload("res://src/content/campaign_repository.gd")
-const Validator = preload("res://src/content/audio_mood_validator.gd")
+const Validator = preload("res://src/content/audio_mood_strict_validator.gd")
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
 
 const CAMPAIGN_ID := "audio_scaffold_smoke"
@@ -37,7 +37,7 @@ func run_test() -> void:
 		var audio_files: Array = audio_files_value as Array if typeof(audio_files_value) == TYPE_ARRAY else []
 		check(audio_files == ["audio/core.json"], "Scaffolded campaign must bind its Audio catalogue.")
 		var validation: Dictionary = Validator.validate_campaign_path(CAMPAIGN_PATH)
-		check(bool(validation.get("ok", false)), "Scaffolded campaign must pass the current Audio-aware validator.")
+		check(bool(validation.get("ok", false)), "Scaffolded campaign must pass the strict Audio-aware validator.")
 	root.remove_child(studio)
 	studio.free()
 	CampaignPackage.remove_tree(CAMPAIGN_ROOT)
@@ -51,7 +51,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio campaign scaffold smoke test passed: new campaigns receive a bound valid Audio catalogue.")
+		print("Audio campaign scaffold smoke test passed: new campaigns receive a bound strictly valid Audio catalogue.")
 		quit(0)
 		return
 	for failure in failures:

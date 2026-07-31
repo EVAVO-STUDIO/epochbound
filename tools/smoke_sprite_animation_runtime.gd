@@ -44,12 +44,53 @@ func run_test() -> void:
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Runtime scene must include the Sprite Animation overlay.")
 	if overlay != null:
-		check(str(overlay.get_script().resource_path) == "res://src/sprite_animation_polish_overlay.gd", "Runtime must bind the grounded Sprite Animation polish adapter.")
+		check(str(overlay.get_script().resource_path) == "res://src/adventure_feedback_overlay.gd", "Runtime must bind the adventure-feedback presentation adapter.")
 		check(bool(overlay.call("sprite_runtime_contract_ok")), "Runtime overlay must use nearest filtering and loaded animation data.")
 		check(bool(overlay.call("animation_polish_contract_ok")), "Runtime overlay must expose grounded cadence and depth-sort guarantees.")
+		check(bool(overlay.call("adventure_feedback_contract_ok")), "Runtime overlay must expose bounded area-card and action-prompt guarantees.")
 		check(int(overlay.call("landmark_foreground_count")) >= 1, "Reference gameplay must expose at least one foreground landmark occluder.")
 		check(int(overlay.call("animation_profile_count")) == 6, "Runtime overlay must load all reference animation profiles.")
 		check(int(overlay.call("animation_binding_count")) == 6, "Runtime overlay must load all reference animation bindings.")
+
+		runtime.set("flow", 4)
+		overlay.call("announce_current_area")
+		check(str(overlay.get("area_banner_title")) == "BELLWEATHER CROSSING", "Area cards must resolve the current map display name.")
+		check(str(overlay.get("area_banner_subtitle")).contains("VERDANT"), "Area cards must resolve the current era display name.")
+
+		runtime.set("player", Vector2(100, 200))
+		runtime.set("runtime_entities", [{
+			"placement_id": "prompt_archivist",
+			"position": Vector2(104, 200),
+			"active": true,
+			"definition": {
+				"id": "prompt_archivist",
+				"display_name": "Test Archivist",
+				"kind": "npc",
+				"interaction_radius": 40,
+				"appearance": {"shape": "person"}
+			}
+		}])
+		var prompt: Dictionary = overlay.call("context_prompt_snapshot")
+		check(str(prompt.get("action", "")) == "TALK", "Nearby NPCs must resolve a TALK action prompt.")
+		check(str(prompt.get("target_name", "")) == "Test Archivist", "Action prompts must identify their nearest target.")
+
+		var map_value: Variant = runtime.get("map_data")
+		var locked_map: Dictionary = (map_value as Dictionary).duplicate(true) if typeof(map_value) == TYPE_DICTIONARY else {}
+		locked_map["connections"] = []
+		locked_map["interactions"] = [{
+			"id": "sealed_test",
+			"display_name": "Sealed Test Panel",
+			"position": {"x": 100, "y": 200},
+			"radius": 32,
+			"available_eras": [],
+			"required_capabilities": ["clockglass_sight"],
+			"blocked_dialogue": "The panel is hidden from ordinary sight."
+		}]
+		runtime.set("map_data", locked_map)
+		runtime.set("runtime_entities", [])
+		prompt = overlay.call("context_prompt_snapshot")
+		check(str(prompt.get("action", "")) == "LOCKED", "Unmet capability gates must resolve a LOCKED prompt before interaction.")
+		check(not bool(prompt.get("enabled", true)), "Locked prompts must expose their disabled state.")
 
 		var travel: Dictionary = overlay.get("travel_distance_by_key")
 		travel["test_player"] = 0.0
@@ -102,7 +143,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, scene wiring and companion facing are coherent.")
+		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, area cards, action prompts and companion facing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

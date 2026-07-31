@@ -42,6 +42,27 @@ func runtime_camera_offset() -> Vector2:
 	return immediate_offset + camera.position - CAMERA_VIEW * 0.5
 
 
+func update_entity_hits() -> void:
+	var entities: Array = runtime_array("runtime_entities")
+	var next_state: Dictionary = {}
+	for entity_value in entities:
+		if typeof(entity_value) != TYPE_DICTIONARY:
+			continue
+		var entity: Dictionary = entity_value as Dictionary
+		var entity_id := str(entity.get("placement_id", entity.get("state_key", "")))
+		if entity_id.is_empty():
+			continue
+		var hit_flash := float(entity.get("hit_flash", 0.0))
+		var was_hit := bool(entity_hit_state.get(entity_id, false))
+		var is_hit := hit_flash > 0.0
+		if is_hit and not was_hit:
+			var position_value: Variant = entity.get("position", Vector2.ZERO)
+			var world_position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO
+			trigger_impact(world_position, false)
+		next_state[entity_id] = is_hit
+	entity_hit_state = next_state
+
+
 func apply_root_shake() -> void:
 	var runtime := runtime_root()
 	if runtime == null:

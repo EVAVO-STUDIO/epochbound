@@ -1,6 +1,6 @@
 extends SceneTree
 
-const FinalValidator = preload("res://src/content/audio_mood_strict_validator.gd")
+const FinalValidator = preload("res://src/content/sprite_animation_strict_validator.gd")
 
 
 func _initialize() -> void:
@@ -10,7 +10,7 @@ func _initialize() -> void:
 	for error in report.get("errors", []):
 		push_error(str(error))
 	print(
-		"Content validation: %d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d equipment item(s), %d equipment slot(s), %d capability definition(s), %d capability gate(s), %d currency definition(s), %d merchant(s), %d merchant binding(s), %d stock entry(s), %d ammunition type(s), %d ranged weapon(s), %d ranged enemy profile(s), %d boss definition(s), %d boss placement(s), %d boss phase(s), %d boss pattern step(s), %d boss reinforcement(s), %d cinematic(s), %d cinematic step(s), %d cinematic trigger(s), %d release record(s), %d presentation profile(s), %d presentation binding(s), %d audio profile(s), %d audio binding(s), %d warning(s), %d error(s)." % [
+		"Content validation: %d campaign(s), %d map(s), %d object definition(s), %d placement(s), %d encounter zone(s), %d companion cue(s), %d item(s), %d recipe(s), %d conversation(s), %d quest(s), %d save policy record(s), %d equipment item(s), %d equipment slot(s), %d capability definition(s), %d capability gate(s), %d currency definition(s), %d merchant(s), %d merchant binding(s), %d stock entry(s), %d ammunition type(s), %d ranged weapon(s), %d ranged enemy profile(s), %d boss definition(s), %d boss placement(s), %d boss phase(s), %d boss pattern step(s), %d boss reinforcement(s), %d cinematic(s), %d cinematic step(s), %d cinematic trigger(s), %d release record(s), %d presentation profile(s), %d presentation binding(s), %d audio profile(s), %d audio binding(s), %d animation profile(s), %d animation binding(s), %d warning(s), %d error(s)." % [
 			report.get("campaign_count", 0),
 			report.get("map_count", 0),
 			report.get("definition_count", 0),
@@ -46,6 +46,8 @@ func _initialize() -> void:
 			report.get("presentation_binding_count", 0),
 			report.get("audio_profile_count", 0),
 			report.get("audio_binding_count", 0),
+			report.get("animation_profile_count", 0),
+			report.get("animation_binding_count", 0),
 			report.get("warnings", []).size(),
 			report.get("errors", []).size()
 		]

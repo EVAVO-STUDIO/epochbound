@@ -41,15 +41,16 @@ func run_test() -> void:
 	check(controller != null, "Runtime scene must include AudioMood.")
 	if controller != null:
 		check(str(controller.get_script().resource_path) == "res://src/audio_mood_runtime.gd", "Runtime scene must use the hardened Audio and Mood adapter.")
-		var music := controller.get_node_or_null("Music") as AudioStreamPlayer
-		var ambience := controller.get_node_or_null("Ambience") as AudioStreamPlayer
-		var sfx := controller.get_node_or_null("SFX") as AudioStreamPlayer
+		var music: AudioStreamPlayer = controller.get_node_or_null("Music") as AudioStreamPlayer
+		var ambience: AudioStreamPlayer = controller.get_node_or_null("Ambience") as AudioStreamPlayer
+		var sfx: AudioStreamPlayer = controller.get_node_or_null("SFX") as AudioStreamPlayer
 		check(music != null and music.bus == "Music", "Music generator must route through the Music bus.")
 		check(ambience != null and ambience.bus == "Ambience", "Ambience generator must route through the Ambience bus.")
 		check(sfx != null and sfx.bus == "SFX", "SFX generator must route through the SFX bus.")
 		check(bool(controller.call("generator_players_ready")), "All generator playback objects must be ready after startup priming.")
 		check(int(controller.get("music_sample_clock")) > 0, "Music buffer must be primed immediately after playback starts.")
 		check(int(controller.call("ambience_clock_value")) > 0, "Ambience must use and advance its own sample clock.")
+		check(int(controller.call("generator_skip_count")) == 0, "Startup buffer priming must avoid generator underruns.")
 		controller.call("queue_sound", "shift")
 		check(int(controller.call("queued_sfx_count")) >= 3, "Era-shift feedback must queue a three-voice original stinger.")
 		runtime.set("flow", 4)
@@ -81,7 +82,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood runtime smoke test passed: profiles, buses, primed buffers, independent ambience timing and event cues are coherent.")
+		print("Audio and Mood runtime smoke test passed: profiles, buses, fully primed buffers, zero underruns, independent ambience timing and event cues are coherent.")
 		quit(0)
 		return
 	for failure in failures:

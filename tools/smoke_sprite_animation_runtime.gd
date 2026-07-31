@@ -44,15 +44,26 @@ func run_test() -> void:
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Runtime scene must include the Sprite Animation overlay.")
 	if overlay != null:
-		check(str(overlay.get_script().resource_path) == "res://src/sprite_animation_overlay_current.gd", "Runtime must bind the current Sprite Animation adapter.")
+		check(str(overlay.get_script().resource_path) == "res://src/sprite_animation_polish_overlay.gd", "Runtime must bind the grounded Sprite Animation polish adapter.")
 		check(bool(overlay.call("sprite_runtime_contract_ok")), "Runtime overlay must use nearest filtering and loaded animation data.")
+		check(bool(overlay.call("animation_polish_contract_ok")), "Runtime overlay must expose grounded cadence and depth-sort guarantees.")
 		check(int(overlay.call("animation_profile_count")) == 6, "Runtime overlay must load all reference animation profiles.")
 		check(int(overlay.call("animation_binding_count")) == 6, "Runtime overlay must load all reference animation bindings.")
+
+		var travel: Dictionary = overlay.get("travel_distance_by_key")
+		travel["test_player"] = 0.0
+		overlay.set("travel_distance_by_key", travel)
 		overlay.set("animation_clock", 0.0)
 		var first_frame := int(overlay.call("animation_frame", player_profile, "walk", "test_player"))
-		overlay.set("animation_clock", 0.25)
-		var later_frame := int(overlay.call("animation_frame", player_profile, "walk", "test_player"))
-		check(first_frame != later_frame, "Walk animation frame selection must advance deterministically with animation time.")
+		overlay.set("animation_clock", 0.5)
+		var stationary_frame := int(overlay.call("animation_frame", player_profile, "walk", "test_player"))
+		check(first_frame == stationary_frame, "Walk animation must not cycle while the actor remains stationary.")
+		travel = overlay.get("travel_distance_by_key")
+		travel["test_player"] = 20.0
+		overlay.set("travel_distance_by_key", travel)
+		var travelled_frame := int(overlay.call("animation_frame", player_profile, "walk", "test_player"))
+		check(travelled_frame != first_frame, "Walk animation must advance from distance travelled rather than wall-clock time.")
+
 		var previous: Dictionary = overlay.get("actor_previous_positions")
 		previous["companion"] = Vector2(100, 100)
 		overlay.set("actor_previous_positions", previous)
@@ -60,6 +71,24 @@ func run_test() -> void:
 		overlay.call("update_animation_motion", 0.1)
 		var companion_direction := int(overlay.call("companion_direction_index"))
 		check(overlay.call("direction_vector", companion_direction) == Vector2.RIGHT, "Morrow must preserve his own movement-facing direction.")
+
+		runtime.set("player", Vector2(100, 200))
+		runtime.set("companion", Vector2(100, 180))
+		runtime.set("runtime_entities", [{
+			"placement_id": "depth_test",
+			"position": Vector2(100, 220),
+			"active": true,
+			"definition": {"kind": "prop", "appearance": {"shape": "crate"}}
+		}])
+		var depth_order: PackedStringArray = overlay.call("depth_order_keys")
+		check(depth_order.size() == 3, "Depth sorting must include player, companion and active runtime entities.")
+		if depth_order.size() == 3:
+			check(depth_order[0] == "companion", "The actor with the highest ground contact must render first.")
+			check(depth_order[1] == "player", "The player must render between shallower and deeper contacts.")
+			check(depth_order[2] == "entity:depth_test", "The lowest world contact must render last and appear in front.")
+
+		runtime.set("flow", 5)
+		check(bool(overlay.call("animation_should_freeze")), "Paused gameplay must freeze animation time.")
 	root.remove_child(runtime)
 	runtime.free()
 	finish()
@@ -72,7 +101,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite animation runtime smoke test passed: profiles, bindings, frame timing, scene wiring and companion facing are coherent.")
+		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, scene wiring and companion facing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -1,0 +1,109 @@
+{
+	"schema_version": 1,
+	"profiles": [
+		{
+			"id": "eli_field_kit",
+			"display_name": "Eli Field Kit",
+			"atlas": "",
+			"frame_size": {"x": 32, "y": 40},
+			"render_size": {"x": 32, "y": 40},
+			"pivot": {"x": 16, "y": 34},
+			"directions": 4,
+			"fallback_style": "hero",
+			"animations": {
+				"idle": {"row": 0, "frames": 4, "fps": 3.0, "loop": true},
+				"walk": {"row": 4, "frames": 6, "fps": 10.0, "loop": true},
+				"attack": {"row": 8, "frames": 5, "fps": 15.0, "loop": false},
+				"hurt": {"row": 12, "frames": 2, "fps": 12.0, "loop": false}
+			}
+		},
+		{
+			"id": "morrow_field_gait",
+			"display_name": "Morrow Field Gait",
+			"atlas": "",
+			"frame_size": {"x": 40, "y": 28},
+			"render_size": {"x": 40, "y": 28},
+			"pivot": {"x": 20, "y": 21},
+			"directions": 4,
+			"fallback_style": "dog",
+			"animations": {
+				"idle": {"row": 0, "frames": 4, "fps": 4.0, "loop": true},
+				"walk": {"row": 4, "frames": 6, "fps": 12.0, "loop": true},
+				"attack": {"row": 8, "frames": 4, "fps": 14.0, "loop": false},
+				"hurt": {"row": 12, "frames": 2, "fps": 12.0, "loop": false}
+			}
+		},
+		{
+			"id": "museum_humanoid",
+			"display_name": "Museum Humanoid",
+			"atlas": "",
+			"frame_size": {"x": 28, "y": 38},
+			"render_size": {"x": 28, "y": 38},
+			"pivot": {"x": 14, "y": 33},
+			"directions": 4,
+			"fallback_style": "humanoid",
+			"animations": {
+				"idle": {"row": 0, "frames": 4, "fps": 3.0, "loop": true},
+				"walk": {"row": 4, "frames": 6, "fps": 9.0, "loop": true},
+				"attack": {"row": 8, "frames": 4, "fps": 12.0, "loop": false},
+				"hurt": {"row": 12, "frames": 2, "fps": 12.0, "loop": false}
+			}
+		},
+		{
+			"id": "ash_beast_gait",
+			"display_name": "Ash Beast Gait",
+			"atlas": "",
+			"frame_size": {"x": 36, "y": 28},
+			"render_size": {"x": 36, "y": 28},
+			"pivot": {"x": 18, "y": 22},
+			"directions": 4,
+			"fallback_style": "beast",
+			"animations": {
+				"idle": {"row": 0, "frames": 4, "fps": 4.0, "loop": true},
+				"walk": {"row": 4, "frames": 6, "fps": 12.0, "loop": true},
+				"attack": {"row": 8, "frames": 4, "fps": 14.0, "loop": false},
+				"hurt": {"row": 12, "frames": 2, "fps": 14.0, "loop": false}
+			}
+		},
+		{
+			"id": "clockglass_orb",
+			"display_name": "Clockglass Orb",
+			"atlas": "",
+			"frame_size": {"x": 24, "y": 24},
+			"render_size": {"x": 24, "y": 24},
+			"pivot": {"x": 12, "y": 18},
+			"directions": 1,
+			"fallback_style": "orb",
+			"animations": {
+				"idle": {"row": 0, "frames": 4, "fps": 5.0, "loop": true},
+				"walk": {"row": 1, "frames": 4, "fps": 6.0, "loop": true},
+				"attack": {"row": 2, "frames": 4, "fps": 12.0, "loop": false},
+				"hurt": {"row": 3, "frames": 2, "fps": 12.0, "loop": false}
+			}
+		},
+		{
+			"id": "museum_prop",
+			"display_name": "Museum Prop",
+			"atlas": "",
+			"frame_size": {"x": 28, "y": 28},
+			"render_size": {"x": 28, "y": 28},
+			"pivot": {"x": 14, "y": 22},
+			"directions": 1,
+			"fallback_style": "prop",
+			"animations": {
+				"idle": {"row": 0, "frames": 1, "fps": 1.0, "loop": true},
+				"walk": {"row": 1, "frames": 1, "fps": 1.0, "loop": true},
+				"attack": {"row": 2, "frames": 1, "fps": 1.0, "loop": false},
+				"hurt": {"row": 3, "frames": 1, "fps": 1.0, "loop": false}
+			}
+		}
+	],
+	"bindings": [
+		{"target": "player", "profile_id": "eli_field_kit"},
+		{"target": "companion", "profile_id": "morrow_field_gait"},
+		{"target": "shape:person", "profile_id": "museum_humanoid"},
+		{"target": "shape:beast", "profile_id": "ash_beast_gait"},
+		{"target": "shape:orb", "profile_id": "clockglass_orb"},
+		{"target": "*", "profile_id": "museum_prop"}
+	]
+}

@@ -47,6 +47,7 @@ func run_test() -> void:
 		check(str(overlay.get_script().resource_path) == "res://src/sprite_animation_polish_overlay.gd", "Runtime must bind the grounded Sprite Animation polish adapter.")
 		check(bool(overlay.call("sprite_runtime_contract_ok")), "Runtime overlay must use nearest filtering and loaded animation data.")
 		check(bool(overlay.call("animation_polish_contract_ok")), "Runtime overlay must expose grounded cadence and depth-sort guarantees.")
+		check(int(overlay.call("landmark_foreground_count")) >= 1, "Reference gameplay must expose at least one foreground landmark occluder.")
 		check(int(overlay.call("animation_profile_count")) == 6, "Runtime overlay must load all reference animation profiles.")
 		check(int(overlay.call("animation_binding_count")) == 6, "Runtime overlay must load all reference animation bindings.")
 
@@ -101,7 +102,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, scene wiring and companion facing are coherent.")
+		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, scene wiring and companion facing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

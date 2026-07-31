@@ -38,6 +38,23 @@ func apply_root_shake() -> void:
 	camera.position += shake
 
 
+func draw_player_sprite(position: Vector2) -> void:
+	var ink := profile_color("ink", "13161a")
+	# Hard masks prevent the original marker from showing around the replacement silhouette.
+	draw_rect(Rect2(position + Vector2(-8, -23), Vector2(16, 16)), ink)
+	draw_rect(Rect2(position + Vector2(-10, -11), Vector2(20, 21)), ink)
+	draw_rect(Rect2(position + Vector2(-9, 7), Vector2(8, 10)), ink)
+	draw_rect(Rect2(position + Vector2(1, 7), Vector2(8, 10)), ink)
+	super.draw_player_sprite(position)
+
+
+func draw_companion_sprite(position: Vector2) -> void:
+	var ink := profile_color("ink", "13161a")
+	draw_rect(Rect2(position + Vector2(-12, -10), Vector2(21, 18)), ink)
+	draw_rect(Rect2(position + Vector2(4, -15), Vector2(12, 15)), ink)
+	super.draw_companion_sprite(position)
+
+
 func draw_corner_brackets(rect: Rect2, color: Color) -> void:
 	var length := 18.0
 	var corners: Array[Vector2] = [

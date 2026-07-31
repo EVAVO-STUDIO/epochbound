@@ -20,6 +20,7 @@ const TARGETS := [
 	"res://src/presentation_overlay.gd",
 	"res://src/presentation_overlay_canvas.gd",
 	"res://src/presentation_camera.gd",
+	"res://src/audio_mood_controller.gd",
 	"res://src/content/combat_director_validator.gd",
 	"res://src/content/companion_validator.gd",
 	"res://src/content/item_catalog.gd",
@@ -44,6 +45,8 @@ const TARGETS := [
 	"res://src/content/campaign_audit.gd",
 	"res://src/content/presentation_catalog.gd",
 	"res://src/content/presentation_validator.gd",
+	"res://src/content/audio_mood_catalog.gd",
+	"res://src/content/audio_mood_validator.gd",
 	"res://src/game/encounter_zone_model.gd",
 	"res://src/game/companion_model.gd",
 	"res://src/game/inventory_model.gd",
@@ -85,6 +88,8 @@ const TARGETS := [
 	"res://addons/epochbound_campaign_audit/plugin.gd",
 	"res://addons/epochbound_presentation_studio/presentation_studio.gd",
 	"res://addons/epochbound_presentation_studio/plugin.gd",
+	"res://addons/epochbound_audio_mood_studio/audio_mood_studio.gd",
+	"res://addons/epochbound_audio_mood_studio/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_world_model.gd",
@@ -124,6 +129,9 @@ const TARGETS := [
 	"res://tools/smoke_presentation_runtime.gd",
 	"res://tools/smoke_presentation_studio.gd",
 	"res://tools/smoke_presentation_validation_edges.gd",
+	"res://tools/smoke_audio_mood_runtime.gd",
+	"res://tools/smoke_audio_mood_studio.gd",
+	"res://tools/smoke_audio_mood_validation_edges.gd",
 	"res://src/app.tscn"
 ]
 
@@ -141,7 +149,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, all fifteen editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: runtime, all sixteen editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

@@ -11,6 +11,7 @@ WORKFLOWS = {
     "validate": ROOT / ".github/workflows/validate.yml",
     "linux_agent": ROOT / ".github/workflows/godot-linux-agent-qa.yml",
     "audio_mood": ROOT / ".github/workflows/audio-mood-validation.yml",
+    "sprite_animation": ROOT / ".github/workflows/sprite-animation-validation.yml",
 }
 errors: list[str] = []
 
@@ -121,6 +122,26 @@ require(
         "smoke_audio_mood_validation_edges.gd",
         "smoke_audio_campaign_scaffold.gd",
         "smoke_package_current_validation.gd",
+        "git merge-base --is-ancestor",
+        "git diff --exit-code",
+    ],
+)
+require(
+    "sprite_animation",
+    sources["sprite_animation"],
+    [
+        "actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+        "persist-credentials: false",
+        "ref: ${{ inputs.expected_sha }}",
+        "SHA512-SUMS.txt",
+        "sha512sum --check",
+        "python3 tools/check_release_workflow_policy.py",
+        "compile_sprite_animation_probe.gd",
+        "smoke_sprite_animation_runtime.gd",
+        "smoke_sprite_animation_studio.gd",
+        "smoke_sprite_animation_validation_edges.gd",
+        "smoke_sprite_campaign_scaffold.gd",
+        "smoke_sprite_package_validation.gd",
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],

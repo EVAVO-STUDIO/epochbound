@@ -1,6 +1,6 @@
 extends SceneTree
 
-const AudioMoodStudio = preload("res://addons/epochbound_audio_mood_studio/audio_mood_studio.gd")
+const AudioMoodStudio = preload("res://addons/epochbound_audio_mood_studio/audio_mood_studio_current.gd")
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 
 var failures: Array[String] = []
@@ -13,7 +13,7 @@ func _initialize() -> void:
 func run_test() -> void:
 	var studio := AudioMoodStudio.new()
 	root.add_child(studio)
-	check(studio.load_campaign_path(CAMPAIGN_PATH), "Audio Studio must load the reference campaign.")
+	check(studio.load_campaign_path(CAMPAIGN_PATH), "Strict Audio Studio must load the reference campaign.")
 	check(studio.profile_count() == 7, "Audio Studio must expose seven reference profiles.")
 	var pattern: Array[int] = studio.parse_pattern("0, 2 - 4 rest 5")
 	check(pattern == [0, 2, -99, 4, -99, 5], "Pattern parser must preserve notes and explicit rests.")
@@ -33,7 +33,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood Studio smoke test passed: campaign loading, profile state and pattern editing are coherent.")
+		print("Audio and Mood Studio smoke test passed: strict campaign loading, profile state and pattern editing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

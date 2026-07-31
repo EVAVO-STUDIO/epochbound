@@ -3,7 +3,7 @@ extends RefCounted
 
 const Repository = preload("res://src/content/campaign_repository.gd")
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
-const CurrentValidator = preload("res://src/content/audio_mood_strict_validator.gd")
+const CurrentValidator = preload("res://src/content/sprite_animation_strict_validator.gd")
 
 const VERIFIED_STAGING_ROOT := "user://campaign_verified_install"
 

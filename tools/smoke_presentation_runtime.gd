@@ -43,8 +43,14 @@ func run_test() -> void:
 		finish()
 		return
 	root.add_child(runtime)
-	var overlay: Node = runtime.get_node_or_null("PresentationOverlay")
-	check(overlay != null, "Runtime scene must include the PresentationOverlay child.")
+	var camera: Node = runtime.get_node_or_null("PresentationCamera")
+	check(camera is Camera2D, "Runtime scene must include the profile-driven PresentationCamera.")
+	if camera != null:
+		check(camera.has_method("desired_camera_offset"), "Presentation camera must expose authored deadzone and look-ahead resolution.")
+	var layer: Node = runtime.get_node_or_null("PresentationLayer")
+	check(layer is CanvasLayer, "Presentation HUD must be isolated in a CanvasLayer.")
+	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
+	check(overlay != null, "Runtime scene must include the PresentationOverlay inside its CanvasLayer.")
 	if overlay != null:
 		check(overlay.has_method("initialize_from_runtime"), "Presentation overlay must load campaign profiles.")
 		check(overlay.has_method("draw_adventure_hud"), "Presentation overlay must provide the framed adventure HUD.")
@@ -62,7 +68,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Presentation runtime smoke test passed: profiles, era resolution, overlay attachment and original HUD treatment are coherent.")
+		print("Presentation runtime smoke test passed: profiles, camera feel, era resolution, CanvasLayer isolation and original HUD treatment are coherent.")
 		quit(0)
 		return
 	for failure in failures:

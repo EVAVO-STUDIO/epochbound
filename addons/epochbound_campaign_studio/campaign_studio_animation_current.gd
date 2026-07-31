@@ -3,7 +3,7 @@ extends "res://addons/epochbound_campaign_studio/campaign_studio_current.gd"
 
 const AnimationRepository = preload("res://src/content/campaign_repository.gd")
 const SpriteAnimationCatalog = preload("res://src/content/sprite_animation_catalog.gd")
-const SpriteAnimationValidator = preload("res://src/content/sprite_animation_validator.gd")
+const SpriteAnimationValidator = preload("res://src/content/sprite_animation_strict_validator.gd")
 const AnimationCampaignPackage = preload("res://src/content/campaign_package.gd")
 
 

@@ -119,6 +119,8 @@ require(
         "smoke_audio_mood_runtime.gd",
         "smoke_audio_mood_studio.gd",
         "smoke_audio_mood_validation_edges.gd",
+        "smoke_audio_campaign_scaffold.gd",
+        "smoke_package_current_validation.gd",
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],

@@ -58,6 +58,7 @@ try {
         @("Smoke test deterministic campaign packaging and installation", "res://tools/smoke_campaign_packages.gd"),
         @("Smoke test Package and Release Studio editor state", "res://tools/smoke_package_studio.gd"),
         @("Smoke test malformed archive paths scripts and hashes", "res://tools/smoke_package_validation_edges.gd"),
+        @("Smoke test hash-valid packages with invalid current content", "res://tools/smoke_package_current_validation.gd"),
         @("Smoke test deterministic campaign production audit", "res://tools/smoke_campaign_audit.gd"),
         @("Smoke test Campaign Audit Studio editor state and export", "res://tools/smoke_campaign_audit_studio.gd"),
         @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd"),

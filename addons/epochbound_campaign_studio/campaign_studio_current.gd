@@ -3,7 +3,7 @@ extends "res://addons/epochbound_campaign_studio/world_builder_studio.gd"
 
 const CurrentRepository = preload("res://src/content/campaign_repository.gd")
 const AudioMoodCatalog = preload("res://src/content/audio_mood_catalog.gd")
-const CurrentValidator = preload("res://src/content/audio_mood_validator.gd")
+const CurrentValidator = preload("res://src/content/audio_mood_strict_validator.gd")
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
 
 

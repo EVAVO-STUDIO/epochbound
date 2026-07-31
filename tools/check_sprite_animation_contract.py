@@ -129,8 +129,21 @@ require(
     "src/app.tscn",
     scene,
     [
-        'res://src/sprite_animation_overlay_current.gd',
+        'res://src/sprite_animation_polish_overlay.gd',
         '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
+    ],
+)
+polish_overlay = read_text("src/sprite_animation_polish_overlay.gd")
+require(
+    "src/sprite_animation_polish_overlay.gd",
+    polish_overlay,
+    [
+        "travel_distance_by_key",
+        "walk_frame_distance",
+        "animation_should_freeze",
+        "depth_records",
+        "depth_order_keys",
+        "animation_polish_contract_ok",
     ],
 )
 project = read_text("project.godot")
@@ -194,6 +207,7 @@ require(
         "sha512sum --check",
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
+        "smoke_sprite_animation_runtime.gd",
         "smoke_sprite_package_validation.gd",
         "git diff --exit-code",
     ],
@@ -208,4 +222,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- runtime scene, editors, validators, package promotion and governed tests are wired")
+print("- grounded cadence, feet-based depth order, editors, validators and package promotion are wired")

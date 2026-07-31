@@ -136,6 +136,7 @@ require(
         "SHA512-SUMS.txt",
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_sprite_animation_studio.gd",

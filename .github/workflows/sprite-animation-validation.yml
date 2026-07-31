@@ -1,0 +1,152 @@
+name: Sprite Animation Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact 40-character current main commit SHA
+        required: true
+        type: string
+      request_source:
+        description: Governed dispatcher identity
+        required: true
+        default: evavo-development-studio
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-sprite-animation-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate-sprite-animation:
+    name: Exact Godot 4.6.2 Sprite Animation gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Validate governed dispatch
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_SOURCE: ${{ inputs.request_source }}
+        run: |
+          set -euo pipefail
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid expected_sha" >&2; exit 1; }
+          [[ "${REQUEST_SOURCE}" == "evavo-development-studio" ]] || { echo "Unsupported request_source" >&2; exit 1; }
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || { echo "Validation must be dispatched from main" >&2; exit 1; }
+          [[ "${EXPECTED_SHA}" == "${GITHUB_SHA}" ]] || { echo "expected_sha must equal the dispatched main SHA" >&2; exit 1; }
+
+      - name: Check out exact candidate
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact mainline candidate and clean source
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${EXPECTED_SHA}" ]]
+          git show-ref --verify --quiet refs/remotes/origin/main
+          git merge-base --is-ancestor "${EXPECTED_SHA}" origin/main
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Validate release workflow policy
+        run: python3 tools/check_release_workflow_policy.py
+
+      - name: Download and verify official Godot 4.6.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          base_url="https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable"
+          archive="Godot_v4.6.2-stable_linux.x86_64.zip"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt "${base_url}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${archive}" "${base_url}/${archive}"
+          grep -F "  ${archive}" .godot-download/SHA512-SUMS.txt > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${archive}" -d .godot-bin
+          mv .godot-bin/Godot_v4.6.2-stable_linux.x86_64 .godot-bin/godot
+          chmod +x .godot-bin/godot
+          version="$(.godot-bin/godot --version)"
+          [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
+          rm -rf .godot-download
+
+      - name: Compile base and Sprite Animation entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_test() {
+            local script="$1"
+            local log_file
+            log_file="$(mktemp)"
+            set +e
+            timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script "$script" 2>&1 | tee "$log_file"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
+            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+          }
+          run_test res://tools/compile_probe.gd
+          run_test res://tools/compile_sprite_animation_probe.gd
+
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --import 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Validate complete campaign content
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
+          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Run Sprite Animation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_test() {
+            local script="$1"
+            local log_file
+            log_file="$(mktemp)"
+            set +e
+            timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script "$script" 2>&1 | tee "$log_file"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
+            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+          }
+          run_test res://tools/smoke_sprite_animation_runtime.gd
+          run_test res://tools/smoke_sprite_animation_studio.gd
+          run_test res://tools/smoke_sprite_animation_validation_edges.gd
+          run_test res://tools/smoke_sprite_campaign_scaffold.gd
+          run_test res://tools/smoke_sprite_package_validation.gd
+
+      - name: Confirm validation did not modify tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]

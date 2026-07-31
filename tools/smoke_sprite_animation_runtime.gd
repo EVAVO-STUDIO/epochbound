@@ -73,6 +73,13 @@ func run_test() -> void:
 		var prompt: Dictionary = overlay.call("context_prompt_snapshot")
 		check(str(prompt.get("action", "")) == "TALK", "Nearby NPCs must resolve a TALK action prompt.")
 		check(str(prompt.get("target_name", "")) == "Test Archivist", "Action prompts must identify their nearest target.")
+		overlay.set("context_prompt", prompt)
+		overlay.set("context_prompt_alpha", 1.0)
+		overlay.call("fade_context_prompt", 0.05)
+		var faded_prompt_value: Variant = overlay.get("context_prompt")
+		var faded_prompt: Dictionary = faded_prompt_value as Dictionary if typeof(faded_prompt_value) == TYPE_DICTIONARY else {}
+		check(not faded_prompt.is_empty(), "Prompt content must remain available while its fade-out is still visible.")
+		check(float(overlay.get("context_prompt_alpha")) > 0.0 and float(overlay.get("context_prompt_alpha")) < 1.0, "Prompt fade-out must reduce alpha without popping immediately.")
 
 		var map_value: Variant = runtime.get("map_data")
 		var locked_map: Dictionary = (map_value as Dictionary).duplicate(true) if typeof(map_value) == TYPE_DICTIONARY else {}
@@ -143,7 +150,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, area cards, action prompts and companion facing are coherent.")
+		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, area cards, fading action prompts and companion facing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

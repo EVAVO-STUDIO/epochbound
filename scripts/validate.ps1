@@ -67,7 +67,8 @@ try {
         @("Smoke test malformed presentation colours camera values atmosphere and bindings", "res://tools/smoke_presentation_validation_edges.gd"),
         @("Smoke test original procedural music ambience and event feedback", "res://tools/smoke_audio_mood_runtime.gd"),
         @("Smoke test Audio and Mood Studio editor state", "res://tools/smoke_audio_mood_studio.gd"),
-        @("Smoke test malformed Audio and Mood synthesis ambience and bindings", "res://tools/smoke_audio_mood_validation_edges.gd")
+        @("Smoke test malformed Audio and Mood synthesis ambience and bindings", "res://tools/smoke_audio_mood_validation_edges.gd"),
+        @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd")
     )
 
     Invoke-GodotStep "Import project" @("--headless", "--path", $ProjectRoot, "--import")

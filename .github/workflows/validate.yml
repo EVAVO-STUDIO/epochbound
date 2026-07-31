@@ -24,7 +24,7 @@ jobs:
   validate:
     name: Exact Godot 4.6.2 validation
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       GODOT_VERSION: "4.6.2"
       GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
@@ -65,6 +65,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate Sprite Animation integration contract
+        run: python3 tools/check_sprite_animation_contract.py
+
       - name: Download and verify official Godot 4.6.2 editor
         shell: bash
         run: |
@@ -84,108 +87,15 @@ jobs:
           chmod +x .godot-bin/godot
           version="$(.godot-bin/godot --version)"
           [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
+          command -v pwsh >/dev/null || { echo "PowerShell is required on the hosted runner" >&2; exit 1; }
           rm -rf .godot-download
 
-      - name: Compile runtime scenes editors validators and tests
-        shell: bash
+      - name: Run complete seventeen-system validation gate
+        shell: pwsh
         run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/compile_probe.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
-
-      - name: Import project and reject hidden parser errors
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --import 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
-
-      - name: Validate complete campaign content
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/validate_content.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
-
-      - name: Run deterministic campaign production audit
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="$(mktemp)"
-          set +e
-          timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/audit_campaigns.gd 2>&1 | tee "$log_file"
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
-          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
-
-      - name: Run complete executable regression suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_godot_test() {
-            local script_path="$1" label="$2" log_file
-            log_file="$(mktemp)"
-            echo ""; echo "==> ${label}"
-            set +e
-            timeout 60s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script "$script_path" 2>&1 | tee "$log_file"
-            local godot_status=${PIPESTATUS[0]}
-            set -e
-            if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
-            if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
-          }
-          run_godot_test res://tools/smoke_world_model.gd "World model and traversal"
-          run_godot_test res://tools/smoke_encounters.gd "Encounter catalogs placements and combat"
-          run_godot_test res://tools/smoke_combat_director.gd "Combat Director zones and behaviour"
-          run_godot_test res://tools/smoke_companion_director.gd "Companion commands and discovery"
-          run_godot_test res://tools/smoke_item_forge.gd "Item Forge inventory and crafting"
-          run_godot_test res://tools/smoke_item_forge_editor.gd "Item Forge editor state"
-          run_godot_test res://tools/smoke_item_validation_edges.gd "Malformed item rewards and recipe unlocks"
-          run_godot_test res://tools/smoke_story_studio.gd "Story branching and quest progression"
-          run_godot_test res://tools/smoke_story_studio_editor.gd "Story Studio graph and forms"
-          run_godot_test res://tools/smoke_story_validation_edges.gd "Malformed story graphs and quest records"
-          run_godot_test res://tools/smoke_save_profiles.gd "Save capture and exact restoration"
-          run_godot_test res://tools/smoke_save_migrations.gd "Save migrations integrity and backup recovery"
-          run_godot_test res://tools/smoke_save_state_studio.gd "Save and State Studio inspector"
-          run_godot_test res://tools/smoke_loadout_runtime.gd "Loadout stats capability gates and restoration"
-          run_godot_test res://tools/smoke_loadout_studio.gd "Loadout Studio editor state"
-          run_godot_test res://tools/smoke_equipment_validation_edges.gd "Malformed equipment capabilities and gates"
-          run_godot_test res://tools/smoke_economy_runtime.gd "Merchant transactions and durable economy"
-          run_godot_test res://tools/smoke_trade_studio.gd "Merchant and Economy Studio editor state"
-          run_godot_test res://tools/smoke_economy_validation_edges.gd "Malformed currencies merchants stock and economy saves"
-          run_godot_test res://tools/smoke_arsenal_runtime.gd "Arsenal ranged combat reloads and durable magazines"
-          run_godot_test res://tools/smoke_arsenal_studio.gd "Arsenal Studio editor state"
-          run_godot_test res://tools/smoke_arsenal_validation_edges.gd "Malformed ranged weapons ammunition enemies and saves"
-          run_godot_test res://tools/smoke_boss_runtime.gd "Boss phases patterns reinforcements and durable outcomes"
-          run_godot_test res://tools/smoke_boss_studio.gd "Boss and Phase Studio editor state"
-          run_godot_test res://tools/smoke_boss_validation_edges.gd "Malformed boss arenas phases patterns rewards and reinforcements"
-          run_godot_test res://tools/smoke_cinematic_runtime.gd "Cinematic playback skip and durable completion"
-          run_godot_test res://tools/smoke_cinematic_studio.gd "Cinematic and Timeline Studio editor state"
-          run_godot_test res://tools/smoke_cinematic_validation_edges.gd "Malformed cinematic maps steps targets effects and checkpoints"
-          run_godot_test res://tools/smoke_campaign_packages.gd "Deterministic campaign package export and install"
-          run_godot_test res://tools/smoke_package_studio.gd "Package and Release Studio editor state"
-          run_godot_test res://tools/smoke_package_validation_edges.gd "Malformed archive paths scripts and hashes"
-          run_godot_test res://tools/smoke_campaign_audit.gd "Deterministic campaign production audit"
-          run_godot_test res://tools/smoke_campaign_audit_studio.gd "Campaign Audit Studio editor state and export"
-          run_godot_test res://tools/smoke_campaign_audit_edges.gd "Campaign audit blocker and warning detection"
-          run_godot_test res://tools/smoke_presentation_runtime.gd "Original 16-bit presentation runtime profiles and overlay"
-          run_godot_test res://tools/smoke_presentation_studio.gd "Presentation and Feel Studio editor state"
-          run_godot_test res://tools/smoke_presentation_validation_edges.gd "Malformed presentation colours camera values atmosphere and bindings"
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot"
 
       - name: Confirm validation did not modify tracked source
         if: always()
@@ -207,13 +117,15 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.0",
+              "schemaVersion": "1.1",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
               "workflow": "exact-manual",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
+              "audioMoodValidation": "passed",
+              "spriteAnimationValidation": "passed",
               "regressionSuite": "passed",
               "deployment": "disabled",
           }

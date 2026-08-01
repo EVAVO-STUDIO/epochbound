@@ -4,35 +4,41 @@ extends RefCounted
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 
 const ROOT := "user://settings"
-const SETTINGS_PATH := ROOT + "/player_settings.json"
-const TEMP_PATH := SETTINGS_PATH + ".tmp"
-const BACKUP_PATH := SETTINGS_PATH + ".bak"
+const SETTINGS_FILENAME := "player_settings.json"
+const TEMP_SUFFIX := ".tmp"
+const BACKUP_SUFFIX := ".bak"
 
 
-static func settings_path() -> String:
-	return SETTINGS_PATH
+static func settings_path(root_path: String = ROOT) -> String:
+	return root_path.path_join(SETTINGS_FILENAME)
 
 
-static func backup_path() -> String:
-	return BACKUP_PATH
+static func backup_path(root_path: String = ROOT) -> String:
+	return settings_path(root_path) + BACKUP_SUFFIX
 
 
-static func load_settings() -> Dictionary:
-	if not FileAccess.file_exists(SETTINGS_PATH):
+static func temp_path(root_path: String = ROOT) -> String:
+	return settings_path(root_path) + TEMP_SUFFIX
+
+
+static func load_settings(root_path: String = ROOT) -> Dictionary:
+	var final_path := settings_path(root_path)
+	var fallback_path := backup_path(root_path)
+	if not FileAccess.file_exists(final_path):
 		return {
 			"ok": true,
 			"settings": PlayerSettings.default_settings(),
-			"path": SETTINGS_PATH,
+			"path": final_path,
 			"migrated": false,
 			"recovered_from_backup": false,
 			"used_defaults": true,
 			"errors": []
 		}
-	var primary := read_settings_path(SETTINGS_PATH)
+	var primary := read_settings_path(final_path)
 	if bool(primary.get("ok", false)):
 		return primary
-	if FileAccess.file_exists(BACKUP_PATH):
-		var backup := read_settings_path(BACKUP_PATH)
+	if FileAccess.file_exists(fallback_path):
+		var backup := read_settings_path(fallback_path)
 		if bool(backup.get("ok", false)):
 			backup["recovered_from_backup"] = true
 			backup["used_defaults"] = false
@@ -41,7 +47,7 @@ static func load_settings() -> Dictionary:
 	return {
 		"ok": true,
 		"settings": PlayerSettings.default_settings(),
-		"path": SETTINGS_PATH,
+		"path": final_path,
 		"migrated": false,
 		"recovered_from_backup": false,
 		"used_defaults": true,
@@ -84,73 +90,79 @@ static func read_settings_path(path: String) -> Dictionary:
 	}
 
 
-static func write_settings(settings: Dictionary) -> Dictionary:
+static func write_settings(settings: Dictionary, root_path: String = ROOT) -> Dictionary:
+	var final_path := settings_path(root_path)
+	var temporary_path := temp_path(root_path)
+	var fallback_path := backup_path(root_path)
 	var sanitized := PlayerSettings.sanitize(settings)
 	var validation := PlayerSettings.validate(sanitized)
 	if not bool(validation.get("ok", false)):
-		return {"ok": false, "path": SETTINGS_PATH, "errors": validation.get("errors", [])}
-	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ROOT))
+		return {"ok": false, "path": final_path, "errors": validation.get("errors", [])}
+	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(root_path))
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
-		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not create the player settings directory (error %d)." % directory_error]}
-	var file := FileAccess.open(TEMP_PATH, FileAccess.WRITE)
+		return {"ok": false, "path": final_path, "errors": ["Could not create the player settings directory (error %d)." % directory_error]}
+	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
 	if file == null:
-		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not open the temporary player settings file."]}
+		return {"ok": false, "path": final_path, "errors": ["Could not open the temporary player settings file."]}
 	file.store_string(JSON.stringify(sanitized, "\t", true) + "\n")
 	file.flush()
 	file.close()
 
-	var absolute_final := ProjectSettings.globalize_path(SETTINGS_PATH)
-	var absolute_temp := ProjectSettings.globalize_path(TEMP_PATH)
-	var absolute_backup := ProjectSettings.globalize_path(BACKUP_PATH)
-	var had_existing := FileAccess.file_exists(SETTINGS_PATH)
+	var absolute_final := ProjectSettings.globalize_path(final_path)
+	var absolute_temp := ProjectSettings.globalize_path(temporary_path)
+	var absolute_backup := ProjectSettings.globalize_path(fallback_path)
+	var had_existing := FileAccess.file_exists(final_path)
 	var rotated_valid_existing := false
 	if had_existing:
-		var existing_result := read_settings_path(SETTINGS_PATH)
+		var existing_result := read_settings_path(final_path)
 		if bool(existing_result.get("ok", false)):
-			if FileAccess.file_exists(BACKUP_PATH):
+			if FileAccess.file_exists(fallback_path):
 				DirAccess.remove_absolute(absolute_backup)
 			var backup_error := DirAccess.rename_absolute(absolute_final, absolute_backup)
 			if backup_error != OK:
 				DirAccess.remove_absolute(absolute_temp)
-				return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not rotate the previous player settings into a backup (error %d)." % backup_error]}
+				return {"ok": false, "path": final_path, "errors": ["Could not rotate the previous player settings into a backup (error %d)." % backup_error]}
 			rotated_valid_existing = true
 		else:
 			var remove_invalid_error := DirAccess.remove_absolute(absolute_final)
 			if remove_invalid_error != OK:
 				DirAccess.remove_absolute(absolute_temp)
-				return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not remove invalid player settings before recovery (error %d)." % remove_invalid_error]}
+				return {"ok": false, "path": final_path, "errors": ["Could not remove invalid player settings before recovery (error %d)." % remove_invalid_error]}
 	var promote_error := DirAccess.rename_absolute(absolute_temp, absolute_final)
 	if promote_error != OK:
-		if rotated_valid_existing and FileAccess.file_exists(BACKUP_PATH):
+		if rotated_valid_existing and FileAccess.file_exists(fallback_path):
 			DirAccess.rename_absolute(absolute_backup, absolute_final)
-		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not promote the temporary player settings file (error %d)." % promote_error]}
+		return {"ok": false, "path": final_path, "errors": ["Could not promote the temporary player settings file (error %d)." % promote_error]}
 	return {
 		"ok": true,
-		"path": SETTINGS_PATH,
-		"backup_path": BACKUP_PATH if FileAccess.file_exists(BACKUP_PATH) else "",
+		"path": final_path,
+		"backup_path": fallback_path if FileAccess.file_exists(fallback_path) else "",
 		"settings": sanitized,
 		"errors": []
 	}
 
 
-static func rewrite_loaded_settings(read_result: Dictionary) -> Dictionary:
+static func rewrite_loaded_settings(read_result: Dictionary, root_path: String = ROOT) -> Dictionary:
 	if not bool(read_result.get("ok", false)):
-		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Cannot rewrite invalid player settings."]}
+		return {"ok": false, "path": settings_path(root_path), "errors": ["Cannot rewrite invalid player settings."]}
 	var value: Variant = read_result.get("settings", {})
 	if typeof(value) != TYPE_DICTIONARY:
-		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Loaded player settings are missing."]}
-	return write_settings(value as Dictionary)
+		return {"ok": false, "path": settings_path(root_path), "errors": ["Loaded player settings are missing."]}
+	return write_settings(value as Dictionary, root_path)
 
 
-static func delete_settings() -> Dictionary:
+static func delete_settings(root_path: String = ROOT) -> Dictionary:
 	var removed := false
-	for path in [SETTINGS_PATH, BACKUP_PATH, TEMP_PATH]:
+	for path in [settings_path(root_path), backup_path(root_path), temp_path(root_path)]:
 		if not FileAccess.file_exists(path):
 			continue
 		var error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 		if error != OK:
 			return {"ok": false, "removed": removed, "errors": ["Could not remove %s (error %d)." % [path, error]]}
 		removed = true
+	var absolute_root := ProjectSettings.globalize_path(root_path)
+	if DirAccess.dir_exists_absolute(absolute_root):
+		DirAccess.remove_absolute(absolute_root)
 	return {"ok": true, "removed": removed, "errors": []}
 
 

@@ -129,7 +129,7 @@ require(
     "src/app.tscn",
     scene,
     [
-        'res://src/adventure_feedback_overlay.gd',
+        'res://src/environment_animation_overlay.gd',
         '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
     ],
 )
@@ -162,6 +162,23 @@ require(
         "authored_requirements_met",
         "context_prompt_snapshot",
         "adventure_feedback_contract_ok",
+    ],
+)
+environment_overlay = read_text("src/environment_animation_overlay.gd")
+require(
+    "src/environment_animation_overlay.gd",
+    environment_overlay,
+    [
+        'extends "res://src/adventure_feedback_overlay.gd"',
+        "update_environment_animation",
+        "terrain_effect_kind_at",
+        "spawn_environment_disturbance",
+        "draw_animated_terrain",
+        "draw_ambient_ground_motion",
+        "draw_interaction_world_pulse",
+        "draw_ground_disturbances",
+        "animated_terrain_counts",
+        "environment_animation_contract_ok",
     ],
 )
 project = read_text("project.godot")
@@ -207,6 +224,7 @@ require(
     [
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
+        "smoke_environment_animation.gd",
         "smoke_sprite_animation_studio.gd",
         "smoke_sprite_animation_validation_edges.gd",
         "smoke_sprite_campaign_scaffold.gd",
@@ -226,6 +244,7 @@ require(
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
+        "smoke_environment_animation.gd",
         "smoke_sprite_package_validation.gd",
         "git diff --exit-code",
     ],
@@ -240,4 +259,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, area cards, contextual prompts, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, environmental responses, editors, validators and package promotion are wired")

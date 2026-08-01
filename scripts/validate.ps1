@@ -26,6 +26,7 @@ try {
     $Tests = @(
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
+        @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
@@ -83,7 +84,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed complete sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

@@ -93,6 +93,8 @@ require(
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",
+        "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         "git merge-base --is-ancestor",
         "git diff --exit-code",
@@ -119,7 +121,10 @@ require(
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",
+        "compile_player_settings_probe.gd",
         "smoke_runtime_scene_contract.gd",
+        "smoke_player_settings.gd",
         "smoke_audio_mood_runtime.gd",
         "smoke_audio_mood_studio.gd",
         "smoke_audio_mood_validation_edges.gd",
@@ -140,9 +145,12 @@ require(
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
+        "compile_player_settings_probe.gd",
         "smoke_runtime_scene_contract.gd",
+        "smoke_player_settings.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
         "smoke_combat_readability_overlay.gd",
@@ -164,4 +172,5 @@ if errors:
 print("epochbound_release_workflow_policy_passed")
 print("- workflows are manual exact-SHA only")
 print("- remote actions and reusable workflows are immutable")
+print("- runtime composition and player settings are checked before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

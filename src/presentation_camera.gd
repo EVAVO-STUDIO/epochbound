@@ -56,6 +56,8 @@ func modal_surface_open(runtime: Node) -> bool:
 		return true
 	if bool(runtime.get("merchant_open")):
 		return true
+	if bool(runtime.get("player_settings_open")):
+		return true
 	if not str(runtime.get("dialogue")).is_empty():
 		return true
 	if not str(runtime.get("active_conversation_id")).is_empty():

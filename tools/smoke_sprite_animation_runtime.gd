@@ -41,14 +41,19 @@ func run_test() -> void:
 	var runtime := (packed as PackedScene).instantiate()
 	root.add_child(runtime)
 	await process_frame
+	var runtime_script: Variant = runtime.get_script()
+	check(runtime_script is GDScript, "Runtime root must retain its presentation-safe adapter.")
+	if runtime_script is GDScript:
+		check(str((runtime_script as GDScript).resource_path) == "res://src/presentation_runtime_current.gd", "Runtime must bind the presentation-safe cinematic adapter.")
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Runtime scene must include the Sprite Animation overlay.")
 	if overlay != null:
-		check(str(overlay.get_script().resource_path) == "res://src/environment_animation_overlay.gd", "Runtime must bind the environment-aware adventure presentation adapter.")
+		check(str(overlay.get_script().resource_path) == "res://src/combat_readability_overlay.gd", "Runtime must bind the combat-readable environment and animation adapter.")
 		check(bool(overlay.call("sprite_runtime_contract_ok")), "Runtime overlay must use nearest filtering and loaded animation data.")
 		check(bool(overlay.call("animation_polish_contract_ok")), "Runtime overlay must expose grounded cadence and depth-sort guarantees.")
 		check(bool(overlay.call("adventure_feedback_contract_ok")), "Runtime overlay must expose bounded area-card and action-prompt guarantees.")
 		check(bool(overlay.call("environment_animation_contract_ok")), "Runtime overlay must expose bounded animated-terrain and ground-response guarantees.")
+		check(bool(overlay.call("combat_readability_contract_ok")), "Runtime overlay must preserve projectile, boss and pause-layer readability.")
 		check(int(overlay.call("landmark_foreground_count")) >= 1, "Reference gameplay must expose at least one foreground landmark occluder.")
 		check(int(overlay.call("animation_profile_count")) == 6, "Runtime overlay must load all reference animation profiles.")
 		check(int(overlay.call("animation_binding_count")) == 6, "Runtime overlay must load all reference animation bindings.")
@@ -139,6 +144,7 @@ func run_test() -> void:
 
 		runtime.set("flow", 5)
 		check(bool(overlay.call("animation_should_freeze")), "Paused gameplay must freeze animation time.")
+		check(not bool(overlay.call("presentation_world_layers_allowed")), "Paused gameplay must not redraw world presentation above the pause panel.")
 	root.remove_child(runtime)
 	runtime.free()
 	finish()
@@ -151,7 +157,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, area cards, fading action prompts, environment animation and companion facing are coherent.")
+		print("Sprite animation runtime smoke test passed: profiles, grounded cadence, depth sorting, foreground occlusion, area cards, fading action prompts, environment animation, combat readability and companion facing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

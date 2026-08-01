@@ -25,6 +25,13 @@ static func load_settings(root_path: String = ROOT) -> Dictionary:
 	var final_path := settings_path(root_path)
 	var fallback_path := backup_path(root_path)
 	if not FileAccess.file_exists(final_path):
+		if FileAccess.file_exists(fallback_path):
+			var backup_only := read_settings_path(fallback_path)
+			if bool(backup_only.get("ok", false)):
+				backup_only["recovered_from_backup"] = true
+				backup_only["used_defaults"] = false
+				backup_only["errors"] = []
+				return backup_only
 		return {
 			"ok": true,
 			"settings": PlayerSettings.default_settings(),

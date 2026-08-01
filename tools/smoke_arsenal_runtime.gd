@@ -44,7 +44,7 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) in ["res://src/boss_runtime.gd", "res://src/cinematic_runtime.gd"], "Runtime scene must bind the Boss runtime built on Arsenal.")
+		check(str((script_value as GDScript).resource_path) in ["res://src/boss_runtime.gd", "res://src/cinematic_runtime.gd", "res://src/presentation_runtime_current.gd"], "Runtime scene must bind the presentation-safe Boss runtime built on Arsenal.")
 	root.add_child(runtime)
 	check(runtime.has_method("start_reload"), "Runtime must expose explicit reload behaviour.")
 	check(runtime.has_method("update_projectiles"), "Runtime must expose deterministic projectile updates.")

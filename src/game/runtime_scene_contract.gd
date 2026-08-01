@@ -6,7 +6,7 @@ const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"
 const CURRENT_CAMERA_SCRIPT := "res://src/presentation_camera.gd"
 
-const REQUIRED_RUNTIME_METHODS := PackedStringArray([
+const REQUIRED_RUNTIME_METHODS := [
 	"load_campaign",
 	"update_game",
 	"sync_runtime_entities",
@@ -20,9 +20,9 @@ const REQUIRED_RUNTIME_METHODS := PackedStringArray([
 	"start_cinematic",
 	"presentation_overlay_handles_combat_readability",
 	"root_presentation_suppression_contract_ok"
-])
+]
 
-const REQUIRED_OVERLAY_METHODS := PackedStringArray([
+const REQUIRED_OVERLAY_METHODS := [
 	"initialize_from_runtime",
 	"sprite_runtime_contract_ok",
 	"animation_polish_contract_ok",
@@ -32,12 +32,12 @@ const REQUIRED_OVERLAY_METHODS := PackedStringArray([
 	"draw_adventure_hud",
 	"draw_projectile_overlay",
 	"draw_boss_status_overlay"
-])
+]
 
-const REQUIRED_AUDIO_METHODS := PackedStringArray([
+const REQUIRED_AUDIO_METHODS := [
 	"generator_players_ready",
 	"generator_skip_count"
-])
+]
 
 
 static func script_path(object: Object) -> String:
@@ -49,15 +49,15 @@ static func script_path(object: Object) -> String:
 	return ""
 
 
-static func missing_methods(object: Object, required: PackedStringArray) -> PackedStringArray:
+static func missing_methods(object: Object, required: Array) -> PackedStringArray:
 	var output := PackedStringArray()
 	if object == null:
 		for method_name in required:
-			output.append(method_name)
+			output.append(str(method_name))
 		return output
 	for method_name in required:
-		if not object.has_method(method_name):
-			output.append(method_name)
+		if not object.has_method(str(method_name)):
+			output.append(str(method_name))
 	return output
 
 

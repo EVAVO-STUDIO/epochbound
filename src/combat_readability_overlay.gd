@@ -33,8 +33,28 @@ func animation_should_freeze() -> bool:
 	return player_settings_is_open() or super.animation_should_freeze()
 
 
+func update_reactions(delta: float) -> void:
+	if player_settings_is_open():
+		return
+	super.update_reactions(delta)
+
+
 func update_atmosphere(delta: float) -> void:
+	if player_settings_is_open():
+		return
 	super.update_atmosphere(delta * player_setting_number("environment_motion_intensity", 1.0))
+
+
+func update_footsteps(delta: float) -> void:
+	if player_settings_is_open():
+		return
+	super.update_footsteps(delta)
+
+
+func update_impact_bursts(delta: float) -> void:
+	if player_settings_is_open():
+		return
+	super.update_impact_bursts(delta)
 
 
 func update_environment_animation(delta: float) -> void:
@@ -50,6 +70,18 @@ func environment_spawn_allowed() -> bool:
 
 func trigger_shake(strength: float, duration: float) -> void:
 	super.trigger_shake(strength * player_setting_number("camera_shake_intensity", 1.0), duration)
+
+
+func apply_root_shake() -> void:
+	var scale := player_setting_number("camera_shake_intensity", 1.0)
+	if player_settings_is_open() or scale <= 0.001:
+		shake_strength = 0.0
+		shake_timer = 0.0
+		var runtime := runtime_root()
+		if runtime is Node2D:
+			(runtime as Node2D).position = Vector2.ZERO
+		return
+	super.apply_root_shake()
 
 
 func resolve_context_prompt() -> Dictionary:

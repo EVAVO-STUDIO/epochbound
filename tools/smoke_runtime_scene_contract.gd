@@ -35,6 +35,14 @@ func run_test() -> void:
 		check(bool(audio.call("generator_players_ready")), "Audio generators must be ready in the complete playable scene.")
 		check(int(audio.call("generator_skip_count")) == 0, "Complete-scene startup must not report Audio generator underruns.")
 
+	var capabilities_before: PackedStringArray = runtime.call("active_capabilities") as PackedStringArray
+	runtime.set("suppress_root_combat_hud", true)
+	check(not bool(runtime.call("root_presentation_suppression_contract_ok")), "The root suppression contract must report its temporary draw-only state.")
+	var capabilities_during: PackedStringArray = runtime.call("active_capabilities") as PackedStringArray
+	check(capabilities_during == capabilities_before, "Selective combat HUD suppression must not alter gameplay capabilities.")
+	runtime.set("suppress_root_combat_hud", false)
+	check(bool(runtime.call("root_presentation_suppression_contract_ok")), "Selective combat HUD suppression must restore immediately after drawing.")
+
 	var overlay := runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	var layer := runtime.get_node_or_null("PresentationLayer")
 	check(overlay != null and layer is CanvasLayer, "Presentation layer and overlay must exist for fallback testing.")
@@ -58,7 +66,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, Audio readiness, CanvasLayer ownership and fallback restoration are coherent.")
+		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, selective HUD ownership, Audio readiness, CanvasLayer fallback and restoration are coherent.")
 		quit(0)
 		return
 	for failure in failures:

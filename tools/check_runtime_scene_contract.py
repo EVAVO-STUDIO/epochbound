@@ -64,6 +64,7 @@ require(
     runtime,
     [
         'extends "res://src/cinematic_runtime.gd"',
+        'suppress_root_combat_hud',
         'presentation_overlay_handles_combat_readability',
         'root_presentation_suppression_contract_ok',
         'func draw_game() -> void:',
@@ -71,6 +72,9 @@ require(
         'boss_banner = ""',
         'boss_banner = preserved_banner',
         'func draw_hud(era_data: Dictionary) -> void:',
+        'func equipped_ranged_weapon_data() -> Dictionary:',
+        'func current_boss_index() -> int:',
+        'func active_arena_context() -> Dictionary:',
         'func draw_projectiles() -> void:',
         'func draw_active_boss_arena() -> void:',
     ],
@@ -160,5 +164,6 @@ if errors:
 
 print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, overlay, camera and Audio scripts are pinned")
-print("- duplicate root combat and HUD drawing is explicitly suppressed")
+print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
+print("- inherited quest, companion, notice and system HUD paths remain available")
 print("- primary, focused and executable validation gates cover the composition")

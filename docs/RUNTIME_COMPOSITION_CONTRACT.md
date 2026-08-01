@@ -41,18 +41,19 @@ The presentation adapter must not reimplement those systems. It changes final dr
 
 ## Explicit drawing ownership
 
-When the production overlay is present, the root runtime suppresses its prototype copies of:
+When the production overlay is present, the root runtime suppresses only its duplicated combat-presentation surfaces:
 
-- the base adventure HUD;
 - ammunition and reload information;
 - boss health and phase information;
 - boss transition banners;
 - projectiles;
 - boss arena framing.
 
-The `CanvasLayer` then draws those elements with the same camera conversion, pixel treatment and depth rules as the polished actors and environment.
+The inherited root HUD remains responsible for lower-layer information that has not been replaced, including quest, companion, notice and system feedback. During root HUD drawing, only Arsenal and Boss status queries are temporarily made empty; their underlying gameplay state is not changed.
 
-When a stripped-down custom scene omits the overlay, the inherited root drawing remains available as a fallback. Suppression must therefore be conditional rather than permanent.
+The `CanvasLayer` draws the polished combat surfaces with the same camera conversion, pixel treatment and depth rules as the actors and environment.
+
+When a stripped-down custom scene omits the overlay, every inherited root drawing path remains available as a fallback. Suppression must therefore be conditional rather than permanent.
 
 ## Why this is required
 
@@ -62,8 +63,9 @@ The production contract avoids that ambiguity:
 
 - world simulation remains in the root runtime;
 - durable state remains in existing subsystem records;
-- final polished drawing lives in the high presentation layer;
-- root prototype drawing is disabled only when the high layer confirms it can replace it;
+- final polished combat drawing lives in the high presentation layer;
+- quest, companion and system feedback remain available from inherited HUD code;
+- root duplicate combat drawing is disabled only when the high layer confirms it can replace it;
 - fallback scenes remain functional.
 
 ## Validation
@@ -89,10 +91,11 @@ When replacing the production runtime adapter or overlay:
 2. Update `runtime_scene_contract.gd` with the exact new path.
 3. Update `app.tscn`.
 4. Preserve every required inherited runtime method.
-5. Preserve conditional root-drawing fallback.
-6. Update the static and executable composition tests.
-7. Run the complete Godot 4.6.2 gate.
-8. Confirm no tracked source changed during validation.
-9. Commit the coherent change directly to `main` only after the contract is green.
+5. Preserve inherited non-duplicated HUD information.
+6. Preserve conditional root-drawing fallback.
+7. Update the static and executable composition tests.
+8. Run the complete Godot 4.6.2 gate.
+9. Confirm no tracked source changed during validation.
+10. Commit the coherent change directly to `main` only after the contract is green.
 
 Do not solve presentation conflicts by adding larger opaque masks over unknown prototype output. Give each visual element one explicit owner and retain a tested fallback.

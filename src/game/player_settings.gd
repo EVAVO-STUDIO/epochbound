@@ -151,7 +151,8 @@ static func adjusted(settings: Dictionary, setting_id: String, direction: int) -
 		var maximum := float(definition.get("maximum", 1.0))
 		var step := maxf(0.001, float(definition.get("step", 0.1)))
 		var current := number(output, setting_id, minimum)
-		output[setting_id] = clampf(snappedf(current + step * signi(direction), step), minimum, maximum)
+		var resolved_direction := 1 if direction > 0 else -1
+		output[setting_id] = clampf(snappedf(current + step * resolved_direction, step), minimum, maximum)
 	elif kind == "boolean":
 		output[setting_id] = not boolean(output, setting_id, false)
 	return output

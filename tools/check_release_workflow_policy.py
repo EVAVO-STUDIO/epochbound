@@ -139,6 +139,7 @@ require(
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
+        "smoke_environment_animation.gd",
         "smoke_sprite_animation_studio.gd",
         "smoke_sprite_animation_validation_edges.gd",
         "smoke_sprite_campaign_scaffold.gd",

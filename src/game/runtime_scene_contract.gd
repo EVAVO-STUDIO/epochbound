@@ -52,7 +52,9 @@ static func script_path(object: Object) -> String:
 static func missing_methods(object: Object, required: PackedStringArray) -> PackedStringArray:
 	var output := PackedStringArray()
 	if object == null:
-		return required.duplicate()
+		for method_name in required:
+			output.append(method_name)
+		return output
 	for method_name in required:
 		if not object.has_method(method_name):
 			output.append(method_name)
@@ -112,7 +114,7 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 			errors.append("Runtime root did not recognise presentation-owned combat rendering.")
 	if runtime.has_method("root_presentation_suppression_contract_ok"):
 		if not bool(runtime.call("root_presentation_suppression_contract_ok")):
-			errors.append("Runtime root did not confirm duplicate HUD and boss-banner suppression.")
+			errors.append("Runtime root did not confirm selective combat presentation suppression.")
 	return errors
 
 

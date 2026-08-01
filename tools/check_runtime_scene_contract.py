@@ -130,22 +130,20 @@ require(
     ],
 )
 
-sprite_workflow = read(".github/workflows/sprite-animation-validation.yml")
-require(
-    ".github/workflows/sprite-animation-validation.yml",
-    sprite_workflow,
-    [
-        'python3 tools/check_runtime_scene_contract.py',
-        'run_test res://tools/smoke_runtime_scene_contract.gd',
-    ],
-)
-
-primary_workflow = read(".github/workflows/validate.yml")
-require(
+for workflow_path in [
     ".github/workflows/validate.yml",
-    primary_workflow,
-    ['python3 tools/check_runtime_scene_contract.py'],
-)
+    ".github/workflows/audio-mood-validation.yml",
+    ".github/workflows/sprite-animation-validation.yml",
+]:
+    workflow = read(workflow_path)
+    require(
+        workflow_path,
+        workflow,
+        [
+            'python3 tools/check_runtime_scene_contract.py',
+            'smoke_runtime_scene_contract.gd',
+        ],
+    )
 
 release_policy = read("tools/check_release_workflow_policy.py")
 require(
@@ -167,4 +165,4 @@ print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, overlay, camera and Audio scripts are pinned")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
-print("- primary, focused and executable validation gates cover the composition")
+print("- primary, Audio and Sprite validation gates cover the executable composition")

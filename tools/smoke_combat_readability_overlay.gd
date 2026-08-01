@@ -43,7 +43,7 @@ func run_test() -> void:
 		"active": true,
 		"definition": {"kind": "prop", "appearance": {"shape": "crate"}}
 	}])
-	runtime.set("projectiles", [{
+	var projectile := {
 		"source_kind": "player",
 		"source_id": "test_weapon",
 		"previous_position": Vector2(70, 210),
@@ -51,7 +51,8 @@ func run_test() -> void:
 		"radius": 3.0,
 		"color": Color("e7c56c"),
 		"active": true
-	}])
+	}
+	runtime.set("projectiles", [projectile])
 	check(int(overlay.call("combat_projectile_count")) == 1, "One active projectile must be promoted into the presentation layer.")
 	var order: PackedStringArray = overlay.call("combat_depth_order_keys")
 	check(order.size() == 4, "Combat depth ordering must include player, companion, entity and projectile.")
@@ -60,7 +61,7 @@ func run_test() -> void:
 		check(order[1] == "player", "Player depth must remain stable around projectiles.")
 		check(order[2].begins_with("projectile:"), "Projectile depth must resolve from its world-space position.")
 		check(order[3] == "entity:depth_prop", "The deepest entity must render in front.")
-	var segment: Dictionary = overlay.call("projectile_screen_segment", (runtime.get("projectiles") as Array)[0])
+	var segment: Dictionary = overlay.call("projectile_screen_segment", projectile)
 	var start_value: Variant = segment.get("start", Vector2.ZERO)
 	var finish_value: Variant = segment.get("finish", Vector2.ZERO)
 	var start: Vector2 = start_value if start_value is Vector2 else Vector2.ZERO

@@ -118,6 +118,8 @@ require(
         "SHA512-SUMS.txt",
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_runtime_scene_contract.py",
+        "smoke_runtime_scene_contract.gd",
         "smoke_audio_mood_runtime.gd",
         "smoke_audio_mood_studio.gd",
         "smoke_audio_mood_validation_edges.gd",

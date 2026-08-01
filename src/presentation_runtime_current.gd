@@ -1,5 +1,7 @@
 extends "res://src/cinematic_runtime.gd"
 
+var suppress_root_combat_hud := false
+
 
 func presentation_overlay_handles_combat_readability() -> bool:
 	var overlay := get_node_or_null("PresentationLayer/PresentationOverlay")
@@ -10,6 +12,7 @@ func root_presentation_suppression_contract_ok() -> bool:
 	var overlay := get_node_or_null("PresentationLayer/PresentationOverlay")
 	return (
 		presentation_overlay_handles_combat_readability()
+		and not suppress_root_combat_hud
 		and overlay != null
 		and overlay.has_method("draw_adventure_hud")
 		and overlay.has_method("draw_boss_banner_overlay")
@@ -31,11 +34,33 @@ func draw_game() -> void:
 
 
 func draw_hud(era_data: Dictionary) -> void:
-	# The production CanvasLayer owns the complete adventure, ammunition and boss
-	# HUD. Stripped-down custom scenes without that layer retain inherited HUDs.
-	if presentation_overlay_handles_combat_readability():
+	if not presentation_overlay_handles_combat_readability():
+		super.draw_hud(era_data)
 		return
+	# Keep inherited quest, companion, notice and system HUD contributions. Only
+	# make Arsenal and Boss HUD queries resolve empty while their polished copies
+	# are drawn by the higher presentation layer.
+	suppress_root_combat_hud = true
 	super.draw_hud(era_data)
+	suppress_root_combat_hud = false
+
+
+func equipped_ranged_weapon_data() -> Dictionary:
+	if suppress_root_combat_hud and presentation_overlay_handles_combat_readability():
+		return {}
+	return super.equipped_ranged_weapon_data()
+
+
+func current_boss_index() -> int:
+	if suppress_root_combat_hud and presentation_overlay_handles_combat_readability():
+		return -1
+	return super.current_boss_index()
+
+
+func active_arena_context() -> Dictionary:
+	if suppress_root_combat_hud and presentation_overlay_handles_combat_readability():
+		return {}
+	return super.active_arena_context()
 
 
 func draw_projectiles() -> void:

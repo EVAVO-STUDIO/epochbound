@@ -52,6 +52,10 @@ require(
         '"start_reload"',
         '"update_boss_engagements"',
         '"start_cinematic"',
+        '"open_player_settings"',
+        '"player_settings_contract_ok"',
+        '"player_settings_overlay_contract_ok"',
+        '"player_settings_audio_contract_ok"',
         '"root_presentation_suppression_contract_ok"',
         'validate_runtime_scene',
         'runtime_scene_is_valid',
@@ -64,9 +68,13 @@ require(
     runtime,
     [
         'extends "res://src/cinematic_runtime.gd"',
+        'PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")',
         'suppress_root_combat_hud',
         'presentation_overlay_handles_combat_readability',
         'root_presentation_suppression_contract_ok',
+        'open_player_settings',
+        'close_player_settings',
+        'player_settings_contract_ok',
         'func draw_game() -> void:',
         'var preserved_banner := boss_banner',
         'boss_banner = ""',
@@ -119,6 +127,20 @@ require(
     ],
 )
 
+settings_compile = read("tools/compile_player_settings_probe.gd")
+require(
+    "tools/compile_player_settings_probe.gd",
+    settings_compile,
+    [
+        'res://src/game/player_settings.gd',
+        'res://src/game/player_settings_store.gd',
+        'res://src/presentation_runtime_current.gd',
+        'res://src/combat_readability_overlay.gd',
+        'res://src/audio_mood_runtime.gd',
+        'res://src/app.tscn',
+    ],
+)
+
 local_gate = read("scripts/validate.ps1")
 require(
     "scripts/validate.ps1",
@@ -126,6 +148,8 @@ require(
     [
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
+        'compile_player_settings_probe.gd',
+        'smoke_player_settings.gd',
         'canonical runtime',
     ],
 )
@@ -136,6 +160,7 @@ require(
     primary_workflow,
     [
         'python3 tools/check_runtime_scene_contract.py',
+        'python3 tools/check_player_settings_contract.py',
         'scripts/validate.ps1',
         'Run complete seventeen-system validation gate',
     ],
@@ -151,7 +176,9 @@ for workflow_path in [
         workflow,
         [
             'python3 tools/check_runtime_scene_contract.py',
+            'python3 tools/check_player_settings_contract.py',
             'smoke_runtime_scene_contract.gd',
+            'smoke_player_settings.gd',
         ],
     )
 
@@ -161,7 +188,9 @@ require(
     release_policy,
     [
         'python3 tools/check_runtime_scene_contract.py',
+        'python3 tools/check_player_settings_contract.py',
         'smoke_runtime_scene_contract.gd',
+        'smoke_player_settings.gd',
     ],
 )
 
@@ -175,4 +204,5 @@ print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, overlay, camera and Audio scripts are pinned")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
+print("- player-local settings are required across runtime, presentation and Audio")
 print("- primary unified and focused validation gates cover the executable composition")

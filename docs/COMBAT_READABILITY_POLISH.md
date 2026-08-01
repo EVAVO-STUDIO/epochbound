@@ -10,14 +10,21 @@ The solution is not to make every combat element permanently topmost. Epochbound
 
 The playable scene uses `presentation_runtime_current.gd`, which retains every Cinematic, Boss, Arsenal, economy, equipment, save, story and world behaviour.
 
-When the combat-readability overlay is present, the adapter suppresses duplicate base-layer drawing for:
+When the combat-readability overlay is present, the adapter suppresses duplicate root drawing for:
 
 - moving projectiles;
-- the authored boss arena outline.
+- the authored boss arena outline;
+- Arsenal ammunition and reload status;
+- Boss health, phase and reinforcement status;
+- Boss transition banners.
 
-A stripped-down custom scene without the overlay still receives the inherited fallback drawing.
+The adapter does **not** suppress inherited quest, companion, notice or system HUD contributions. During the inherited HUD pass, only the ranged-weapon and active-boss queries are temporarily made empty, then restored immediately. Gameplay state is never changed by presentation suppression.
+
+A stripped-down custom scene without the overlay still receives every inherited fallback drawing path.
 
 Simulation remains in the existing runtime. The adapter changes presentation ownership only.
+
+The complete root, camera, Audio, CanvasLayer and overlay relationship is defined in [`RUNTIME_COMPOSITION_CONTRACT.md`](RUNTIME_COMPOSITION_CONTRACT.md).
 
 ## Projectile presentation
 
@@ -104,7 +111,8 @@ Animated terrain and ambient ground motion
 Material-specific ground disturbances
 Feet-sorted actors, entities and projectiles
 Foreground landmark occlusion
-Fixed player, ammo and boss status
+Inherited non-duplicated system HUD
+Fixed polished player, ammo and boss status
 Dialogue, area cards and contextual prompts
 Screen texture and bounded flashes
 ```
@@ -141,9 +149,11 @@ The dedicated combat-readability regression verifies:
 - normal gameplay permits presentation-owned combat layers;
 - paused gameplay prevents those layers from covering the pause panel.
 
-The cinematic regression also confirms that the new runtime adapter preserves the complete cinematic API and durable completion behaviour.
+The canonical runtime-scene regression additionally verifies exact script paths, inherited subsystem APIs, Audio readiness, selective combat-HUD suppression, fallback ownership and restoration after reattaching the overlay.
 
-The focused compile probe, complete local validation gate, static integration audit and exact-SHA Sprite workflow all include the new runtime, overlay and regression.
+The cinematic regression also confirms that the runtime adapter preserves the complete cinematic API and durable completion behaviour.
+
+The primary compile probe, focused compile probe, complete local validation gate, static runtime audit, Sprite integration audit and exact-SHA workflows all include the runtime composition and combat-readability tests.
 
 ## Manual review
 
@@ -153,9 +163,11 @@ A focused Windows playtest should verify:
 2. Fire above and below NPCs, props and enemies and inspect overlap.
 3. Fire behind a tree canopy or ruin foreground and confirm the occlusion is believable.
 4. Reload and confirm the top-right ammo panel remains readable beside the map plaque.
-5. Enter the Underworks Sentinel arena and confirm its boundary stays behind actors.
-6. Review boss name, phase and health during all three phases.
-7. Pause while a projectile is active and confirm the pause panel remains unobstructed.
-8. Open every blocking menu and confirm combat-critical feedback does not leak above it.
-9. Resume and confirm projectile simulation and transient presentation remain coherent.
-10. Test at native 640 by 360 and the 1280 by 720 window override.
+5. Confirm quest, companion and system feedback still appears while the polished ammo panel replaces only the prototype ammo panel.
+6. Enter the Underworks Sentinel arena and confirm its boundary stays behind actors.
+7. Review boss name, phase and health during all three phases.
+8. Pause while a projectile is active and confirm the pause panel remains unobstructed.
+9. Open every blocking menu and confirm combat-critical feedback does not leak above it.
+10. Resume and confirm projectile simulation and transient presentation remain coherent.
+11. Remove the presentation overlay in a temporary local scene and confirm inherited fallback HUD, projectile and arena drawing remains functional.
+12. Test at native 640 by 360 and the 1280 by 720 window override.

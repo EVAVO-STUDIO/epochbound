@@ -30,8 +30,9 @@ The reference campaign, **The Hours Beneath**, currently provides:
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
 20. Animated water, grass sway, brass machinery cycles, material-specific foot response, foreground occlusion and contextual world feedback
+21. Camera-correct projectiles, shared combat depth, presentation-owned ammo and boss status, and pause-safe CanvasLayer ordering
 
-The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
+The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
 ## Seventeen connected Godot authoring tools
 
@@ -140,8 +141,10 @@ The Presentation layer provides:
 - deterministic pollen, dust, fireflies, embers and cinders;
 - animated water, grass, brass service paths and bounded ambient ground motion;
 - movement-linked water ripples, bent grass, ash, dust and metal glints for Eli and Morrow;
-- feet-based actor and entity depth ordering plus foreground tree, branch and ruin occlusion;
+- feet-based actor, entity and projectile depth ordering plus foreground tree, branch and ruin occlusion;
 - area arrival cards, nearest-target action prompts and capability-aware locked feedback;
+- camera-correct projectile trails, presentation-owned ammunition status and boss phase panels;
+- pause-safe layering that prevents the high CanvasLayer from covering the root pause interface;
 - footstep puffs, impact bursts, era flashes and attack glints;
 - notched health bars and an original compact framed interface;
 - restrained scanline, dither and vignette treatment.
@@ -188,6 +191,7 @@ Read:
 - [`docs/ANIMATION_DEPTH_POLISH.md`](docs/ANIMATION_DEPTH_POLISH.md)
 - [`docs/ADVENTURE_FEEDBACK_POLISH.md`](docs/ADVENTURE_FEEDBACK_POLISH.md)
 - [`docs/ENVIRONMENT_ANIMATION_POLISH.md`](docs/ENVIRONMENT_ANIMATION_POLISH.md)
+- [`docs/COMBAT_READABILITY_POLISH.md`](docs/COMBAT_READABILITY_POLISH.md)
 
 ## Reference campaign structure
 
@@ -253,7 +257,8 @@ The gate performs:
 - repository-wide campaign production audit;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
-- animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions.
+- animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
+- projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero.
 
@@ -311,6 +316,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/BOSS_PLAYTEST_CHECKLIST.md`](docs/BOSS_PLAYTEST_CHECKLIST.md)
 - [`docs/CINEMATIC_TIMELINE_STUDIO.md`](docs/CINEMATIC_TIMELINE_STUDIO.md)
 - [`docs/CINEMATIC_PLAYTEST_CHECKLIST.md`](docs/CINEMATIC_PLAYTEST_CHECKLIST.md)
+- [`docs/COMBAT_READABILITY_POLISH.md`](docs/COMBAT_READABILITY_POLISH.md)
 
 ### Release, audit and presentation
 

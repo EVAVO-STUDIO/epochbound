@@ -4,6 +4,7 @@ const TARGETS := [
 	"res://src/content/sprite_animation_catalog.gd",
 	"res://src/content/sprite_animation_validator.gd",
 	"res://src/content/sprite_animation_strict_validator.gd",
+	"res://src/game/runtime_scene_contract.gd",
 	"res://src/presentation_runtime_current.gd",
 	"res://src/sprite_animation_overlay.gd",
 	"res://src/sprite_animation_overlay_current.gd",
@@ -15,6 +16,7 @@ const TARGETS := [
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio.gd",
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd",
 	"res://addons/epochbound_sprite_animation_studio/plugin.gd",
+	"res://tools/smoke_runtime_scene_contract.gd",
 	"res://tools/smoke_sprite_animation_runtime.gd",
 	"res://tools/smoke_environment_animation.gd",
 	"res://tools/smoke_combat_readability_overlay.gd",
@@ -39,7 +41,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Sprite animation compile probe passed: catalogues, validators, presentation-safe runtime, grounded animation, adventure feedback, animated environments, combat readability, editor, scaffolding, package safety and tests load cleanly.")
+		print("Sprite animation compile probe passed: canonical runtime contract, catalogues, validators, presentation-safe runtime, grounded animation, adventure feedback, animated environments, combat readability, editor, scaffolding, package safety and tests load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

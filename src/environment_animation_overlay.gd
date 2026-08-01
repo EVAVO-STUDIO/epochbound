@@ -178,6 +178,16 @@ func environment_draw_allowed() -> bool:
 	)
 
 
+func interaction_world_pulse_allowed() -> bool:
+	return (
+		feedback_draw_allowed()
+		and runtime_string("dialogue").is_empty()
+		and runtime_number("transition_lock", 0.0) <= 0.0
+		and context_prompt_alpha > 0.06
+		and not context_prompt.is_empty()
+	)
+
+
 func draw_animated_terrain() -> void:
 	var map_data := runtime_map_data()
 	if map_data.is_empty():
@@ -318,7 +328,7 @@ func draw_ambient_ground_motion() -> void:
 
 
 func draw_interaction_world_pulse() -> void:
-	if not feedback_draw_allowed() or context_prompt_alpha <= 0.06 or context_prompt.is_empty():
+	if not interaction_world_pulse_allowed():
 		return
 	var position_value: Variant = context_prompt.get("position", Vector2.ZERO)
 	var world_position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO

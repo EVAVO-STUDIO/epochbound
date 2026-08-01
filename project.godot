@@ -97,6 +97,10 @@ reload_weapon={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":71), Object(InputEventJoypadMotion,"axis":5,"axis_value":1.0)]
 }
+options_menu={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":79)]
+}
 pause_game={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":4194305), Object(InputEventJoypadButton,"button_index":6)]

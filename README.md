@@ -29,8 +29,9 @@ The reference campaign, **The Hours Beneath**, currently provides:
 17. Original map and era presentation profiles with camera feel, atmosphere, restrained screen texture and framed HUD
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
+20. Animated water, grass sway, brass machinery cycles, material-specific foot response, foreground occlusion and contextual world feedback
 
-The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
+The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
 ## Seventeen connected Godot authoring tools
 
@@ -137,6 +138,10 @@ The Presentation layer provides:
 - camera follow, deadzone, directional look-ahead and bounded shake;
 - a separate CanvasLayer that keeps HUD and dialogue fixed during world-camera movement;
 - deterministic pollen, dust, fireflies, embers and cinders;
+- animated water, grass, brass service paths and bounded ambient ground motion;
+- movement-linked water ripples, bent grass, ash, dust and metal glints for Eli and Morrow;
+- feet-based actor and entity depth ordering plus foreground tree, branch and ruin occlusion;
+- area arrival cards, nearest-target action prompts and capability-aware locked feedback;
 - footstep puffs, impact bursts, era flashes and attack glints;
 - notched health bars and an original compact framed interface;
 - restrained scanline, dither and vignette treatment.
@@ -180,6 +185,9 @@ Read:
 - [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 - [`docs/SPRITE_ANIMATION_STUDIO.md`](docs/SPRITE_ANIMATION_STUDIO.md)
 - [`docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md`](docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md)
+- [`docs/ANIMATION_DEPTH_POLISH.md`](docs/ANIMATION_DEPTH_POLISH.md)
+- [`docs/ADVENTURE_FEEDBACK_POLISH.md`](docs/ADVENTURE_FEEDBACK_POLISH.md)
+- [`docs/ENVIRONMENT_ANIMATION_POLISH.md`](docs/ENVIRONMENT_ANIMATION_POLISH.md)
 
 ## Reference campaign structure
 
@@ -244,7 +252,8 @@ The gate performs:
 - complete content validation through the strict Sprite Animation validator;
 - repository-wide campaign production audit;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
-- Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions.
+- Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
+- animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero.
 
@@ -315,6 +324,9 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 - [`docs/SPRITE_ANIMATION_STUDIO.md`](docs/SPRITE_ANIMATION_STUDIO.md)
 - [`docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md`](docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md)
+- [`docs/ANIMATION_DEPTH_POLISH.md`](docs/ANIMATION_DEPTH_POLISH.md)
+- [`docs/ADVENTURE_FEEDBACK_POLISH.md`](docs/ADVENTURE_FEEDBACK_POLISH.md)
+- [`docs/ENVIRONMENT_ANIMATION_POLISH.md`](docs/ENVIRONMENT_ANIMATION_POLISH.md)
 
 ### Formats and vision
 
@@ -334,7 +346,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - Skippable presentation with progression-equivalent outcomes
 - Campaign portability with strict validation and safe installation
 - Low-resolution authenticity with modern reliability and accessibility
-- Music, animation and sound that reinforce place and action without copying protected works
+- Music, animation, environmental motion and sound that reinforce place and action without copying protected works
 
 ## Next production boundaries
 

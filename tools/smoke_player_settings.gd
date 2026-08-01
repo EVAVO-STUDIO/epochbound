@@ -22,13 +22,13 @@ func run_test() -> void:
 
 
 func test_model_contract() -> void:
-	var defaults := PlayerSettings.default_settings()
+	var defaults: Dictionary = PlayerSettings.default_settings()
 	check(bool(PlayerSettings.validate(defaults).get("ok", false)), "Default player settings must validate.")
 	check(PlayerSettings.entries().size() == 12, "Player settings must expose ten adjustable values plus Reset and Back.")
 	check(is_equal_approx(PlayerSettings.number(defaults, "master_volume"), 1.0), "Default master volume must be full.")
 	check(PlayerSettings.boolean(defaults, "show_action_prompts", false), "Action prompts must be enabled by default.")
 
-	var sanitized := PlayerSettings.sanitize({
+	var sanitized: Dictionary = PlayerSettings.sanitize({
 		"schema_version": 1,
 		"music_volume": 4.25,
 		"sfx_volume": -2.0,
@@ -38,17 +38,17 @@ func test_model_contract() -> void:
 	check(is_equal_approx(PlayerSettings.number(sanitized, "sfx_volume"), 0.0), "Numeric player settings must clamp at their minimum.")
 	check(PlayerSettings.boolean(sanitized, "show_action_prompts", false), "Malformed booleans must fall back to safe defaults.")
 
-	var migration := PlayerSettings.migrate({"schema_version": 0, "master_volume": 0.4})
+	var migration: Dictionary = PlayerSettings.migrate({"schema_version": 0, "master_volume": 0.4})
 	check(bool(migration.get("ok", false)), "Schema-zero player settings must migrate.")
 	check(bool(migration.get("migrated", false)), "Partial legacy player settings must report migration.")
-	var migrated: Dictionary = migration.get("settings", {})
+	var migrated: Dictionary = dictionary_field(migration, "settings")
 	check(int(migrated.get("schema_version", 0)) == PlayerSettings.CURRENT_SCHEMA, "Migrated player settings must use the current schema.")
 	check(is_equal_approx(PlayerSettings.number(migrated, "master_volume"), 0.4), "Migration must preserve recognised values.")
 	check(PlayerSettings.boolean(migrated, "show_action_prompts", false), "Migration must fill newly introduced settings.")
 
-	var future := PlayerSettings.migrate({"schema_version": PlayerSettings.CURRENT_SCHEMA + 1})
+	var future: Dictionary = PlayerSettings.migrate({"schema_version": PlayerSettings.CURRENT_SCHEMA + 1})
 	check(not bool(future.get("ok", true)), "Unknown future player-setting schemas must be rejected.")
-	var adjusted := PlayerSettings.adjusted(defaults, "screen_texture_intensity", -1)
+	var adjusted: Dictionary = PlayerSettings.adjusted(defaults, "screen_texture_intensity", -1)
 	check(is_equal_approx(PlayerSettings.number(adjusted, "screen_texture_intensity"), 0.75), "Range adjustment must follow the authored step.")
 	adjusted = PlayerSettings.adjusted(adjusted, "high_contrast_ui", 1)
 	check(PlayerSettings.boolean(adjusted, "high_contrast_ui", false), "Boolean adjustment must toggle deterministically.")
@@ -56,41 +56,44 @@ func test_model_contract() -> void:
 
 func test_isolated_atomic_storage() -> void:
 	PlayerSettingsStore.delete_settings(TEST_ROOT)
-	var empty := PlayerSettingsStore.load_settings(TEST_ROOT)
+	var empty: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
 	check(bool(empty.get("ok", false)), "Missing player settings must resolve to defaults.")
 	check(bool(empty.get("used_defaults", false)), "Missing player settings must report default recovery.")
 
-	var first := PlayerSettings.default_settings()
+	var first: Dictionary = PlayerSettings.default_settings()
 	first["master_volume"] = 0.4
-	var first_write := PlayerSettingsStore.write_settings(first, TEST_ROOT)
+	var first_write: Dictionary = PlayerSettingsStore.write_settings(first, TEST_ROOT)
 	check(bool(first_write.get("ok", false)), "First player-settings write must complete atomically.")
 	check(FileAccess.file_exists(PlayerSettingsStore.settings_path(TEST_ROOT)), "Atomic settings write must promote the final file.")
 	check(not FileAccess.file_exists(PlayerSettingsStore.temp_path(TEST_ROOT)), "Atomic settings write must not leave a temporary file.")
 
-	var second := PlayerSettings.default_settings()
+	var second: Dictionary = PlayerSettings.default_settings()
 	second["master_volume"] = 0.8
-	var second_write := PlayerSettingsStore.write_settings(second, TEST_ROOT)
+	var second_write: Dictionary = PlayerSettingsStore.write_settings(second, TEST_ROOT)
 	check(bool(second_write.get("ok", false)), "Second player-settings write must complete.")
 	check(FileAccess.file_exists(PlayerSettingsStore.backup_path(TEST_ROOT)), "Replacing valid settings must preserve the previous file as backup.")
-	var current := PlayerSettingsStore.load_settings(TEST_ROOT)
-	check(is_equal_approx(PlayerSettings.number(current.get("settings", {}), "master_volume"), 0.8), "The promoted settings file must contain the latest value.")
+	var current: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
+	var current_settings := dictionary_field(current, "settings")
+	check(is_equal_approx(PlayerSettings.number(current_settings, "master_volume"), 0.8), "The promoted settings file must contain the latest value.")
 
-	var corrupt := FileAccess.open(PlayerSettingsStore.settings_path(TEST_ROOT), FileAccess.WRITE)
+	var corrupt: FileAccess = FileAccess.open(PlayerSettingsStore.settings_path(TEST_ROOT), FileAccess.WRITE)
 	check(corrupt != null, "Test must be able to corrupt the isolated primary settings file.")
 	if corrupt != null:
 		corrupt.store_string("{ invalid settings")
 		corrupt.flush()
 		corrupt.close()
-	var recovered := PlayerSettingsStore.load_settings(TEST_ROOT)
+	var recovered: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
 	check(bool(recovered.get("ok", false)), "A corrupt primary settings file must not prevent recovery.")
 	check(bool(recovered.get("recovered_from_backup", false)), "A valid backup must be identified as the recovery source.")
-	check(is_equal_approx(PlayerSettings.number(recovered.get("settings", {}), "master_volume"), 0.4), "Backup recovery must restore the previous complete value.")
+	var recovered_settings := dictionary_field(recovered, "settings")
+	check(is_equal_approx(PlayerSettings.number(recovered_settings, "master_volume"), 0.4), "Backup recovery must restore the previous complete value.")
 
-	var rewrite := PlayerSettingsStore.rewrite_loaded_settings(recovered, TEST_ROOT)
+	var rewrite: Dictionary = PlayerSettingsStore.rewrite_loaded_settings(recovered, TEST_ROOT)
 	check(bool(rewrite.get("ok", false)), "Recovered settings must be promotable without destroying the valid backup first.")
-	var promoted := PlayerSettingsStore.load_settings(TEST_ROOT)
+	var promoted: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
 	check(not bool(promoted.get("recovered_from_backup", false)), "A rewritten recovered profile must load from the primary path.")
-	check(is_equal_approx(PlayerSettings.number(promoted.get("settings", {}), "master_volume"), 0.4), "Rewritten recovered settings must retain their value.")
+	var promoted_settings := dictionary_field(promoted, "settings")
+	check(is_equal_approx(PlayerSettings.number(promoted_settings, "master_volume"), 0.4), "Rewritten recovered settings must retain their value.")
 	PlayerSettingsStore.delete_settings(TEST_ROOT)
 
 
@@ -99,7 +102,7 @@ func test_runtime_integration() -> void:
 	check(packed is PackedScene, "Player-settings-aware runtime scene must load.")
 	if not packed is PackedScene:
 		return
-	var runtime := (packed as PackedScene).instantiate()
+	var runtime: Node = (packed as PackedScene).instantiate()
 	check(runtime != null, "Player-settings-aware runtime scene must instantiate.")
 	if runtime == null:
 		return
@@ -107,10 +110,12 @@ func test_runtime_integration() -> void:
 	await process_frame
 
 	check(bool(runtime.call("player_settings_contract_ok")), "Runtime player settings must satisfy the versioned model contract.")
-	check((runtime.call("title_menu") as Array[String]).has("OPTIONS"), "Title menu must expose Options.")
+	var title_value: Variant = runtime.call("title_menu")
+	var title_entries: Array = title_value as Array if typeof(title_value) == TYPE_ARRAY else []
+	check(title_entries.has("OPTIONS"), "Title menu must expose Options.")
 	check(int(runtime.call("player_settings_entry_count")) == 12, "Runtime Options surface must expose every authored row.")
 
-	var custom := PlayerSettings.default_settings()
+	var custom: Dictionary = PlayerSettings.default_settings()
 	custom["master_volume"] = 0.8
 	custom["music_volume"] = 0.5
 	custom["ambience_volume"] = 0.25
@@ -127,7 +132,9 @@ func test_runtime_integration() -> void:
 	check(overlay != null, "Playable scene must include the settings-aware presentation overlay.")
 	if overlay != null:
 		check(bool(overlay.call("player_settings_overlay_contract_ok")), "Presentation overlay must preserve all inherited contracts while applying player settings.")
-		check((overlay.call("resolve_context_prompt") as Dictionary).is_empty(), "Disabled action prompts must suppress prompt selection before drawing.")
+		var prompt_value: Variant = overlay.call("resolve_context_prompt")
+		var prompt: Dictionary = prompt_value as Dictionary if typeof(prompt_value) == TYPE_DICTIONARY else {}
+		check(prompt.is_empty(), "Disabled action prompts must suppress prompt selection before drawing.")
 		overlay.set("shake_strength", 0.0)
 		overlay.set("shake_timer", 0.0)
 		overlay.call("trigger_shake", 5.0, 0.3)
@@ -141,7 +148,8 @@ func test_runtime_integration() -> void:
 	check(audio != null, "Playable scene must include settings-aware AudioMood.")
 	if audio != null:
 		audio.call("apply_player_volume_settings")
-		var volume: Dictionary = audio.call("player_volume_snapshot")
+		var volume_value: Variant = audio.call("player_volume_snapshot")
+		var volume: Dictionary = volume_value as Dictionary if typeof(volume_value) == TYPE_DICTIONARY else {}
 		check(is_equal_approx(float(volume.get("music", 0.0)), 0.4), "Music gain must combine master and music settings.")
 		check(is_equal_approx(float(volume.get("ambience", 0.0)), 0.2), "Ambience gain must combine master and ambience settings.")
 		check(is_equal_approx(float(volume.get("sfx", 0.0)), 0.6), "SFX gain must combine master and SFX settings.")
@@ -177,6 +185,11 @@ func test_runtime_integration() -> void:
 
 	root.remove_child(runtime)
 	runtime.free()
+
+
+func dictionary_field(source: Dictionary, key: String) -> Dictionary:
+	var value: Variant = source.get(key, {})
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
 
 
 func check(condition: bool, message: String) -> void:

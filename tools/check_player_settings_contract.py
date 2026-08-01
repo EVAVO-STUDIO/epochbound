@@ -201,8 +201,19 @@ require(
     ],
 )
 
+primary_workflow_path = ".github/workflows/validate.yml"
+primary_workflow = read(primary_workflow_path)
+require(
+    primary_workflow_path,
+    primary_workflow,
+    [
+        "python3 tools/check_player_settings_contract.py",
+        "scripts/validate.ps1",
+        "Run complete seventeen-system validation gate",
+    ],
+)
+
 for workflow_path in [
-    ".github/workflows/validate.yml",
     ".github/workflows/audio-mood-validation.yml",
     ".github/workflows/sprite-animation-validation.yml",
 ]:
@@ -251,4 +262,4 @@ print("epochbound_player_settings_contract_passed")
 print("- player-local settings are versioned, sanitised and stored atomically")
 print("- Options controls Audio, presentation intensity, prompts and contrast")
 print("- campaign saves and portable campaign packages remain separate")
-print("- primary, Audio, Sprite and local gates cover the complete integration")
+print("- primary unified, Audio, Sprite and local gates cover the complete integration")

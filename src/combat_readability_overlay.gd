@@ -7,15 +7,198 @@ const COMBAT_FLOW_PAUSED := 5
 const COMBAT_VIEW := Vector2(640, 360)
 const MAX_PROJECTILE_OVERLAYS := 128
 const PROJECTILE_TRAIL_LENGTH := 18.0
+const PLAYER_SETTINGS_PANEL := Rect2(64, 18, 512, 324)
+const PLAYER_SETTINGS_ROW_HEIGHT := 20.0
+
+
+func player_setting_number(setting_id: String, fallback: float = 1.0) -> float:
+	var runtime := runtime_root()
+	if runtime == null or not runtime.has_method("player_setting_number"):
+		return fallback
+	return float(runtime.call("player_setting_number", setting_id, fallback))
+
+
+func player_setting_bool(setting_id: String, fallback: bool = false) -> bool:
+	var runtime := runtime_root()
+	if runtime == null or not runtime.has_method("player_setting_bool"):
+		return fallback
+	return bool(runtime.call("player_setting_bool", setting_id, fallback))
+
+
+func player_settings_is_open() -> bool:
+	return runtime_boolean("player_settings_open")
+
+
+func animation_should_freeze() -> bool:
+	return player_settings_is_open() or super.animation_should_freeze()
+
+
+func update_atmosphere(delta: float) -> void:
+	super.update_atmosphere(delta * player_setting_number("environment_motion_intensity", 1.0))
+
+
+func update_environment_animation(delta: float) -> void:
+	var scale := player_setting_number("environment_motion_intensity", 1.0)
+	if scale <= 0.001:
+		ground_disturbances.clear()
+	super.update_environment_animation(delta * scale)
+
+
+func environment_spawn_allowed() -> bool:
+	return player_setting_number("environment_motion_intensity", 1.0) > 0.001 and super.environment_spawn_allowed()
+
+
+func trigger_shake(strength: float, duration: float) -> void:
+	super.trigger_shake(strength * player_setting_number("camera_shake_intensity", 1.0), duration)
+
+
+func resolve_context_prompt() -> Dictionary:
+	if not player_setting_bool("show_action_prompts", true):
+		return {}
+	return super.resolve_context_prompt()
+
+
+func draw_context_prompt() -> void:
+	if not player_setting_bool("show_action_prompts", true):
+		return
+	super.draw_context_prompt()
+
+
+func interaction_world_pulse_allowed() -> bool:
+	return player_setting_bool("show_action_prompts", true) and super.interaction_world_pulse_allowed()
+
+
+func profile_color(key: String, fallback: String) -> Color:
+	var resolved := super.profile_color(key, fallback)
+	if not player_setting_bool("high_contrast_ui", false):
+		return resolved
+	match key:
+		"ink", "ui_fill":
+			return Color("050505")
+		"ui_text":
+			return Color("ffffff")
+		"ui_frame":
+			return Color("f4d35e")
+		"danger":
+			return Color("ff5a52")
+	return resolved
+
+
+func draw_screen_texture(multiplier: float) -> void:
+	super.draw_screen_texture(multiplier * player_setting_number("screen_texture_intensity", 1.0))
+
+
+func draw_title_finish() -> void:
+	super.draw_title_finish()
+	draw_player_settings_panel()
 
 
 func draw_game_finish() -> void:
+	var saved_era_flash := era_flash
+	var saved_impact_flash := impact_flash
+	var flash_scale := player_setting_number("flash_intensity", 1.0)
+	era_flash *= flash_scale
+	impact_flash *= flash_scale
 	# The root runtime already draws its pause panel. Because this presentation
 	# node lives on a higher CanvasLayer, redrawing the world here would cover it.
 	if runtime_flow() == COMBAT_FLOW_PAUSED:
 		draw_screen_texture(1.0)
+		era_flash = saved_era_flash
+		impact_flash = saved_impact_flash
+		draw_player_settings_panel()
 		return
 	super.draw_game_finish()
+	era_flash = saved_era_flash
+	impact_flash = saved_impact_flash
+	draw_player_settings_panel()
+
+
+func draw_player_settings_panel() -> void:
+	if not player_settings_is_open():
+		return
+	var runtime := runtime_root()
+	if runtime == null or not runtime.has_method("player_settings_rows"):
+		return
+	var rows_value: Variant = runtime.call("player_settings_rows")
+	var rows: Array = rows_value as Array if typeof(rows_value) == TYPE_ARRAY else []
+	var selected := clampi(runtime_integer("player_settings_index", 0), 0, maxi(0, rows.size() - 1))
+	var fill := profile_color("ui_fill", "15191b")
+	var frame := profile_color("ui_frame", "9f8651")
+	var text := profile_color("ui_text", "eee3c6")
+	var accent := profile_color("accent", "d49a45")
+	draw_rect(Rect2(Vector2.ZERO, COMBAT_VIEW), Color(0, 0, 0, 0.76))
+	draw_rect(PLAYER_SETTINGS_PANEL, Color(fill, 0.99))
+	draw_panel_frame(PLAYER_SETTINGS_PANEL, frame)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.position.y + 28.0),
+		"OPTIONS",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		210,
+		18,
+		text
+	)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 244.0, PLAYER_SETTINGS_PANEL.position.y + 27.0),
+		"PLAYER-LOCAL  •  VERSIONED  •  RECOVERABLE",
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		248,
+		7,
+		frame.darkened(0.04)
+	)
+	var row_start_y := PLAYER_SETTINGS_PANEL.position.y + 58.0
+	for index in range(rows.size()):
+		if typeof(rows[index]) != TYPE_DICTIONARY:
+			continue
+		var row: Dictionary = rows[index] as Dictionary
+		var y := row_start_y + float(index) * PLAYER_SETTINGS_ROW_HEIGHT
+		var active := index == selected
+		if active:
+			draw_rect(Rect2(PLAYER_SETTINGS_PANEL.position.x + 12.0, y - 13.0, PLAYER_SETTINGS_PANEL.size.x - 24.0, 18.0), Color(frame, 0.16))
+			draw_rect(Rect2(PLAYER_SETTINGS_PANEL.position.x + 17.0, y - 8.0, Vector2(4, 4)), accent)
+		var label := str(row.get("label", row.get("id", "SETTING"))).to_upper()
+		var value_text := str(row.get("value", ""))
+		if str(row.get("kind", "")) == "action":
+			value_text = "CONFIRM"
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 30.0, y),
+			label,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			300,
+			9,
+			text if active else text.darkened(0.24)
+		)
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 350.0, y),
+			value_text,
+			HORIZONTAL_ALIGNMENT_RIGHT,
+			190,
+			9,
+			accent if active else frame.darkened(0.18)
+		)
+	var notice := runtime_string("player_settings_notice").strip_edges()
+	if not notice.is_empty():
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 29.0),
+			notice.to_upper(),
+			HORIZONTAL_ALIGNMENT_CENTER,
+			int(PLAYER_SETTINGS_PANEL.size.x - 36.0),
+			7,
+			frame
+		)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 12.0),
+		"LEFT / RIGHT CHANGE   •   E / A SELECT   •   ESC / O BACK",
+		HORIZONTAL_ALIGNMENT_CENTER,
+		int(PLAYER_SETTINGS_PANEL.size.x - 36.0),
+		7,
+		text.darkened(0.18)
+	)
 
 
 func draw_world_accents() -> void:
@@ -308,4 +491,14 @@ func combat_readability_contract_ok() -> bool:
 		and MAX_PROJECTILE_OVERLAYS <= 160
 		and PROJECTILE_TRAIL_LENGTH >= 8.0
 		and PROJECTILE_TRAIL_LENGTH <= 32.0
+	)
+
+
+func player_settings_overlay_contract_ok() -> bool:
+	return (
+		combat_readability_contract_ok()
+		and PLAYER_SETTINGS_PANEL.size.x >= 480.0
+		and PLAYER_SETTINGS_PANEL.size.y >= 300.0
+		and PLAYER_SETTINGS_ROW_HEIGHT >= 18.0
+		and PLAYER_SETTINGS_ROW_HEIGHT <= 24.0
 	)

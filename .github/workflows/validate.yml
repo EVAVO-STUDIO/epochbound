@@ -65,6 +65,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate canonical runtime composition contract
+        run: python3 tools/check_runtime_scene_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -117,11 +120,12 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.1",
+              "schemaVersion": "1.2",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
               "workflow": "exact-manual",
+              "runtimeCompositionValidation": "passed",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",

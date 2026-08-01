@@ -16,7 +16,9 @@ const COMBAT_RUNTIME_PATHS := [
 	"res://src/equipment_runtime.gd",
 	"res://src/merchant_runtime.gd",
 	"res://src/arsenal_runtime.gd",
-	"res://src/boss_runtime.gd", "res://src/cinematic_runtime.gd"
+	"res://src/boss_runtime.gd",
+	"res://src/cinematic_runtime.gd",
+	"res://src/presentation_runtime_current.gd"
 ]
 
 var failures: Array[String] = []

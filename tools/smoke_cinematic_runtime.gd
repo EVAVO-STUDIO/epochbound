@@ -33,11 +33,12 @@ func run_smoke_test() -> void:
 	var script_value: Variant = runtime.get_script()
 	check(script_value is GDScript, "Runtime root must retain its GDScript.")
 	if script_value is GDScript:
-		check(str((script_value as GDScript).resource_path) == "res://src/cinematic_runtime.gd", "Runtime scene must bind the cinematic runtime.")
+		check(str((script_value as GDScript).resource_path) == "res://src/presentation_runtime_current.gd", "Runtime scene must bind the presentation-safe cinematic runtime adapter.")
 	root.add_child(runtime)
 	check(runtime.has_method("start_cinematic"), "Runtime must expose cinematic playback.")
 	check(runtime.has_method("finish_cinematic"), "Runtime must expose deterministic completion and skipping.")
 	check(runtime.has_method("advance_cinematic_step"), "Runtime must expose timeline advancement.")
+	check(runtime.has_method("presentation_overlay_handles_combat_readability"), "Runtime must expose presentation-owned combat rendering suppression.")
 
 	var definitions := dictionary_property(runtime, "cinematic_definitions")
 	check(definitions.size() == 3, "Runtime must load all three cinematic definitions.")
@@ -92,7 +93,7 @@ func dictionary_property(object: Object, property_name: String) -> Dictionary:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Cinematic runtime smoke test passed: loading, playback, camera, dialogue, skip equivalence and durable completion are coherent.")
+		print("Cinematic runtime smoke test passed: loading, playback, presentation-safe combat suppression, camera, dialogue, skip equivalence and durable completion are coherent.")
 		quit(0)
 		return
 	for failure in failures:

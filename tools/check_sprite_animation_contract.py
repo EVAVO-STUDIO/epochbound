@@ -296,6 +296,26 @@ require(
         "Paused gameplay must not redraw world layers above the root pause panel",
     ],
 )
+for runtime_smoke_path in [
+    "tools/smoke_encounters.gd",
+    "tools/smoke_combat_director.gd",
+    "tools/smoke_companion_director.gd",
+    "tools/smoke_item_forge.gd",
+    "tools/smoke_story_studio.gd",
+    "tools/smoke_save_profiles.gd",
+    "tools/smoke_loadout_runtime.gd",
+    "tools/smoke_economy_runtime.gd",
+    "tools/smoke_arsenal_runtime.gd",
+    "tools/smoke_boss_runtime.gd",
+    "tools/smoke_cinematic_runtime.gd",
+    "tools/smoke_sprite_animation_runtime.gd",
+    "tools/smoke_combat_readability_overlay.gd",
+]:
+    require(
+        runtime_smoke_path,
+        read_text(runtime_smoke_path),
+        ["res://src/presentation_runtime_current.gd"],
+    )
 workflow = read_text(".github/workflows/sprite-animation-validation.yml")
 require(
     ".github/workflows/sprite-animation-validation.yml",
@@ -324,4 +344,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, combat readability, pause-safe layering, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, combat readability, pause-safe layering, inherited runtime compatibility, editors, validators and package promotion are wired")

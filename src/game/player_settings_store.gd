@@ -102,23 +102,32 @@ static func write_settings(settings: Dictionary) -> Dictionary:
 	var absolute_final := ProjectSettings.globalize_path(SETTINGS_PATH)
 	var absolute_temp := ProjectSettings.globalize_path(TEMP_PATH)
 	var absolute_backup := ProjectSettings.globalize_path(BACKUP_PATH)
-	if FileAccess.file_exists(BACKUP_PATH):
-		DirAccess.remove_absolute(absolute_backup)
 	var had_existing := FileAccess.file_exists(SETTINGS_PATH)
+	var rotated_valid_existing := false
 	if had_existing:
-		var backup_error := DirAccess.rename_absolute(absolute_final, absolute_backup)
-		if backup_error != OK:
-			DirAccess.remove_absolute(absolute_temp)
-			return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not rotate the previous player settings into a backup (error %d)." % backup_error]}
+		var existing_result := read_settings_path(SETTINGS_PATH)
+		if bool(existing_result.get("ok", false)):
+			if FileAccess.file_exists(BACKUP_PATH):
+				DirAccess.remove_absolute(absolute_backup)
+			var backup_error := DirAccess.rename_absolute(absolute_final, absolute_backup)
+			if backup_error != OK:
+				DirAccess.remove_absolute(absolute_temp)
+				return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not rotate the previous player settings into a backup (error %d)." % backup_error]}
+			rotated_valid_existing = true
+		else:
+			var remove_invalid_error := DirAccess.remove_absolute(absolute_final)
+			if remove_invalid_error != OK:
+				DirAccess.remove_absolute(absolute_temp)
+				return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not remove invalid player settings before recovery (error %d)." % remove_invalid_error]}
 	var promote_error := DirAccess.rename_absolute(absolute_temp, absolute_final)
 	if promote_error != OK:
-		if had_existing and FileAccess.file_exists(BACKUP_PATH):
+		if rotated_valid_existing and FileAccess.file_exists(BACKUP_PATH):
 			DirAccess.rename_absolute(absolute_backup, absolute_final)
 		return {"ok": false, "path": SETTINGS_PATH, "errors": ["Could not promote the temporary player settings file (error %d)." % promote_error]}
 	return {
 		"ok": true,
 		"path": SETTINGS_PATH,
-		"backup_path": BACKUP_PATH if had_existing else "",
+		"backup_path": BACKUP_PATH if FileAccess.file_exists(BACKUP_PATH) else "",
 		"settings": sanitized,
 		"errors": []
 	}

@@ -17,9 +17,16 @@ const TARGETS := [
 	"res://src/arsenal_runtime.gd",
 	"res://src/boss_runtime.gd",
 	"res://src/cinematic_runtime.gd",
+	"res://src/presentation_runtime_current.gd",
 	"res://src/presentation_overlay.gd",
 	"res://src/presentation_overlay_canvas.gd",
 	"res://src/presentation_camera.gd",
+	"res://src/sprite_animation_overlay.gd",
+	"res://src/sprite_animation_overlay_current.gd",
+	"res://src/sprite_animation_polish_overlay.gd",
+	"res://src/adventure_feedback_overlay.gd",
+	"res://src/environment_animation_overlay.gd",
+	"res://src/combat_readability_overlay.gd",
 	"res://src/audio_mood_controller.gd",
 	"res://src/audio_mood_runtime.gd",
 	"res://src/content/combat_director_validator.gd",
@@ -49,6 +56,9 @@ const TARGETS := [
 	"res://src/content/presentation_validator.gd",
 	"res://src/content/audio_mood_catalog.gd",
 	"res://src/content/audio_mood_validator.gd",
+	"res://src/content/sprite_animation_catalog.gd",
+	"res://src/content/sprite_animation_validator.gd",
+	"res://src/content/sprite_animation_strict_validator.gd",
 	"res://src/game/encounter_zone_model.gd",
 	"res://src/game/companion_model.gd",
 	"res://src/game/inventory_model.gd",
@@ -56,9 +66,11 @@ const TARGETS := [
 	"res://src/game/equipment_model.gd",
 	"res://src/game/economy_model.gd",
 	"res://src/game/projectile_model.gd",
+	"res://src/game/runtime_scene_contract.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio.gd",
 	"res://addons/epochbound_campaign_studio/world_builder_studio.gd",
 	"res://addons/epochbound_campaign_studio/campaign_studio_current.gd",
+	"res://addons/epochbound_campaign_studio/campaign_studio_animation_current.gd",
 	"res://addons/epochbound_campaign_studio/plugin.gd",
 	"res://addons/epochbound_encounter_studio/encounter_canvas.gd",
 	"res://addons/epochbound_encounter_studio/encounter_studio.gd",
@@ -95,8 +107,12 @@ const TARGETS := [
 	"res://addons/epochbound_presentation_studio/plugin.gd",
 	"res://addons/epochbound_audio_mood_studio/audio_mood_studio.gd",
 	"res://addons/epochbound_audio_mood_studio/plugin.gd",
+	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio.gd",
+	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd",
+	"res://addons/epochbound_sprite_animation_studio/plugin.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/audit_campaigns.gd",
+	"res://tools/smoke_runtime_scene_contract.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
 	"res://tools/smoke_combat_director.gd",
@@ -139,6 +155,13 @@ const TARGETS := [
 	"res://tools/smoke_audio_mood_studio.gd",
 	"res://tools/smoke_audio_mood_validation_edges.gd",
 	"res://tools/smoke_audio_campaign_scaffold.gd",
+	"res://tools/smoke_sprite_animation_runtime.gd",
+	"res://tools/smoke_environment_animation.gd",
+	"res://tools/smoke_combat_readability_overlay.gd",
+	"res://tools/smoke_sprite_animation_studio.gd",
+	"res://tools/smoke_sprite_animation_validation_edges.gd",
+	"res://tools/smoke_sprite_campaign_scaffold.gd",
+	"res://tools/smoke_sprite_package_validation.gd",
 	"res://src/app.tscn"
 ]
 
@@ -156,7 +179,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: runtime, all sixteen editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: canonical runtime composition, all seventeen editors, validators, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

@@ -18,6 +18,12 @@ const REQUIRED_RUNTIME_METHODS := [
 	"update_projectiles",
 	"update_boss_engagements",
 	"start_cinematic",
+	"open_player_settings",
+	"close_player_settings",
+	"player_setting_number",
+	"player_setting_bool",
+	"player_settings_rows",
+	"player_settings_contract_ok",
 	"presentation_overlay_handles_combat_readability",
 	"root_presentation_suppression_contract_ok"
 ]
@@ -29,14 +35,19 @@ const REQUIRED_OVERLAY_METHODS := [
 	"adventure_feedback_contract_ok",
 	"environment_animation_contract_ok",
 	"combat_readability_contract_ok",
+	"player_settings_overlay_contract_ok",
 	"draw_adventure_hud",
 	"draw_projectile_overlay",
-	"draw_boss_status_overlay"
+	"draw_boss_status_overlay",
+	"draw_player_settings_panel"
 ]
 
 const REQUIRED_AUDIO_METHODS := [
 	"generator_players_ready",
-	"generator_skip_count"
+	"generator_skip_count",
+	"apply_player_volume_settings",
+	"player_volume_snapshot",
+	"player_settings_audio_contract_ok"
 ]
 
 
@@ -82,6 +93,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 			errors.append("AudioMood must use %s, found %s." % [CURRENT_AUDIO_SCRIPT, audio_path])
 		for method_name in missing_methods(audio, REQUIRED_AUDIO_METHODS):
 			errors.append("AudioMood is missing method '%s'." % method_name)
+		if audio.has_method("player_settings_audio_contract_ok") and not bool(audio.call("player_settings_audio_contract_ok")):
+			errors.append("AudioMood did not apply the current player volume settings.")
 
 	var camera := runtime.get_node_or_null("PresentationCamera")
 	if not camera is Camera2D:
@@ -108,7 +121,11 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 			errors.append("PresentationOverlay must use %s, found %s." % [CURRENT_OVERLAY_SCRIPT, overlay_path])
 		for method_name in missing_methods(overlay, REQUIRED_OVERLAY_METHODS):
 			errors.append("PresentationOverlay is missing method '%s'." % method_name)
+		if overlay.has_method("player_settings_overlay_contract_ok") and not bool(overlay.call("player_settings_overlay_contract_ok")):
+			errors.append("PresentationOverlay did not preserve the player-settings presentation contract.")
 
+	if runtime.has_method("player_settings_contract_ok") and not bool(runtime.call("player_settings_contract_ok")):
+		errors.append("Runtime root did not confirm valid player-local settings.")
 	if runtime.has_method("presentation_overlay_handles_combat_readability"):
 		if not bool(runtime.call("presentation_overlay_handles_combat_readability")):
 			errors.append("Runtime root did not recognise presentation-owned combat rendering.")

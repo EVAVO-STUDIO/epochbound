@@ -2,6 +2,8 @@ extends SceneTree
 
 const RuntimeSceneContract = preload("res://src/game/runtime_scene_contract.gd")
 const RUNTIME_SCENE := "res://src/app.tscn"
+const TEST_WEAPON_ID := "clockglass_dartcaster"
+const TEST_BOSS_PLACEMENT := "runtime_contract_boss"
 
 var failures: Array[String] = []
 
@@ -35,13 +37,41 @@ func run_test() -> void:
 		check(bool(audio.call("generator_players_ready")), "Audio generators must be ready in the complete playable scene.")
 		check(int(audio.call("generator_skip_count")) == 0, "Complete-scene startup must not report Audio generator underruns.")
 
+	var inventory_value: Variant = runtime.get("inventory")
+	var inventory: Dictionary = inventory_value as Dictionary if typeof(inventory_value) == TYPE_DICTIONARY else {}
+	inventory[TEST_WEAPON_ID] = 1
+	runtime.set("inventory", inventory)
+	check(bool(runtime.call("equip_specific_item", TEST_WEAPON_ID)), "Runtime-contract setup must equip the reference ranged weapon.")
+	var visible_weapon_value: Variant = runtime.call("equipped_ranged_weapon_data")
+	check(typeof(visible_weapon_value) == TYPE_DICTIONARY and not (visible_weapon_value as Dictionary).is_empty(), "Normal runtime queries must expose the equipped ranged weapon.")
+
+	var original_entities_value: Variant = runtime.get("runtime_entities")
+	var original_entities: Array = (original_entities_value as Array).duplicate(true) if typeof(original_entities_value) == TYPE_ARRAY else []
+	var original_engaged_value: Variant = runtime.get("engaged_bosses")
+	var original_engaged: Dictionary = (original_engaged_value as Dictionary).duplicate(true) if typeof(original_engaged_value) == TYPE_DICTIONARY else {}
+	runtime.set("runtime_entities", [{
+		"placement_id": TEST_BOSS_PLACEMENT,
+		"active": true,
+		"definition": {"kind": "enemy"}
+	}])
+	runtime.set("engaged_bosses", {TEST_BOSS_PLACEMENT: true})
+	check(int(runtime.call("current_boss_index")) == 0, "Normal runtime queries must expose the active boss index.")
+
 	var capabilities_before: PackedStringArray = runtime.call("active_capabilities") as PackedStringArray
 	runtime.set("suppress_root_combat_hud", true)
 	check(not bool(runtime.call("root_presentation_suppression_contract_ok")), "The root suppression contract must report its temporary draw-only state.")
+	var suppressed_weapon_value: Variant = runtime.call("equipped_ranged_weapon_data")
+	check(typeof(suppressed_weapon_value) == TYPE_DICTIONARY and (suppressed_weapon_value as Dictionary).is_empty(), "Selective root HUD suppression must hide only the duplicate Arsenal panel query.")
+	check(int(runtime.call("current_boss_index")) == -1, "Selective root HUD suppression must hide only the duplicate Boss panel query.")
 	var capabilities_during: PackedStringArray = runtime.call("active_capabilities") as PackedStringArray
 	check(capabilities_during == capabilities_before, "Selective combat HUD suppression must not alter gameplay capabilities.")
 	runtime.set("suppress_root_combat_hud", false)
 	check(bool(runtime.call("root_presentation_suppression_contract_ok")), "Selective combat HUD suppression must restore immediately after drawing.")
+	visible_weapon_value = runtime.call("equipped_ranged_weapon_data")
+	check(typeof(visible_weapon_value) == TYPE_DICTIONARY and not (visible_weapon_value as Dictionary).is_empty(), "Ranged weapon queries must restore after root HUD drawing.")
+	check(int(runtime.call("current_boss_index")) == 0, "Boss queries must restore after root HUD drawing.")
+	runtime.set("runtime_entities", original_entities)
+	runtime.set("engaged_bosses", original_engaged)
 
 	var overlay := runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	var layer := runtime.get_node_or_null("PresentationLayer")
@@ -66,7 +96,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, selective HUD ownership, Audio readiness, CanvasLayer fallback and restoration are coherent.")
+		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, selective Arsenal and Boss HUD ownership, Audio readiness, CanvasLayer fallback and restoration are coherent.")
 		quit(0)
 		return
 	for failure in failures:

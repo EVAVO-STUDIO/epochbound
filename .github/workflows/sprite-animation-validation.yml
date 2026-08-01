@@ -125,7 +125,7 @@ jobs:
           if [ "$status" -ne 0 ]; then exit "$status"; fi
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
-      - name: Run Sprite Animation environment and combat-readability regressions
+      - name: Run canonical runtime Sprite Animation environment and combat regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -140,6 +140,7 @@ jobs:
             if [ "$status" -ne 0 ]; then exit "$status"; fi
             if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
           }
+          run_test res://tools/smoke_runtime_scene_contract.gd
           run_test res://tools/smoke_sprite_animation_runtime.gd
           run_test res://tools/smoke_environment_animation.gd
           run_test res://tools/smoke_combat_readability_overlay.gd

@@ -72,6 +72,7 @@ try {
         @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd"),
         @("Smoke test frame-based Sprite Animation runtime", "res://tools/smoke_sprite_animation_runtime.gd"),
         @("Smoke test animated terrain and movement-linked environmental responses", "res://tools/smoke_environment_animation.gd"),
+        @("Smoke test projectile boss pause and combat presentation ordering", "res://tools/smoke_combat_readability_overlay.gd"),
         @("Smoke test Sprite and Animation Studio editor state", "res://tools/smoke_sprite_animation_studio.gd"),
         @("Smoke test malformed Sprite Animation profiles atlases and paths", "res://tools/smoke_sprite_animation_validation_edges.gd"),
         @("Smoke test Sprite Animation scaffolding for new campaigns", "res://tools/smoke_sprite_campaign_scaffold.gd"),
@@ -82,7 +83,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed complete sprite-animation and environment-aware validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed complete sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

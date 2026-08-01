@@ -89,6 +89,7 @@ require(
         'RuntimeSceneContract.runtime_scene_is_valid',
         'generator_players_ready',
         'generator_skip_count',
+        'Selective combat HUD suppression must not alter gameplay capabilities',
         'Removing the overlay must restore root fallback ownership',
         'Reattaching the overlay must restore duplicate-render suppression',
     ],

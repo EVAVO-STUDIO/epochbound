@@ -130,8 +130,18 @@ require(
     ],
 )
 
-for workflow_path in [
+primary_workflow = read(".github/workflows/validate.yml")
+require(
     ".github/workflows/validate.yml",
+    primary_workflow,
+    [
+        'python3 tools/check_runtime_scene_contract.py',
+        'scripts/validate.ps1',
+        'Run complete seventeen-system validation gate',
+    ],
+)
+
+for workflow_path in [
     ".github/workflows/audio-mood-validation.yml",
     ".github/workflows/sprite-animation-validation.yml",
 ]:
@@ -165,4 +175,4 @@ print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, overlay, camera and Audio scripts are pinned")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
-print("- primary, Audio and Sprite validation gates cover the executable composition")
+print("- primary unified and focused validation gates cover the executable composition")

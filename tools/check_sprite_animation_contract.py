@@ -129,8 +129,20 @@ require(
     "src/app.tscn",
     scene,
     [
-        'res://src/environment_animation_overlay.gd',
+        'res://src/presentation_runtime_current.gd',
+        'res://src/combat_readability_overlay.gd',
         '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
+    ],
+)
+presentation_runtime = read_text("src/presentation_runtime_current.gd")
+require(
+    "src/presentation_runtime_current.gd",
+    presentation_runtime,
+    [
+        'extends "res://src/cinematic_runtime.gd"',
+        "presentation_overlay_handles_combat_readability",
+        "draw_projectiles",
+        "draw_active_boss_arena",
     ],
 )
 polish_overlay = read_text("src/sprite_animation_polish_overlay.gd")
@@ -182,13 +194,32 @@ require(
         "environment_animation_contract_ok",
     ],
 )
+combat_overlay = read_text("src/combat_readability_overlay.gd")
+require(
+    "src/combat_readability_overlay.gd",
+    combat_overlay,
+    [
+        'extends "res://src/environment_animation_overlay.gd"',
+        "combat_depth_records",
+        "draw_projectile_overlay",
+        "projectile_screen_segment",
+        "draw_arsenal_status_overlay",
+        "draw_boss_arena_overlay",
+        "draw_boss_status_overlay",
+        "presentation_world_layers_allowed",
+        "combat_readability_contract_ok",
+    ],
+)
 focused_compile = read_text("tools/compile_sprite_animation_probe.gd")
 require(
     "tools/compile_sprite_animation_probe.gd",
     focused_compile,
     [
+        "presentation_runtime_current.gd",
         "environment_animation_overlay.gd",
+        "combat_readability_overlay.gd",
         "smoke_environment_animation.gd",
+        "smoke_combat_readability_overlay.gd",
     ],
 )
 project = read_text("project.godot")
@@ -235,6 +266,7 @@ require(
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
+        "smoke_combat_readability_overlay.gd",
         "smoke_sprite_animation_studio.gd",
         "smoke_sprite_animation_validation_edges.gd",
         "smoke_sprite_campaign_scaffold.gd",
@@ -252,6 +284,18 @@ require(
         "Unresolved map transitions must suppress the world pulse",
     ],
 )
+combat_smoke = read_text("tools/smoke_combat_readability_overlay.gd")
+require(
+    "tools/smoke_combat_readability_overlay.gd",
+    combat_smoke,
+    [
+        "combat_projectile_count",
+        "combat_depth_order_keys",
+        "arsenal_status_snapshot",
+        "boss_status_snapshot",
+        "Paused gameplay must not redraw world layers above the root pause panel",
+    ],
+)
 workflow = read_text(".github/workflows/sprite-animation-validation.yml")
 require(
     ".github/workflows/sprite-animation-validation.yml",
@@ -265,6 +309,7 @@ require(
         "compile_sprite_animation_probe.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
+        "smoke_combat_readability_overlay.gd",
         "smoke_sprite_package_validation.gd",
         "git diff --exit-code",
     ],
@@ -279,4 +324,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, environmental responses, blocking-state suppression, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, combat readability, pause-safe layering, editors, validators and package promotion are wired")

@@ -54,7 +54,9 @@ func run_test() -> void:
 		"active": true,
 		"definition": {"kind": "enemy"}
 	}])
-	runtime.set("engaged_bosses", {TEST_BOSS_PLACEMENT: true})
+	var synthetic_engaged := {}
+	synthetic_engaged[TEST_BOSS_PLACEMENT] = true
+	runtime.set("engaged_bosses", synthetic_engaged)
 	check(int(runtime.call("current_boss_index")) == 0, "Normal runtime queries must expose the active boss index.")
 
 	var capabilities_before: PackedStringArray = runtime.call("active_capabilities") as PackedStringArray

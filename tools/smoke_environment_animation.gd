@@ -43,6 +43,23 @@ func run_test() -> void:
 	runtime.set("active_cinematic_id", "")
 	overlay.call("reset_environment_state")
 
+	overlay.set("context_prompt", {
+		"key": "interaction:test",
+		"action": "USE",
+		"target_name": "Test Mechanism",
+		"position": Vector2(136, 104),
+		"distance": 16.0,
+		"enabled": true
+	})
+	overlay.set("context_prompt_alpha", 1.0)
+	check(bool(overlay.call("interaction_world_pulse_allowed")), "A visible gameplay prompt must permit its matching world pulse.")
+	runtime.set("dialogue", "The mechanism answers.")
+	check(not bool(overlay.call("interaction_world_pulse_allowed")), "Dialogue must suppress the world pulse immediately even while prompt fade data remains.")
+	runtime.set("dialogue", "")
+	runtime.set("transition_lock", 0.2)
+	check(not bool(overlay.call("interaction_world_pulse_allowed")), "Unresolved map transitions must suppress the world pulse.")
+	runtime.set("transition_lock", 0.0)
+
 	var counts: Dictionary = overlay.call("animated_terrain_counts")
 	check(int(counts.get("water", 0)) == 1, "Synthetic map must expose one animated water cell.")
 	check(int(counts.get("grass", 0)) == 2, "Synthetic map must expose two animated grass cells.")
@@ -143,7 +160,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Environment animation smoke test passed: terrain cycles, movement responses, menu freezing, era reset and bounded effect history are coherent.")
+		print("Environment animation smoke test passed: terrain cycles, movement responses, prompt-pulse suppression, menu freezing, era reset and bounded effect history are coherent.")
 		quit(0)
 		return
 	for failure in failures:

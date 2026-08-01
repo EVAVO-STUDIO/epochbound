@@ -175,6 +175,7 @@ require(
         "spawn_environment_disturbance",
         "draw_animated_terrain",
         "draw_ambient_ground_motion",
+        "interaction_world_pulse_allowed",
         "draw_interaction_world_pulse",
         "draw_ground_disturbances",
         "animated_terrain_counts",
@@ -241,6 +242,16 @@ require(
         "all seventeen authoring systems",
     ],
 )
+environment_smoke = read_text("tools/smoke_environment_animation.gd")
+require(
+    "tools/smoke_environment_animation.gd",
+    environment_smoke,
+    [
+        "interaction_world_pulse_allowed",
+        "Dialogue must suppress the world pulse immediately",
+        "Unresolved map transitions must suppress the world pulse",
+    ],
+)
 workflow = read_text(".github/workflows/sprite-animation-validation.yml")
 require(
     ".github/workflows/sprite-animation-validation.yml",
@@ -268,4 +279,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, environmental responses, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, environmental responses, blocking-state suppression, editors, validators and package promotion are wired")

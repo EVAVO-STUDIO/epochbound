@@ -60,6 +60,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate canonical runtime composition contract
+        run: python3 tools/check_runtime_scene_contract.py
+
       - name: Download and verify official Godot 4.6.2
         shell: bash
         run: |
@@ -116,7 +119,7 @@ jobs:
           if [ "$status" -ne 0 ]; then exit "$status"; fi
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
-      - name: Run Audio and Mood regressions
+      - name: Run canonical runtime and Audio and Mood regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -131,6 +134,7 @@ jobs:
             if [ "$status" -ne 0 ]; then exit "$status"; fi
             if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
           }
+          run_test res://tools/smoke_runtime_scene_contract.gd
           run_test res://tools/smoke_audio_mood_runtime.gd
           run_test res://tools/smoke_audio_mood_studio.gd
           run_test res://tools/smoke_audio_mood_validation_edges.gd

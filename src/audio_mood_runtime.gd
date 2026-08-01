@@ -9,6 +9,7 @@ const RUNTIME_PRIME_PASSES := 4
 const RUNTIME_FLOW_SPLASH := 0
 const RUNTIME_FLOW_TITLE := 1
 const RUNTIME_FLOW_GAME := 4
+const PLAYER_VOLUME_FLOOR_DB := -80.0
 
 var ambience_sample_clock := 0
 
@@ -19,6 +20,12 @@ func _ready() -> void:
 	# object, then fills the available buffer immediately to avoid a startup gap.
 	update_mix(RUNTIME_BUFFER_LENGTH)
 	prime_generator_buffers()
+	apply_player_volume_settings()
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	apply_player_volume_settings()
 
 
 func create_generator_player(player_name: String) -> AudioStreamPlayer:
@@ -173,6 +180,66 @@ func update_entity_hit_events() -> void:
 			queue_sound("impact")
 		next_hits[entity_id] = is_hit
 	previous_entity_hits = next_hits
+
+
+func menu_is_open() -> bool:
+	return runtime_boolean("player_settings_open") or super.menu_is_open()
+
+
+func player_setting_number(setting_id: String, fallback: float = 1.0) -> float:
+	var runtime := runtime_root()
+	if runtime == null or not runtime.has_method("player_setting_number"):
+		return fallback
+	return clampf(float(runtime.call("player_setting_number", setting_id, fallback)), 0.0, 1.0)
+
+
+func gain_to_db(gain: float) -> float:
+	if gain <= 0.0001:
+		return PLAYER_VOLUME_FLOOR_DB
+	return clampf(20.0 * log(gain) / log(10.0), PLAYER_VOLUME_FLOOR_DB, 0.0)
+
+
+func apply_player_volume_settings() -> void:
+	var master := player_setting_number("master_volume", 1.0)
+	var music := master * player_setting_number("music_volume", 1.0)
+	var ambience := master * player_setting_number("ambience_volume", 1.0)
+	var sfx := master * player_setting_number("sfx_volume", 1.0)
+	if music_player != null:
+		music_player.volume_db = gain_to_db(music)
+	if ambience_player != null:
+		ambience_player.volume_db = gain_to_db(ambience)
+	if sfx_player != null:
+		sfx_player.volume_db = gain_to_db(sfx)
+
+
+func player_volume_snapshot() -> Dictionary:
+	var master := player_setting_number("master_volume", 1.0)
+	var music := master * player_setting_number("music_volume", 1.0)
+	var ambience := master * player_setting_number("ambience_volume", 1.0)
+	var sfx := master * player_setting_number("sfx_volume", 1.0)
+	return {
+		"master": master,
+		"music": music,
+		"ambience": ambience,
+		"sfx": sfx,
+		"music_db": gain_to_db(music),
+		"ambience_db": gain_to_db(ambience),
+		"sfx_db": gain_to_db(sfx)
+	}
+
+
+func player_settings_audio_contract_ok() -> bool:
+	if not generator_players_ready():
+		return false
+	var snapshot := player_volume_snapshot()
+	return (
+		music_player != null
+		and ambience_player != null
+		and sfx_player != null
+		and is_equal_approx(music_player.volume_db, float(snapshot.get("music_db", 0.0)))
+		and is_equal_approx(ambience_player.volume_db, float(snapshot.get("ambience_db", 0.0)))
+		and is_equal_approx(sfx_player.volume_db, float(snapshot.get("sfx_db", 0.0)))
+	)
 
 
 func ambience_clock_value() -> int:

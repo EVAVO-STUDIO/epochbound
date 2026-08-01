@@ -130,8 +130,11 @@ func draw_arsenal_status_overlay() -> void:
 	var frame := profile_color("ui_frame", "9f8651")
 	var text := profile_color("ui_text", "eee3c6")
 	var accent := profile_color("accent", "d49a45")
+	# Mask the narrow left edge of the inherited prototype ammo panel that sits
+	# outside the polished map plaque. The rest is already fully covered.
+	draw_rect(Rect2(404, 7, 34, 47), Color(fill, 1.0))
 	var rect := Rect2(438, 57, 195, 42)
-	draw_rect(rect, Color(fill, 0.97))
+	draw_rect(rect, Color(fill, 1.0))
 	draw_panel_frame(rect, frame.darkened(0.12))
 	draw_string(
 		ThemeDB.fallback_font,
@@ -212,7 +215,7 @@ func draw_boss_status_overlay() -> void:
 	var text := profile_color("ui_text", "eee3c6")
 	var danger := profile_color("danger", "b94d45")
 	var rect := Rect2(86, 292, 468, 42)
-	draw_rect(rect, Color(fill, 0.97))
+	draw_rect(rect, Color(fill, 1.0))
 	draw_panel_frame(rect, frame.darkened(0.1))
 	if bool(snapshot.get("reinforcements_only", false)):
 		draw_string(ThemeDB.fallback_font, Vector2(100, 317), "REINFORCEMENTS REMAIN", HORIZONTAL_ALIGNMENT_CENTER, 440, 10, danger.lightened(0.15))
@@ -232,7 +235,7 @@ func draw_boss_banner_overlay() -> void:
 	var frame := profile_color("ui_frame", "9f8651")
 	var text := profile_color("ui_text", "eee3c6")
 	var rect := Rect2(92, 104, 456, 34)
-	draw_rect(rect, Color(fill, 0.96))
+	draw_rect(rect, Color(fill, 1.0))
 	draw_panel_frame(rect, frame)
 	draw_string(ThemeDB.fallback_font, Vector2(rect.position.x + 12, rect.position.y + 22), banner.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x - 24), 10, text)
 

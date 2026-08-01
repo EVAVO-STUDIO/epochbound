@@ -181,6 +181,15 @@ require(
         "environment_animation_contract_ok",
     ],
 )
+focused_compile = read_text("tools/compile_sprite_animation_probe.gd")
+require(
+    "tools/compile_sprite_animation_probe.gd",
+    focused_compile,
+    [
+        "environment_animation_overlay.gd",
+        "smoke_environment_animation.gd",
+    ],
+)
 project = read_text("project.godot")
 require(
     "project.godot",

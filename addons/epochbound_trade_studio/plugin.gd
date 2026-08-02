@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const TradeStudio = preload("res://addons/epochbound_trade_studio/trade_studio.gd")
+const TradeStudio = preload("res://addons/epochbound_trade_studio/trade_studio_supply.gd")
 
 var studio
 

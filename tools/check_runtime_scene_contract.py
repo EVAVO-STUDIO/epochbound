@@ -71,8 +71,8 @@ require(
     runtime,
     [
         'extends "res://src/presentation_runtime_base.gd"',
+        'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
         'SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")',
-        'SupplyValidator = preload("res://src/content/supply_region_validator.gd")',
         'SupplyModel = preload("res://src/game/supply_region_model.gd")',
         'supply_region_definitions',
         'supply_region_cycles',
@@ -80,6 +80,7 @@ require(
         'apply_due_supply_restock',
         'supply_region_status_text',
         'supply_runtime_contract_ok',
+        'CompleteValidator.validate_profile',
         'Regional supply caught up',
     ],
 )
@@ -131,15 +132,28 @@ require(
     primary_compile,
     [
         'res://src/game/runtime_scene_contract.gd',
-        'res://src/presentation_runtime_base.gd',
         'res://src/presentation_runtime_current.gd',
-        'res://src/content/supply_region_catalog.gd',
-        'res://src/content/supply_region_validator.gd',
-        'res://src/game/supply_region_model.gd',
         'res://src/combat_readability_overlay.gd',
         'res://addons/epochbound_sprite_animation_studio/plugin.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
         'all seventeen editors',
+    ],
+)
+
+supply_compile = read("tools/compile_supply_region_probe.gd")
+require(
+    "tools/compile_supply_region_probe.gd",
+    supply_compile,
+    [
+        'res://src/presentation_runtime_base.gd',
+        'res://src/presentation_runtime_current.gd',
+        'res://src/content/supply_region_catalog.gd',
+        'res://src/content/supply_region_validator.gd',
+        'res://src/content/complete_content_validator.gd',
+        'res://src/game/supply_region_model.gd',
+        'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/smoke_supply_regions.gd',
+        'res://src/app.tscn',
     ],
 )
 
@@ -160,6 +174,7 @@ require(
     [
         'res://src/game/player_settings.gd',
         'res://src/game/player_settings_store.gd',
+        'res://src/presentation_runtime_base.gd',
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
         'res://src/audio_mood_runtime.gd',
@@ -175,7 +190,9 @@ require(
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
         'compile_player_settings_probe.gd',
+        'compile_supply_region_probe.gd',
         'smoke_player_settings.gd',
+        'smoke_supply_regions.gd',
         'canonical runtime',
     ],
 )
@@ -187,6 +204,7 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_supply_region_contract.py',
         'scripts/validate.ps1',
         'Run complete seventeen-system validation gate',
     ],
@@ -203,8 +221,10 @@ for workflow_path in [
         [
             'python3 tools/check_runtime_scene_contract.py',
             'python3 tools/check_player_settings_contract.py',
+            'python3 tools/check_supply_region_contract.py',
             'smoke_runtime_scene_contract.gd',
             'smoke_player_settings.gd',
+            'smoke_supply_regions.gd',
         ],
     )
 
@@ -215,8 +235,10 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_supply_region_contract.py',
         'smoke_runtime_scene_contract.gd',
         'smoke_player_settings.gd',
+        'smoke_supply_regions.gd',
     ],
 )
 

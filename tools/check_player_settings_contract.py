@@ -73,9 +73,9 @@ require(
     ],
 )
 
-runtime = read("src/presentation_runtime_current.gd")
+runtime = read("src/presentation_runtime_base.gd")
 require(
-    "src/presentation_runtime_current.gd",
+    "src/presentation_runtime_base.gd",
     runtime,
     [
         'extends "res://src/cinematic_runtime.gd"',
@@ -101,8 +101,28 @@ require(
     ],
 )
 forbid(
-    "src/presentation_runtime_current.gd",
+    "src/presentation_runtime_base.gd",
     runtime,
+    [
+        'payload["player_settings"]',
+        'campaign["player_settings"]',
+    ],
+)
+
+adapter = read("src/presentation_runtime_current.gd")
+require(
+    "src/presentation_runtime_current.gd",
+    adapter,
+    [
+        'extends "res://src/presentation_runtime_base.gd"',
+        'func capture_save_profile(slot_id: String, reason: String = "Manual save") -> Dictionary:',
+        'super.capture_save_profile(slot_id, reason)',
+        'supply_region_cycles',
+    ],
+)
+forbid(
+    "src/presentation_runtime_current.gd",
+    adapter,
     [
         'payload["player_settings"]',
         'campaign["player_settings"]',
@@ -162,6 +182,7 @@ require(
     [
         "player_settings.gd",
         "player_settings_store.gd",
+        "presentation_runtime_base.gd",
         "presentation_runtime_current.gd",
         "combat_readability_overlay.gd",
         "audio_mood_runtime.gd",
@@ -289,6 +310,7 @@ if errors:
 print("epochbound_player_settings_contract_passed")
 print("- player-local settings are versioned, sanitised and stored atomically")
 print("- backup recovery and supported migrations remain pending until a deliberate isolated-safe Options close")
+print("- regional supply save state layers above rather than entering player-local settings")
 print("- Options controls Audio, presentation intensity, prompts and contrast")
 print("- campaign saves and portable campaign packages remain separate")
 print("- primary unified, Audio, Sprite and local gates cover the complete integration")

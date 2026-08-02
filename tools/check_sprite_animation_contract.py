@@ -134,15 +134,25 @@ require(
         '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
     ],
 )
-presentation_runtime = read_text("src/presentation_runtime_current.gd")
+presentation_base = read_text("src/presentation_runtime_base.gd")
 require(
-    "src/presentation_runtime_current.gd",
-    presentation_runtime,
+    "src/presentation_runtime_base.gd",
+    presentation_base,
     [
         'extends "res://src/cinematic_runtime.gd"',
         "presentation_overlay_handles_combat_readability",
         "draw_projectiles",
         "draw_active_boss_arena",
+    ],
+)
+presentation_adapter = read_text("src/presentation_runtime_current.gd")
+require(
+    "src/presentation_runtime_current.gd",
+    presentation_adapter,
+    [
+        'extends "res://src/presentation_runtime_base.gd"',
+        "supply_runtime_contract_ok",
+        "CompleteValidator.validate_profile",
     ],
 )
 polish_overlay = read_text("src/sprite_animation_polish_overlay.gd")
@@ -222,6 +232,17 @@ require(
         "smoke_combat_readability_overlay.gd",
     ],
 )
+supply_compile = read_text("tools/compile_supply_region_probe.gd")
+require(
+    "tools/compile_supply_region_probe.gd",
+    supply_compile,
+    [
+        "presentation_runtime_base.gd",
+        "presentation_runtime_current.gd",
+        "supply_region_model.gd",
+        "smoke_supply_regions.gd",
+    ],
+)
 project = read_text("project.godot")
 require(
     "project.godot",
@@ -232,13 +253,19 @@ final_validator = read_text("tools/validate_content.gd")
 require(
     "tools/validate_content.gd",
     final_validator,
+    ['res://src/content/complete_content_validator.gd'],
+)
+complete_validator = read_text("src/content/complete_content_validator.gd")
+require(
+    "src/content/complete_content_validator.gd",
+    complete_validator,
     ['res://src/content/sprite_animation_strict_validator.gd'],
 )
 install_service = read_text("src/content/campaign_install_service.gd")
 require(
     "src/content/campaign_install_service.gd",
     install_service,
-    ['res://src/content/sprite_animation_strict_validator.gd'],
+    ['res://src/content/complete_content_validator.gd'],
 )
 campaign_plugin = read_text("addons/epochbound_campaign_studio/plugin.gd")
 require(
@@ -250,7 +277,13 @@ package_plugin = read_text("addons/epochbound_package_studio/plugin.gd")
 require(
     "addons/epochbound_package_studio/plugin.gd",
     package_plugin,
-    ['package_studio_current.gd'],
+    ['package_studio_supply.gd'],
+)
+package_supply = read_text("addons/epochbound_package_studio/package_studio_supply.gd")
+require(
+    "addons/epochbound_package_studio/package_studio_supply.gd",
+    package_supply,
+    ['package_studio_current.gd', 'complete_content_validator.gd'],
 )
 sprite_plugin = read_text("addons/epochbound_sprite_animation_studio/plugin.gd")
 require(
@@ -264,6 +297,8 @@ require(
     local_gate,
     [
         "compile_sprite_animation_probe.gd",
+        "compile_supply_region_probe.gd",
+        "smoke_supply_regions.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
         "smoke_combat_readability_overlay.gd",
@@ -310,6 +345,7 @@ for runtime_smoke_path in [
     "tools/smoke_cinematic_runtime.gd",
     "tools/smoke_sprite_animation_runtime.gd",
     "tools/smoke_combat_readability_overlay.gd",
+    "tools/smoke_supply_regions.gd",
 ]:
     require(
         runtime_smoke_path,
@@ -325,8 +361,11 @@ require(
         "permissions:\n  contents: read",
         "persist-credentials: false",
         "sha512sum --check",
+        "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
+        "compile_supply_region_probe.gd",
+        "smoke_supply_regions.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
         "smoke_combat_readability_overlay.gd",
@@ -344,4 +383,4 @@ if errors:
 print("epochbound_sprite_animation_contract_passed")
 print(f"- profiles: {len(profiles)}")
 print(f"- bindings: {len(bindings)}")
-print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, combat readability, pause-safe layering, inherited runtime compatibility, editors, validators and package promotion are wired")
+print("- grounded cadence, feet-based depth order, area cards, contextual prompts, animated terrain, combat readability, regional supply layering, pause-safe ownership, editors, validators and package promotion are wired")

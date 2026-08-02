@@ -1,6 +1,6 @@
 extends SceneTree
 
-const CampaignAudit = preload("res://src/content/campaign_audit.gd")
+const CampaignAudit = preload("res://src/content/supply_campaign_audit.gd")
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 
 var failures: Array[String] = []
@@ -25,6 +25,8 @@ func run_test() -> void:
 	check(int(metrics.get("progression_source_risk_count", -1)) >= 0, "Reference audit must publish progression-source metrics.")
 	check(int(metrics.get("merchant_only_progression_count", -1)) >= 0, "Reference audit must publish merchant-only progression metrics.")
 	check(int(metrics.get("affordability_risk_count", -1)) >= 0, "Reference audit must publish affordability metrics.")
+	check(int(metrics.get("supply_region_count", 0)) == 2, "Reference audit must publish both regional supply routes.")
+	check(int(metrics.get("renewable_stock_count", 0)) == 5, "Reference audit must publish all renewable stock entries.")
 	check(JSON.stringify(first) == JSON.stringify(second), "Repeated audits must produce deterministic JSON output.")
 	check(findings_are_sorted(first.get("findings", [])), "Audit findings must remain sorted by severity rank and stable code.")
 	finish()
@@ -52,7 +54,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Campaign audit smoke test passed: reference reachability, capability, economy, progression-source, affordability, quest and save probes are deterministic.")
+		print("Campaign audit smoke test passed: reference reachability, capability, economy, progression-source, affordability, regional supply, quest and save probes are deterministic.")
 		quit(0)
 		return
 	for failure in failures:

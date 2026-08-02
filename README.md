@@ -25,7 +25,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 13. Skippable, progression-equivalent cinematic timelines
 14. Versioned save profiles, migrations, checksums, autosave, manual slots, backup recovery and Continue
 15. Deterministic campaign packages with manifests, SHA-256 verification, staging and safe installation
-16. Repository-wide campaign audits for reachability, capability sources, economy recovery, quest starts and save safety
+16. Repository-wide campaign audits for reachability, capability definitions, progression sources, recipe unlocks and cycles, finite supply, merchant bindings, affordability, quest starts and save safety
 17. Original map and era presentation profiles with camera feel, atmosphere, restrained screen texture and framed HUD
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
@@ -114,7 +114,7 @@ Authors release metadata and exports or imports data-only `.epochbound.zip` camp
 
 ### Audit
 
-Runs deterministic production probes and exports machine-readable blocker and warning reports for people and maintenance agents.
+Runs eight deterministic production probes covering structural reachability, recovery, progression-source softlocks and merchant-only affordability, then exports machine-readable blocker and warning reports for people and maintenance agents.
 
 ### Presentation
 
@@ -254,7 +254,7 @@ The gate performs:
 - direct compilation of runtime, resources, validators, all seventeen editor plugins and every smoke test;
 - strict headless project import;
 - complete content validation through the strict Sprite Animation validator;
-- repository-wide campaign production audit;
+- repository-wide eight-probe campaign production audit, including progression-source and affordability analysis;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
@@ -264,7 +264,9 @@ Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot re
 
 ## Governed GitHub validation
 
-The exact-candidate workflows are manual and read-only. Dispatch from `main` with the current 40-character SHA:
+The primary `validate.yml` workflow runs automatically for every push to `main` and remains manually dispatchable for an exact-SHA rerun. The focused Audio, Sprite and Linux Agent workflows remain manual, exact-SHA and read-only.
+
+To request exact reruns from `main`:
 
 ```powershell
 $Sha = git rev-parse HEAD
@@ -285,7 +287,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -356,4 +358,4 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, localisation, regional merchant restocking and scarcity, accessibility controls for visual and sound intensity, boss phase-specific music stems, controller remapping and automated progression, affordability and softlock probes.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, regional merchant restocking and scarcity, boss phase-specific music stems, controller remapping, automated long-form progression playthroughs and deeper economy-balance simulation.

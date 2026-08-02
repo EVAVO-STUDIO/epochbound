@@ -8,12 +8,14 @@ Every finding contains:
 
 - `severity`: `blocker`, `warning` or `info`;
 - `code`: a stable machine-readable identifier;
-- `context`: the relevant map, capability, quest or policy ID;
+- `context`: the relevant map, capability, item, quest, merchant or policy ID;
 - `message`: a player- and author-facing explanation.
 
 Reports are sorted deterministically by severity, code, context and message. Identical campaign input must produce byte-equivalent JSON output.
 
-## Six permanent probes
+The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression and affordability risks. These counts are evidence and triage aids, not balance scores.
+
+## Eight permanent probes
 
 ### 1. Map reachability
 
@@ -36,16 +38,16 @@ Findings:
 
 One-way story transitions remain possible, but authors must review the warning and prove that save, defeat and recovery flows cannot strand the player.
 
-### 3. Capability-source coverage
+### 3. Capability-definition coverage
 
-Required capabilities are collected recursively from maps, story conditions and merchant conditions. Sources are collected from campaign base capabilities and equipment definitions.
+Required capabilities are collected recursively from maps, story conditions and merchant conditions. Definitions are collected from campaign base capabilities and equipment records.
 
 Findings:
 
 - `capability.no_source` — blocker
 - `capability.late_source` — warning
 
-A late-source warning is expected for optional or progression equipment. Authors must still prove that the item can be acquired before the corresponding gate becomes mandatory.
+A late-source warning means the capability is defined but is not present in the starting loadout. Probe 7 then checks whether the granting equipment itself has a usable acquisition route.
 
 ### 4. Economy and recovery
 
@@ -56,7 +58,7 @@ Findings:
 - `economy.no_restorative_source` — blocker
 - `economy.no_ammo_recovery` — warning
 
-Conditional merchants are not counted as immediate recovery sources because their availability may depend on the very resource or capability the player has exhausted.
+Conditional merchants are not counted as immediate recovery sources because their availability may depend on the resource or capability the player has exhausted.
 
 ### 5. Quest startability
 
@@ -78,15 +80,66 @@ Findings:
 - `save.autosave_never_requested` — warning
 - `save.manual_in_combat` — warning
 
+### 7. Progression-source and softlock safety
+
+The audit collects every explicit `has_item` and `remove_item` progression requirement from maps, story and economy data. When a required item has one unambiguous recipe, the audit also traces its ingredients. Sources are built from:
+
+- starting inventory and starting equipment, with an equipped item already present in inventory counted only once;
+- story and map item grants;
+- the complete definitions behind placed reusable objects, including pickup grants, reward items and boss defeat effects;
+- non-circular recipes that are available by default, listed in starting recipes or have an authored unlock route;
+- merchant stock attached to a placed reusable NPC definition.
+
+Required capabilities are then connected to the equipment items that grant them and to those items’ acquisition routes.
+
+Blockers:
+
+- `progression.item_no_source`
+- `progression.item_self_lock`
+- `progression.insufficient_finite_supply`
+- `progression.merchant_source_unbound`
+- `progression.recipe_cycle`
+- `progression.recipe_never_unlocked`
+- `progression.capability_item_no_source`
+- `progression.capability_self_lock`
+
+Warnings:
+
+- `progression.item_only_gated_sources`
+- `progression.capability_only_gated_sources`
+
+A blocker is reserved for evidence the static records can prove: no route, a circular recipe, a required recipe with no default, starting or authored unlock, an exact self-gate, an unbound merchant definition, or authored finite supply below an explicit required quantity. A source that is merely conditional remains a warning because executable play may prove a valid ordering.
+
+Recipe outputs are treated as repeatable for finite-supply accounting only after cycle detection and recipe-unlock verification. This prevents a legal crafting loop from being mistaken for a one-time pickup while rejecting recipes that require their own output directly or indirectly, or that can never become available through campaign data.
+
+### 8. Merchant-only progression affordability
+
+The audit identifies progression items and capability-granting equipment whose usable sources are all merchants. It uses the same authored price calculation as the runtime and compares the lowest complete purchase cost with the currency’s starting balance.
+
+Blockers:
+
+- `economy.progression_item_not_for_sale`
+- `economy.capability_item_not_for_sale`
+
+Warnings:
+
+- `economy.progression_purchase_unaffordable`
+- `economy.capability_purchase_unaffordable`
+
+A price above the starting balance is a warning, not a blocker. Enemy rewards, quest rewards and player sales may provide an intentional earning route. Authors must prove that route occurs before the purchase becomes mandatory and cannot itself depend on the purchase.
+
+The probe does not assume all optional upgrades must be affordable at campaign start. It only evaluates items and capabilities already identified as progression requirements.
+
 ## Editor workflow
 
 1. Open the **Audit** main-screen tab.
 2. Select a built-in or installed campaign.
 3. Select **Run Audit**.
-4. Resolve every blocker.
-5. Review and either resolve or document every warning.
-6. Export the deterministic JSON report into `user://audit_reports`.
-7. Attach the report to the release record or automated maintenance run.
+4. Review the two-line metrics summary, including progression and affordability counts.
+5. Resolve every blocker.
+6. Review and either resolve or document every warning.
+7. Export the deterministic JSON report into `user://audit_reports`.
+8. Attach the report to the release record or automated maintenance run.
 
 ## Automation use
 
@@ -95,9 +148,10 @@ Maintenance bots should treat:
 - blockers as release-stopping failures;
 - warnings as required review items;
 - stable finding codes as the durable automation interface;
-- finding messages as human-readable context, not parsing keys.
+- finding messages as human-readable context, not parsing keys;
+- metric counts as bounded triage data, not permission to rewrite campaign design.
 
-Bots must never silence a warning by deleting content, loosening a gate or granting items without proving the intended player journey remains intact.
+Bots must never silence a warning by deleting content, loosening a gate, making every stock entry unlimited, lowering prices or granting items without proving the intended player journey remains intact.
 
 ## Scope boundaries
 
@@ -110,4 +164,4 @@ Campaign Audit Studio does not simulate every possible player action. It does no
 - long-form save/load soak tests;
 - human assessment of story quality and encounter fairness.
 
-It provides a deterministic early-warning layer that makes those later reviews more focused and safer to automate.
+The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, all recipe alternatives, player spending choices or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.

@@ -17,7 +17,13 @@ func run_test() -> void:
 	var report_value: Variant = studio.call("run_audit_for_path", CAMPAIGN_PATH)
 	var report: Dictionary = report_value if typeof(report_value) == TYPE_DICTIONARY else {}
 	check(str(report.get("campaign_id", "")) == "epochbound_demo", "Audit Studio must load the selected campaign.")
+	check(int(report.get("probe_count", 0)) == 8, "Audit Studio must expose all eight production probes.")
 	check(int(report.get("blocker_count", -1)) == 0, "Audit Studio must surface the reference campaign without blockers.")
+	var metrics_label: Label = studio.get("metrics_label") as Label
+	check(metrics_label != null, "Audit Studio must expose its metrics summary.")
+	if metrics_label != null:
+		check(metrics_label.text.contains("Progression items"), "Audit Studio must display progression-source metrics.")
+		check(metrics_label.text.contains("Affordability risks"), "Audit Studio must display affordability metrics.")
 	var export_value: Variant = studio.call("export_last_report_to", EXPORT_PATH)
 	var export_result: Dictionary = export_value if typeof(export_value) == TYPE_DICTIONARY else {}
 	check(bool(export_result.get("ok", false)), "Audit Studio must export its current report.")
@@ -27,7 +33,9 @@ func run_test() -> void:
 		var file: FileAccess = FileAccess.open(EXPORT_PATH, FileAccess.READ)
 		check(file != null and parser.parse(file.get_as_text()) == OK, "Exported audit JSON must parse cleanly.")
 		if typeof(parser.data) == TYPE_DICTIONARY:
-			check(str((parser.data as Dictionary).get("campaign_id", "")) == "epochbound_demo", "Exported report must preserve campaign identity.")
+			var exported: Dictionary = parser.data as Dictionary
+			check(str(exported.get("campaign_id", "")) == "epochbound_demo", "Exported report must preserve campaign identity.")
+			check(int(exported.get("probe_count", 0)) == 8, "Exported report must preserve the expanded probe count.")
 	DirAccess.remove_absolute(EXPORT_PATH)
 	root.remove_child(studio)
 	studio.free()
@@ -41,7 +49,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Campaign Audit Studio smoke test passed: selection, rendering state and JSON export are coherent.")
+		print("Campaign Audit Studio smoke test passed: selection, eight-probe metrics, rendering state and JSON export are coherent.")
 		quit(0)
 		return
 	for failure in failures:

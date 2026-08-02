@@ -59,6 +59,7 @@ func build_ui() -> void:
 	root_box.add_child(summary_label)
 	metrics_label = Label.new()
 	metrics_label.text = ""
+	metrics_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root_box.add_child(metrics_label)
 
 	findings_tree = Tree.new()
@@ -71,7 +72,7 @@ func build_ui() -> void:
 	findings_tree.set_column_title(2, "Context")
 	findings_tree.set_column_title(3, "Finding")
 	findings_tree.set_column_custom_minimum_width(0, 90)
-	findings_tree.set_column_custom_minimum_width(1, 190)
+	findings_tree.set_column_custom_minimum_width(1, 230)
 	findings_tree.set_column_custom_minimum_width(2, 170)
 	findings_tree.set_column_expand(3, true)
 	root_box.add_child(findings_tree)
@@ -128,14 +129,23 @@ func render_report(report: Dictionary) -> void:
 	var warnings := int(report.get("warning_count", 0))
 	summary_label.text = "%s — %d blocker(s), %d warning(s)" % [str(report.get("campaign_id", "Campaign")), blockers, warnings]
 	var metrics: Dictionary = report.get("metrics", {})
-	metrics_label.text = "Maps %d/%d reachable   •   Capabilities %d   •   Quests %d   •   Restorative sources %d   •   Probes %d" % [
-		int(metrics.get("reachable_map_count", 0)),
-		int(metrics.get("map_count", 0)),
-		int(metrics.get("required_capability_count", 0)),
-		int(metrics.get("quest_count", 0)),
-		int(metrics.get("restorative_source_count", 0)),
-		int(report.get("probe_count", 0))
-	]
+	metrics_label.text = (
+		"Maps %d/%d reachable   •   Capabilities %d   •   Quests %d   •   Restorative sources %d   •   Probes %d\n" % [
+			int(metrics.get("reachable_map_count", 0)),
+			int(metrics.get("map_count", 0)),
+			int(metrics.get("required_capability_count", 0)),
+			int(metrics.get("quest_count", 0)),
+			int(metrics.get("restorative_source_count", 0)),
+			int(report.get("probe_count", 0))
+		]
+		+ "Progression items %d   •   Progression capabilities %d   •   Source risks %d   •   Merchant-only %d   •   Affordability risks %d" % [
+			int(metrics.get("progression_item_count", 0)),
+			int(metrics.get("progression_capability_count", 0)),
+			int(metrics.get("progression_source_risk_count", 0)),
+			int(metrics.get("merchant_only_progression_count", 0)),
+			int(metrics.get("affordability_risk_count", 0))
+		]
+	)
 	for finding_value in report.get("findings", []):
 		if typeof(finding_value) != TYPE_DICTIONARY:
 			continue

@@ -46,6 +46,7 @@ static func apply_due_restock(
 	play_time_seconds: float
 ) -> Dictionary:
 	var total_added := 0
+	var cycles_advanced := 0
 	var region_reports: Array = []
 	var merchant_additions: Dictionary = {}
 	for region_id in sorted_ids(region_definitions):
@@ -56,6 +57,7 @@ static func apply_due_restock(
 		if due_cycles <= 0:
 			region_cycles[region_id] = current_cycle
 			continue
+		cycles_advanced += due_cycles
 		var applied_cycles := mini(due_cycles, SupplyCatalog.max_catchup_cycles(region_data))
 		var region_added := 0
 		for merchant_id in sorted_ids(merchant_definitions):
@@ -100,7 +102,8 @@ static func apply_due_restock(
 			"added": region_added
 		})
 	return {
-		"changed": total_added > 0,
+		"changed": cycles_advanced > 0,
+		"cycles_advanced": cycles_advanced,
 		"total_added": total_added,
 		"regions": region_reports,
 		"merchant_additions": merchant_additions
@@ -109,7 +112,9 @@ static func apply_due_restock(
 
 static func merchant_has_renewable_stock(merchant_data: Dictionary) -> bool:
 	for entry_value in EconomyCatalog.stock_entries(merchant_data):
-		if typeof(entry_value) == TYPE_DICTIONARY and SupplyCatalog.stock_is_renewable(entry_value as Dictionary):
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+		if SupplyCatalog.stock_is_renewable(entry_value as Dictionary):
 			return true
 	return false
 

@@ -41,18 +41,36 @@ func _process(delta: float) -> void:
 	super._process(delta)
 
 
-func load_player_settings() -> void:
-	var result := PlayerSettingsStore.load_settings()
+func load_player_settings(root_path: String = PlayerSettingsStore.ROOT) -> void:
+	apply_player_settings_load_result(PlayerSettingsStore.load_settings(root_path))
+
+
+func apply_player_settings_load_result(result: Dictionary) -> void:
 	player_settings = PlayerSettings.sanitize(result.get("settings", {}))
-	if bool(result.get("recovered_from_backup", false)):
+	var recovered := bool(result.get("recovered_from_backup", false))
+	var migrated := bool(result.get("migrated", false))
+	if recovered:
 		player_settings_load_status = "recovered"
+	elif migrated:
+		player_settings_load_status = "migrated"
 	elif bool(result.get("used_defaults", false)):
 		player_settings_load_status = "defaults"
-	elif bool(result.get("migrated", false)):
-		player_settings_load_status = "migrated"
 	else:
 		player_settings_load_status = "loaded"
-	player_settings_dirty = false
+	# Recovery and migration are safe reads. Keep the sanitized values pending so
+	# the next deliberate Options close promotes them through the atomic writer.
+	player_settings_dirty = recovered or migrated
+
+
+func player_settings_open_notice() -> String:
+	match player_settings_load_status:
+		"recovered":
+			return "RECOVERED SETTINGS FROM BACKUP"
+		"migrated":
+			return "SETTINGS UPDATED TO CURRENT VERSION"
+		"saved":
+			return "SETTINGS SAVED LOCALLY"
+	return "SETTINGS ARE SAVED LOCALLY"
 
 
 func title_menu() -> Array[String]:
@@ -113,16 +131,16 @@ func open_player_settings() -> bool:
 	player_settings_open = true
 	player_settings_origin_flow = flow
 	player_settings_index = clampi(player_settings_index, 0, maxi(0, PlayerSettings.entries().size() - 1))
-	player_settings_notice = "SETTINGS ARE SAVED LOCALLY"
+	player_settings_notice = player_settings_open_notice()
 	player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 	return true
 
 
-func close_player_settings() -> bool:
+func close_player_settings(root_path: String = PlayerSettingsStore.ROOT) -> bool:
 	if not player_settings_open:
 		return true
 	if player_settings_dirty:
-		var result := PlayerSettingsStore.write_settings(player_settings)
+		var result := PlayerSettingsStore.write_settings(player_settings, root_path)
 		if not bool(result.get("ok", false)):
 			player_settings_notice = "SAVE FAILED: %s" % format_errors(result.get("errors", []))
 			player_settings_notice_timer = 3.0
@@ -231,6 +249,7 @@ func player_settings_contract_ok() -> bool:
 		and player_settings_entry_count() >= 10
 		and player_settings_index >= 0
 		and player_settings_index < player_settings_entry_count()
+		and ["defaults", "loaded", "recovered", "migrated", "saved"].has(player_settings_load_status)
 	)
 
 

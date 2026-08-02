@@ -4,6 +4,7 @@ extends RefCounted
 const RecipeAudit = preload("res://src/content/progression_recipe_audit.gd")
 const SourceIndex = preload("res://src/content/progression_source_index.gd")
 
+
 static func audit(
 	campaign: Dictionary,
 	maps: Dictionary,
@@ -41,9 +42,14 @@ static func audit(
 		var item_sources := SourceIndex.source_array(sources.get(item_id, []))
 		var usable_sources := SourceIndex.usable_item_sources(item_sources)
 		if usable_sources.is_empty():
+			var explained := false
+			if SourceIndex.has_locked_recipe_source(item_sources):
+				add_finding(findings, "blocker", "progression.recipe_never_unlocked", "Progression item '%s' is produced only by a recipe with no authored unlock route." % item_id, item_id)
+				explained = true
 			if SourceIndex.has_unbound_merchant_source(item_sources):
 				add_finding(findings, "blocker", "progression.merchant_source_unbound", "Progression item '%s' is sold only by a merchant with no reusable NPC binding." % item_id, item_id)
-			else:
+				explained = true
+			if not explained:
 				add_finding(findings, "blocker", "progression.item_no_source", "Progression item '%s' has no authored acquisition source." % item_id, item_id)
 			continue
 		if SourceIndex.every_source_requires_item(usable_sources, item_id):

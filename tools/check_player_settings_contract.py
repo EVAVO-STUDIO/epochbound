@@ -84,6 +84,7 @@ require(
         "load_player_settings",
         "apply_player_settings_load_result",
         "player_settings_open_notice",
+        "open_player_settings",
         "close_player_settings",
         "root_path: String = PlayerSettingsStore.ROOT",
         "player_settings_dirty = recovered or migrated",
@@ -191,6 +192,9 @@ require(
     recovery_smoke,
     [
         'TEST_ROOT := "user://epochbound_test_player_settings_recovery"',
+        "Runtime Options must preserve supported migration status",
+        "Migrated runtime settings must remain pending for atomic promotion",
+        "Options must explain when settings were migrated",
         "Recovered runtime settings must remain pending for atomic primary repair",
         'runtime.call("close_player_settings", TEST_ROOT)',
         "The next settings load must use the healed primary file",

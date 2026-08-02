@@ -53,9 +53,10 @@ def events(source: str) -> set[str]:
 sources = {name: read(name, path) for name, path in WORKFLOWS.items()}
 for name, source in sources.items():
     workflow_events = events(source)
-    if workflow_events != {"workflow_dispatch"}:
+    allowed_events = {"push", "workflow_dispatch"} if name == "validate" else {"workflow_dispatch"}
+    if workflow_events != allowed_events:
         errors.append(
-            f"{name}: only workflow_dispatch is allowed, found {sorted(workflow_events)}"
+            f"{name}: expected events {sorted(allowed_events)}, found {sorted(workflow_events)}"
         )
     require(
         name,
@@ -86,9 +87,14 @@ require(
     "validate",
     sources["validate"],
     [
+        "push:\n    branches:\n      - main",
         "actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
         "persist-credentials: false",
-        "ref: ${{ inputs.expected_sha }}",
+        "ref: ${{ github.sha }}",
+        "EVENT_NAME: ${{ github.event_name }}",
+        'if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then',
+        'elif [[ "${EVENT_NAME}" == "push" ]]; then',
+        '[[ "${EXPECTED_SHA}" == "${GITHUB_SHA}" ]]',
         "SHA512-SUMS.txt",
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
@@ -170,7 +176,8 @@ if errors:
     raise SystemExit(1)
 
 print("epochbound_release_workflow_policy_passed")
-print("- workflows are manual exact-SHA only")
+print("- primary validation runs automatically for exact main-push SHAs and remains manually dispatchable")
+print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
 print("- runtime composition and player settings are checked before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

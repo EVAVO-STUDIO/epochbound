@@ -33,11 +33,12 @@ Use this checklist after the automated Audit Studio report and before distributi
 
 - List each item counted by `progression_item_count` and the quantity required by the first mandatory gate.
 - Prove at least one authored source exists before that gate.
-- Confirm starting equipment that is already present in starting inventory represents one physical item rather than two sources.
-- For recipe-derived items, prove the recipe has a default, starting or authored unlock route before testing its ingredients.
-- Start recipe tests with an empty inventory and prove every ingredient can be acquired without using the output.
+- For every repeated `remove_item`, verify the audit quantity includes each sequential consumption.
+- For mutually exclusive dialogue choices, verify the audit uses the largest one-branch cost rather than summing impossible choices.
+- Confirm a paired `has_item` guard and `remove_item` effect represent one physical cost, not two.
+- For recipe-derived items, start with an empty inventory and prove every ingredient can be acquired without using the output.
+- Verify output batch sizes and nested recipes produce the same cumulative ingredient quantities shown by the audit.
 - Confirm alternative recipes do not hide a dependency cycle.
-- Verify pickup, reward and boss-defeat sources come from reusable definitions that are actually placed on a reachable map.
 - Exhaust every finite pickup and merchant stack used by progression and verify the required quantity remains obtainable.
 - Confirm each merchant counted as a source has a reachable placed reusable NPC binding.
 - Review every `progression.item_only_gated_sources` warning against the intended encounter order.

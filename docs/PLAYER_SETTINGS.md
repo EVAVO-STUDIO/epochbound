@@ -67,6 +67,8 @@ Player settings use a versioned schema and a guarded write sequence:
 
 An invalid primary file is never rotated over a known-good backup. On startup, the store tries the primary file, then the backup, then safe defaults.
 
+When startup uses a valid backup or migrates an older supported schema, the sanitized settings remain marked as a pending repair. Options names the recovery or migration source instead of presenting it as an ordinary load. The next deliberate Options close writes the current complete settings through the same atomic path, recreates the primary file and prevents later launches from repeating the same recovery. Startup itself remains read-only.
+
 The current schema is `1`. Unknown future schemas are rejected rather than guessed. Older or partial supported records are migrated by preserving recognised values and filling newly introduced settings from safe defaults.
 
 ## Test isolation
@@ -77,7 +79,13 @@ The settings store accepts an alternate root for automated tests. The permanent 
 user://epochbound_test_player_settings
 ```
 
-It never edits a developer or player’s real `user://settings` directory.
+and the recovery-edge suite uses:
+
+```text
+user://epochbound_test_player_settings_recovery
+```
+
+Neither suite edits a developer or player’s real `user://settings` directory.
 
 The regression verifies:
 
@@ -88,8 +96,11 @@ The regression verifies:
 - exact range steps and toggles;
 - temporary-file promotion;
 - previous-file backup rotation;
-- corrupt-primary backup recovery;
-- safe promotion of recovered settings;
+- corrupt-primary and backup-only recovery;
+- recovery and migration status presentation;
+- pending repair after a recovered load;
+- isolated primary healing on Options close;
+- a clean primary load after runtime healing;
 - title-menu Options exposure;
 - gameplay save and autosave blocking;
 - frozen animation while Options is open;
@@ -109,4 +120,5 @@ The regression verifies:
 - Add new fields with safe defaults and a migration path.
 - Treat unknown future schemas as incompatible.
 - Preserve the last complete valid settings file before replacement.
+- Keep startup reads non-destructive; promote recovered or migrated values only through the atomic writer.
 - Test title, pause, keyboard and controller access at native 640 by 360 and the 1280 by 720 window override.

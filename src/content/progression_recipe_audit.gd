@@ -1,20 +1,267 @@
 @tool
 extends RefCounted
 
+
 static func collect_required_items(value: Variant, output: Dictionary) -> void:
+	# Compatibility wrapper for callers that inspect one authored tree. The
+	# production audit keeps possession and consumption evidence separate until
+	# every relevant content surface has been inspected.
+	var held: Dictionary = {}
+	var consumed: Dictionary = {}
+	collect_required_item_evidence(value, held, consumed)
+	var merged := required_items_from_evidence(held, consumed)
+	for item_id in sorted_dictionary_keys(merged):
+		output[item_id] = maxi(int(output.get(item_id, 0)), int(merged.get(item_id, 0)))
+
+
+static func collect_required_item_evidence(
+	value: Variant,
+	held: Dictionary,
+	consumed: Dictionary
+) -> void:
 	if typeof(value) == TYPE_DICTIONARY:
 		var data: Dictionary = value
 		var type_id := str(data.get("type", ""))
-		if type_id == "has_item" or type_id == "remove_item":
-			var item_id := str(data.get("item_id", ""))
-			var quantity := maxi(1, int(data.get("quantity", 1)))
-			if not item_id.is_empty():
-				output[item_id] = maxi(quantity, int(output.get(item_id, 0)))
+		var item_id := str(data.get("item_id", ""))
+		var quantity := maxi(1, int(data.get("quantity", 1)))
+		if not item_id.is_empty():
+			if type_id == "has_item":
+				held[item_id] = maxi(quantity, int(held.get(item_id, 0)))
+			elif type_id == "remove_item":
+				consumed[item_id] = int(consumed.get(item_id, 0)) + quantity
 		for child_value in data.values():
-			collect_required_items(child_value, output)
+			collect_required_item_evidence(child_value, held, consumed)
 	elif typeof(value) == TYPE_ARRAY:
 		for child_value in value:
-			collect_required_items(child_value, output)
+			collect_required_item_evidence(child_value, held, consumed)
+
+
+static func collect_story_required_item_evidence(
+	story: Dictionary,
+	held: Dictionary,
+	consumed: Dictionary
+) -> void:
+	# Quest stages and rewards are authored as cumulative campaign records.
+	var quests_value: Variant = story.get("quests", {})
+	if typeof(quests_value) == TYPE_DICTIONARY:
+		collect_required_item_evidence(quests_value, held, consumed)
+
+	# Conversation choices are alternatives, while nodes connected by `next`
+	# execute sequentially. Traverse the graph so mutually exclusive choices do
+	# not look like several mandatory consumptions.
+	var conversations_value: Variant = story.get("conversations", {})
+	if typeof(conversations_value) != TYPE_DICTIONARY:
+		return
+	var conversations: Dictionary = conversations_value
+	for conversation_id in sorted_dictionary_keys(conversations):
+		var conversation_value: Variant = conversations.get(conversation_id, {})
+		if typeof(conversation_value) != TYPE_DICTIONARY:
+			continue
+		var evidence := conversation_required_item_evidence(conversation_value as Dictionary)
+		merge_evidence_sequential(
+			held,
+			consumed,
+			evidence_dictionary(evidence, "held"),
+			evidence_dictionary(evidence, "consumed")
+		)
+
+
+static func conversation_required_item_evidence(conversation: Dictionary) -> Dictionary:
+	var node_index := conversation_node_index(conversation)
+	var memo: Dictionary = {}
+	var visiting: Dictionary = {}
+	return conversation_node_evidence(
+		str(conversation.get("start_node", "")),
+		node_index,
+		memo,
+		visiting
+	)
+
+
+static func conversation_node_index(conversation: Dictionary) -> Dictionary:
+	var output: Dictionary = {}
+	var nodes_value: Variant = conversation.get("nodes", [])
+	if typeof(nodes_value) != TYPE_ARRAY:
+		return output
+	for node_value in nodes_value:
+		if typeof(node_value) != TYPE_DICTIONARY:
+			continue
+		var node: Dictionary = node_value
+		var node_id := str(node.get("id", ""))
+		if not node_id.is_empty():
+			output[node_id] = node
+	return output
+
+
+static func conversation_node_evidence(
+	node_id: String,
+	node_index: Dictionary,
+	memo: Dictionary,
+	visiting: Dictionary
+) -> Dictionary:
+	if node_id.is_empty() or not node_index.has(node_id):
+		return empty_evidence()
+	var memo_value: Variant = memo.get(node_id, {})
+	if typeof(memo_value) == TYPE_DICTIONARY and not (memo_value as Dictionary).is_empty():
+		return duplicate_evidence(memo_value as Dictionary)
+	if visiting.has(node_id):
+		# Content validation owns graph legality. The quantity probe must never
+		# inflate a repeatable dialogue loop into infinite required supply.
+		return empty_evidence()
+	visiting[node_id] = true
+
+	var node_value: Variant = node_index.get(node_id, {})
+	var node: Dictionary = node_value as Dictionary if typeof(node_value) == TYPE_DICTIONARY else {}
+	var result_held: Dictionary = {}
+	var result_consumed: Dictionary = {}
+	collect_required_item_evidence(node.get("conditions", []), result_held, result_consumed)
+	collect_required_item_evidence(node.get("effects", []), result_held, result_consumed)
+
+	if str(node.get("kind", "line")) == "choice":
+		var alternatives_held: Dictionary = {}
+		var alternatives_consumed: Dictionary = {}
+		var has_alternative := false
+		var choices_value: Variant = node.get("choices", [])
+		if typeof(choices_value) == TYPE_ARRAY:
+			for choice_value in choices_value:
+				if typeof(choice_value) != TYPE_DICTIONARY:
+					continue
+				var choice: Dictionary = choice_value
+				var branch_held: Dictionary = {}
+				var branch_consumed: Dictionary = {}
+				collect_required_item_evidence(choice.get("conditions", []), branch_held, branch_consumed)
+				collect_required_item_evidence(choice.get("effects", []), branch_held, branch_consumed)
+				var next_evidence := conversation_node_evidence(
+					str(choice.get("next", "")),
+					node_index,
+					memo,
+					visiting
+				)
+				merge_evidence_sequential(
+					branch_held,
+					branch_consumed,
+					evidence_dictionary(next_evidence, "held"),
+					evidence_dictionary(next_evidence, "consumed")
+				)
+				if not has_alternative:
+					alternatives_held = branch_held.duplicate(true)
+					alternatives_consumed = branch_consumed.duplicate(true)
+					has_alternative = true
+				else:
+					merge_evidence_alternative(
+						alternatives_held,
+						alternatives_consumed,
+						branch_held,
+						branch_consumed
+					)
+		if has_alternative:
+			merge_evidence_sequential(
+				result_held,
+				result_consumed,
+				alternatives_held,
+				alternatives_consumed
+			)
+		else:
+			var fallback_evidence := conversation_node_evidence(
+				str(node.get("next", node.get("fallback", ""))),
+				node_index,
+				memo,
+				visiting
+			)
+			merge_evidence_sequential(
+				result_held,
+				result_consumed,
+				evidence_dictionary(fallback_evidence, "held"),
+				evidence_dictionary(fallback_evidence, "consumed")
+			)
+	else:
+		var next_evidence := conversation_node_evidence(
+			str(node.get("next", "")),
+			node_index,
+			memo,
+			visiting
+		)
+		merge_evidence_sequential(
+			result_held,
+			result_consumed,
+			evidence_dictionary(next_evidence, "held"),
+			evidence_dictionary(next_evidence, "consumed")
+		)
+
+	visiting.erase(node_id)
+	var result := {"held": result_held, "consumed": result_consumed}
+	memo[node_id] = duplicate_evidence(result)
+	return result
+
+
+static func empty_evidence() -> Dictionary:
+	return {"held": {}, "consumed": {}}
+
+
+static func duplicate_evidence(evidence: Dictionary) -> Dictionary:
+	return {
+		"held": evidence_dictionary(evidence, "held").duplicate(true),
+		"consumed": evidence_dictionary(evidence, "consumed").duplicate(true)
+	}
+
+
+static func evidence_dictionary(evidence: Dictionary, field: String) -> Dictionary:
+	var value: Variant = evidence.get(field, {})
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
+
+
+static func merge_evidence_sequential(
+	target_held: Dictionary,
+	target_consumed: Dictionary,
+	source_held: Dictionary,
+	source_consumed: Dictionary
+) -> void:
+	for item_id in sorted_dictionary_keys(source_held):
+		target_held[item_id] = maxi(
+			int(target_held.get(item_id, 0)),
+			int(source_held.get(item_id, 0))
+		)
+	for item_id in sorted_dictionary_keys(source_consumed):
+		target_consumed[item_id] = (
+			int(target_consumed.get(item_id, 0))
+			+ int(source_consumed.get(item_id, 0))
+		)
+
+
+static func merge_evidence_alternative(
+	target_held: Dictionary,
+	target_consumed: Dictionary,
+	source_held: Dictionary,
+	source_consumed: Dictionary
+) -> void:
+	for item_id in sorted_dictionary_keys(source_held):
+		target_held[item_id] = maxi(
+			int(target_held.get(item_id, 0)),
+			int(source_held.get(item_id, 0))
+		)
+	for item_id in sorted_dictionary_keys(source_consumed):
+		target_consumed[item_id] = maxi(
+			int(target_consumed.get(item_id, 0)),
+			int(source_consumed.get(item_id, 0))
+		)
+
+
+static func required_items_from_evidence(held: Dictionary, consumed: Dictionary) -> Dictionary:
+	var all_ids: Dictionary = {}
+	for item_id_value in held.keys():
+		all_ids[str(item_id_value)] = true
+	for item_id_value in consumed.keys():
+		all_ids[str(item_id_value)] = true
+	var output: Dictionary = {}
+	for item_id in sorted_dictionary_keys(all_ids):
+		# A possession guard paired with a removal effect describes the same
+		# physical item, so do not add those quantities together. Sequential
+		# removals remain cumulative because each consumes real supply.
+		output[item_id] = maxi(
+			int(held.get(item_id, 0)),
+			int(consumed.get(item_id, 0))
+		)
+	return output
 
 
 static func recipe_output_index(recipes: Dictionary) -> Dictionary:
@@ -116,39 +363,119 @@ static func detect_recipe_cycle_from(
 static func expand_recipe_requirements(
 	requirements: Dictionary,
 	output_recipes: Dictionary,
-	cyclic_items: Dictionary
+	cyclic_items: Dictionary,
+	non_recipe_supply: Dictionary = {},
+	available_recipe_items: Dictionary = {},
+	enforce_recipe_availability: bool = false
 ) -> void:
-	var queue: Array[String] = []
-	for item_id in sorted_dictionary_keys(requirements):
-		queue.append(item_id)
-	var cursor := 0
-	while cursor < queue.size():
-		var item_id := queue[cursor]
-		cursor += 1
-		if cyclic_items.has(item_id):
+	# Resolve each original demand against one shared supply pool. Ingredients are
+	# expanded only for the residual quantity that genuinely must be crafted.
+	var roots: Dictionary = requirements.duplicate(true)
+	var remaining_supply: Dictionary = non_recipe_supply.duplicate(true)
+	for item_id in sorted_dictionary_keys(roots):
+		expand_recipe_demand(
+			item_id,
+			maxi(1, int(roots.get(item_id, 1))),
+			output_recipes,
+			cyclic_items,
+			requirements,
+			remaining_supply,
+			available_recipe_items,
+			enforce_recipe_availability,
+			PackedStringArray()
+		)
+
+
+static func expand_recipe_demand(
+	item_id: String,
+	quantity: int,
+	output_recipes: Dictionary,
+	cyclic_items: Dictionary,
+	requirements: Dictionary,
+	remaining_supply: Dictionary,
+	available_recipe_items: Dictionary,
+	enforce_recipe_availability: bool,
+	recursion_path: PackedStringArray
+) -> void:
+	if quantity <= 0:
+		return
+	var residual_quantity := consume_available_supply(item_id, quantity, remaining_supply)
+	if residual_quantity <= 0:
+		return
+	if cyclic_items.has(item_id) or recursion_path.has(item_id):
+		return
+	if enforce_recipe_availability and not available_recipe_items.has(item_id):
+		return
+	var recipe_records := source_array(output_recipes.get(item_id, []))
+	# Alternative recipes are intentionally not guessed. The production audit
+	# expands only a single unambiguous dependency route.
+	if recipe_records.size() != 1 or typeof(recipe_records[0]) != TYPE_DICTIONARY:
+		return
+	var recipe_value: Variant = (recipe_records[0] as Dictionary).get("recipe", {})
+	if typeof(recipe_value) != TYPE_DICTIONARY:
+		return
+	var recipe: Dictionary = recipe_value
+	var output_value: Variant = recipe.get("output", {})
+	var output_quantity := 1
+	if typeof(output_value) == TYPE_DICTIONARY:
+		output_quantity = maxi(1, int((output_value as Dictionary).get("quantity", 1)))
+	var batches := int(ceil(float(residual_quantity) / float(output_quantity)))
+	var produced_quantity := batches * output_quantity
+	add_available_supply(
+		item_id,
+		maxi(0, produced_quantity - residual_quantity),
+		remaining_supply
+	)
+	var next_path: PackedStringArray = recursion_path.duplicate()
+	next_path.append(item_id)
+	for ingredient_value in recipe.get("ingredients", []):
+		if typeof(ingredient_value) != TYPE_DICTIONARY:
 			continue
-		var recipe_records := source_array(output_recipes.get(item_id, []))
-		if recipe_records.size() != 1 or typeof(recipe_records[0]) != TYPE_DICTIONARY:
+		var ingredient: Dictionary = ingredient_value
+		var ingredient_id := str(ingredient.get("item_id", ""))
+		var ingredient_quantity := maxi(1, int(ingredient.get("quantity", 1))) * batches
+		if ingredient_id.is_empty():
 			continue
-		var recipe: Dictionary = (recipe_records[0] as Dictionary).get("recipe", {})
-		var output_value: Variant = recipe.get("output", {})
-		var output_quantity := 1
-		if typeof(output_value) == TYPE_DICTIONARY:
-			output_quantity = maxi(1, int((output_value as Dictionary).get("quantity", 1)))
-		var batches := int(ceil(float(maxi(1, int(requirements.get(item_id, 1)))) / float(output_quantity)))
-		for ingredient_value in recipe.get("ingredients", []):
-			if typeof(ingredient_value) != TYPE_DICTIONARY:
-				continue
-			var ingredient: Dictionary = ingredient_value
-			var ingredient_id := str(ingredient.get("item_id", ""))
-			var ingredient_quantity := maxi(1, int(ingredient.get("quantity", 1))) * batches
-			if ingredient_id.is_empty():
-				continue
-			var previous := int(requirements.get(ingredient_id, 0))
-			if ingredient_quantity > previous:
-				requirements[ingredient_id] = ingredient_quantity
-				if not queue.has(ingredient_id):
-					queue.append(ingredient_id)
+		requirements[ingredient_id] = int(requirements.get(ingredient_id, 0)) + ingredient_quantity
+		expand_recipe_demand(
+			ingredient_id,
+			ingredient_quantity,
+			output_recipes,
+			cyclic_items,
+			requirements,
+			remaining_supply,
+			available_recipe_items,
+			enforce_recipe_availability,
+			next_path
+		)
+
+
+static func consume_available_supply(
+	item_id: String,
+	quantity: int,
+	remaining_supply: Dictionary
+) -> int:
+	if not remaining_supply.has(item_id):
+		return quantity
+	var available := int(remaining_supply.get(item_id, 0))
+	if available < 0:
+		return 0
+	var consumed := mini(quantity, maxi(0, available))
+	remaining_supply[item_id] = available - consumed
+	return quantity - consumed
+
+
+static func add_available_supply(
+	item_id: String,
+	quantity: int,
+	remaining_supply: Dictionary
+) -> void:
+	if item_id.is_empty() or quantity <= 0:
+		return
+	var available := int(remaining_supply.get(item_id, 0))
+	if available < 0:
+		return
+	remaining_supply[item_id] = available + quantity
 
 
 static func sorted_dictionary_keys(value: Dictionary) -> PackedStringArray:

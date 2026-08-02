@@ -1,9 +1,11 @@
 extends "res://src/merchant_runtime.gd"
 
+const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const SupplyValidator = preload("res://src/content/supply_region_validator.gd")
 const SupplyModel = preload("res://src/game/supply_region_model.gd")
 const SupplySaveProfile = preload("res://src/content/save_profile.gd")
+const SupplySaveStore = preload("res://src/content/save_profile_store.gd")
 
 var supply_region_definitions: Dictionary = {}
 var supply_region_cycles: Dictionary = {}
@@ -70,11 +72,13 @@ func update_game(delta: float) -> void:
 		return
 	var delivery := apply_due_supply_restock()
 	if bool(delivery.get("changed", false)):
-		request_autosave("Regional supply updated")
+		record_supply_change(delivery, "Regional supply updated")
 
 
 func open_merchant(merchant_id: String) -> bool:
 	var delivery := apply_due_supply_restock()
+	if bool(delivery.get("changed", false)):
+		record_supply_change(delivery, "Regional supply updated")
 	var opened := super.open_merchant(merchant_id)
 	if not opened:
 		return false
@@ -89,7 +93,13 @@ func open_merchant(merchant_id: String) -> bool:
 
 func apply_due_supply_restock() -> Dictionary:
 	if not supply_regions_initialized or supply_region_definitions.is_empty():
-		return {"changed": false, "total_added": 0, "regions": [], "merchant_additions": {}}
+		return {
+			"changed": false,
+			"cycles_advanced": 0,
+			"total_added": 0,
+			"regions": [],
+			"merchant_additions": {}
+		}
 	var result := SupplyModel.apply_due_restock(
 		merchant_stock,
 		merchant_definitions,
@@ -97,9 +107,16 @@ func apply_due_supply_restock() -> Dictionary:
 		supply_region_cycles,
 		play_time_seconds
 	)
-	if bool(result.get("changed", false)):
+	if int(result.get("total_added", 0)) > 0:
 		last_supply_delivery = result.duplicate(true)
 	return result
+
+
+func record_supply_change(delivery: Dictionary, reason: String) -> void:
+	if not bool(delivery.get("changed", false)):
+		return
+	last_durable_fingerprint = durable_progress_fingerprint()
+	request_autosave(reason)
 
 
 func active_supply_region() -> Dictionary:
@@ -139,6 +156,27 @@ func capture_save_profile(slot_id: String, reason: String = "Manual save") -> Di
 	return profile
 
 
+func save_current_profile(slot_id: String, reason: String) -> bool:
+	if save_operation_depth > 0:
+		return false
+	var profile := capture_save_profile(slot_id, reason)
+	var validation := SupplyValidator.validate_profile(profile, campaign_path)
+	if not bool(validation.get("ok", false)):
+		set_save_notice("Save validation failed: %s" % format_errors(validation.get("errors", [])), 2.4)
+		return false
+	var result := SupplySaveStore.write_profile(profile)
+	if not bool(result.get("ok", false)):
+		set_save_notice("Save failed: %s" % format_errors(result.get("errors", [])), 2.4)
+		return false
+	current_save_slot = slot_id
+	pending_autosave_reason = ""
+	last_durable_fingerprint = durable_progress_fingerprint()
+	refresh_save_slot_cache()
+	refresh_continue_profile()
+	set_save_notice("%s SAVED" % SupplySaveProfile.slot_label(slot_id))
+	return true
+
+
 func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bool:
 	var validation := SupplyValidator.validate_profile(profile, target_campaign_path)
 	if not bool(validation.get("ok", false)):
@@ -156,7 +194,9 @@ func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bo
 		play_time_seconds
 	)
 	supply_regions_initialized = true
-	apply_due_supply_restock()
+	var delivery := apply_due_supply_restock()
+	if bool(delivery.get("changed", false)):
+		request_autosave("Regional supply caught up")
 	last_durable_fingerprint = durable_progress_fingerprint()
 	return true
 

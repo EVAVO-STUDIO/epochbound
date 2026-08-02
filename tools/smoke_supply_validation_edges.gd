@@ -51,15 +51,15 @@ func test_region_validation() -> void:
 
 
 func test_merchant_and_stock_validation() -> void:
-	var regions := {
+	var regions: Dictionary = {
 		"known_route": SupplyCatalog.default_region("known_route", "Known Route", 180.0, 4)
 	}
-	var items := {
+	var items: Dictionary = {
 		"tonic": {"id": "tonic", "kind": "consumable", "stack_limit": 9, "value": 10},
 		"tool": {"id": "tool", "kind": "equipment", "stack_limit": 1, "value": 40},
 		"bolts": {"id": "bolts", "kind": "ammunition", "stack_limit": 60, "value": 2}
 	}
-	var merchants := {
+	var merchants: Dictionary = {
 		"unknown_route_merchant": {"id": "unknown_route_merchant", "supply_region_id": "missing_route", "stock": []},
 		"invalid_stock_merchant": {
 			"id": "invalid_stock_merchant",
@@ -71,16 +71,17 @@ func test_merchant_and_stock_validation() -> void:
 			]
 		}
 	}
-	var catalog := {"supply_regions": [], "merchants": merchants.values()}
+	var catalog: Dictionary = {"supply_regions": [], "merchants": merchants.values()}
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
+	var region_sources: Dictionary = {}
 	SupplyValidator.validate_catalog_file(
 		catalog,
 		"test/economy.json",
 		regions,
 		merchants,
 		items,
-		{},
+		region_sources,
 		errors,
 		warnings
 	)
@@ -90,6 +91,11 @@ func test_merchant_and_stock_validation() -> void:
 	check(contains_fragment(errors, "cannot be lower than the initial quantity"), "Restock targets below initial stock must be rejected.")
 
 	var no_route_errors: Array[String] = []
+	var no_route_warnings: Array[String] = []
+	var no_route_sources: Dictionary = {}
+	var no_route_merchants: Dictionary = {
+		"no_route": {"id": "no_route", "stock": []}
+	}
 	SupplyValidator.validate_catalog_file(
 		{
 			"supply_regions": [],
@@ -100,17 +106,17 @@ func test_merchant_and_stock_validation() -> void:
 		},
 		"test/no_route.json",
 		regions,
-		{"no_route": {"id": "no_route", "stock": []}},
+		no_route_merchants,
 		items,
-		{},
+		no_route_sources,
 		no_route_errors,
-		[]
+		no_route_warnings
 	)
 	check(contains_fragment(no_route_errors, "requires the merchant to declare supply_region_id"), "Renewable stock must require a merchant route.")
 
 
 func test_profile_validation() -> void:
-	var regions := {
+	var regions: Dictionary = {
 		"known_route": SupplyCatalog.default_region("known_route", "Known Route", 180.0, 4)
 	}
 	var errors: Array[String] = []

@@ -16,13 +16,17 @@ static func audit(
 	required_capabilities: Dictionary,
 	findings: Array[Dictionary]
 ) -> Dictionary:
-	var requirements: Dictionary = {}
-	RecipeAudit.collect_required_items(maps, requirements)
-	RecipeAudit.collect_required_items(story, requirements)
-	RecipeAudit.collect_required_items(economy, requirements)
+	var held_requirements: Dictionary = {}
+	var consumed_requirements: Dictionary = {}
+	RecipeAudit.collect_required_item_evidence(maps, held_requirements, consumed_requirements)
+	RecipeAudit.collect_story_required_item_evidence(story, held_requirements, consumed_requirements)
+	RecipeAudit.collect_required_item_evidence(economy, held_requirements, consumed_requirements)
+	var requirements := RecipeAudit.required_items_from_evidence(
+		held_requirements,
+		consumed_requirements
+	)
 	var output_recipes := RecipeAudit.recipe_output_index(recipes)
 	var cyclic_items := RecipeAudit.detect_recipe_cycle_items(output_recipes)
-	RecipeAudit.expand_recipe_requirements(requirements, output_recipes, cyclic_items)
 
 	var merchant_bindings := SourceIndex.merchant_binding_index(objects, maps)
 	var sources := SourceIndex.build_item_source_index(
@@ -35,6 +39,16 @@ static func audit(
 		objects,
 		merchant_bindings
 	)
+	var supply_profile := recipe_supply_profile(sources)
+	RecipeAudit.expand_recipe_requirements(
+		requirements,
+		output_recipes,
+		cyclic_items,
+		supply_profile.get("non_recipe_supply", {}),
+		supply_profile.get("available_recipe_items", {}),
+		true
+	)
+
 	report_unseeded_recipe_cycles(cyclic_items, output_recipes, sources, findings)
 	var required_item_ids := sorted_dictionary_keys(requirements)
 	for item_id in required_item_ids:
@@ -86,12 +100,45 @@ static func audit(
 
 	return {
 		"requirements": requirements,
+		"held_requirements": held_requirements,
+		"consumed_requirements": consumed_requirements,
+		"non_recipe_supply": supply_profile.get("non_recipe_supply", {}),
+		"available_recipe_items": supply_profile.get("available_recipe_items", {}),
 		"sources": sources,
 		"capability_items": capability_items,
 		"starting_capabilities": starting_capabilities,
 		"merchant_bindings": merchant_bindings,
 		"progression_item_count": requirements.size(),
 		"progression_capability_count": required_capabilities.size()
+	}
+
+
+static func recipe_supply_profile(sources: Dictionary) -> Dictionary:
+	var non_recipe_supply: Dictionary = {}
+	var available_recipe_items: Dictionary = {}
+	for item_id in sorted_dictionary_keys(sources):
+		var usable_sources := SourceIndex.usable_item_sources(
+			SourceIndex.source_array(sources.get(item_id, []))
+		)
+		var non_recipe_sources: Array = []
+		for source_value in usable_sources:
+			if typeof(source_value) != TYPE_DICTIONARY:
+				continue
+			var source: Dictionary = source_value
+			if str(source.get("kind", "")) == "recipe":
+				available_recipe_items[item_id] = true
+			else:
+				non_recipe_sources.append(source)
+		if not non_recipe_sources.is_empty():
+			var supply := SourceIndex.finite_source_supply(non_recipe_sources)
+			non_recipe_supply[item_id] = (
+				-1
+				if bool(supply.get("unlimited", false))
+				else int(supply.get("quantity", 0))
+			)
+	return {
+		"non_recipe_supply": non_recipe_supply,
+		"available_recipe_items": available_recipe_items
 	}
 
 

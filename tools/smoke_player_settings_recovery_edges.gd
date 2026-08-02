@@ -21,7 +21,7 @@ func run_test() -> void:
 	finish()
 
 
-func test_backup_only_recovery() -> void:
+func prepare_backup_only_settings() -> void:
 	PlayerSettingsStore.delete_settings(TEST_ROOT)
 	var previous: Dictionary = PlayerSettings.default_settings()
 	previous["master_volume"] = 0.3
@@ -32,6 +32,10 @@ func test_backup_only_recovery() -> void:
 	check(FileAccess.file_exists(PlayerSettingsStore.backup_path(TEST_ROOT)), "Recovery setup must leave the previous complete settings as backup.")
 	var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(PlayerSettingsStore.settings_path(TEST_ROOT)))
 	check(remove_error == OK, "Recovery setup must simulate a crash after primary rotation.")
+
+
+func test_backup_only_recovery() -> void:
+	prepare_backup_only_settings()
 	var recovered: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
 	check(bool(recovered.get("ok", false)), "Backup-only settings must load successfully.")
 	check(bool(recovered.get("recovered_from_backup", false)), "Backup-only settings must identify their recovery source.")
@@ -40,10 +44,13 @@ func test_backup_only_recovery() -> void:
 	check(is_equal_approx(PlayerSettings.number(settings, "master_volume"), 0.3), "Backup-only recovery must restore the last complete previous value.")
 	check(bool(PlayerSettingsStore.rewrite_loaded_settings(recovered, TEST_ROOT).get("ok", false)), "Backup-only recovery must be promotable into a new primary file.")
 	check(FileAccess.file_exists(PlayerSettingsStore.settings_path(TEST_ROOT)), "Promoting recovered settings must recreate the primary file.")
+	var promoted: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
+	check(not bool(promoted.get("recovered_from_backup", false)), "A promoted recovery must load from the repaired primary file.")
 	PlayerSettingsStore.delete_settings(TEST_ROOT)
 
 
 func test_modal_presentation_freeze() -> void:
+	prepare_backup_only_settings()
 	var packed: Resource = ResourceLoader.load(RUNTIME_SCENE, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
 	check(packed is PackedScene, "Settings recovery edge scene must load.")
 	if not packed is PackedScene:
@@ -54,11 +61,18 @@ func test_modal_presentation_freeze() -> void:
 		return
 	root.add_child(runtime)
 	await process_frame
+
+	runtime.call("load_player_settings", TEST_ROOT)
+	check(str(runtime.get("player_settings_load_status")) == "recovered", "Runtime Options must preserve the backup recovery status.")
+	check(bool(runtime.get("player_settings_dirty")), "Recovered runtime settings must remain pending for atomic primary repair.")
+	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 1.0)), 0.3), "Runtime recovery must expose the last complete backup value.")
+
 	runtime.call("change_flow", 4)
 	runtime.set("transition_lock", 0.0)
 	runtime.set("dialogue", "")
 	runtime.set("active_cinematic_id", "")
 	check(bool(runtime.call("open_player_settings")), "Options must open for modal-freeze testing.")
+	check(str(runtime.get("player_settings_notice")) == "RECOVERED SETTINGS FROM BACKUP", "Options must explain that settings came from the backup.")
 
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	var camera: Camera2D = runtime.get_node_or_null("PresentationCamera") as Camera2D
@@ -96,8 +110,16 @@ func test_modal_presentation_freeze() -> void:
 		check(camera.position.is_equal_approx(VIEW_CENTER), "Options must centre and neutralise the presentation camera.")
 		check(not bool(camera.get("initialized")), "Options must reset camera smoothing state before gameplay resumes.")
 
-	runtime.set("player_settings_dirty", false)
-	runtime.call("close_player_settings")
+	check(bool(runtime.call("close_player_settings", TEST_ROOT)), "Closing recovered Options must atomically heal the isolated primary settings file.")
+	check(not bool(runtime.get("player_settings_dirty")), "Successful recovery promotion must clear the pending settings write.")
+	check(str(runtime.get("player_settings_load_status")) == "saved", "Successful recovery promotion must enter the saved state.")
+	check(FileAccess.file_exists(PlayerSettingsStore.settings_path(TEST_ROOT)), "Closing recovered Options must recreate the primary settings file.")
+	var healed: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
+	check(not bool(healed.get("recovered_from_backup", false)), "The next settings load must use the healed primary file.")
+	var healed_value: Variant = healed.get("settings", {})
+	var healed_settings: Dictionary = healed_value as Dictionary if typeof(healed_value) == TYPE_DICTIONARY else {}
+	check(is_equal_approx(PlayerSettings.number(healed_settings, "master_volume"), 0.3), "The healed primary file must retain the recovered value.")
+
 	root.remove_child(runtime)
 	runtime.free()
 
@@ -109,7 +131,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Player settings recovery-edge smoke test passed: backup-only recovery, frozen particles, cleared shake and centred modal camera are coherent.")
+		print("Player settings recovery-edge smoke test passed: backup-only recovery, atomic runtime healing, frozen particles, cleared shake and centred modal camera are coherent.")
 		quit(0)
 		return
 	for failure in failures:

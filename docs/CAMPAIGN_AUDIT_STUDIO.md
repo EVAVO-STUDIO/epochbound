@@ -84,10 +84,10 @@ Findings:
 
 The audit collects every explicit `has_item` and `remove_item` progression requirement from maps, story and economy data. When a required item has one unambiguous recipe, the audit also traces its ingredients. Sources are built from:
 
-- starting inventory and starting equipment;
+- starting inventory and starting equipment, with an equipped item already present in inventory counted only once;
 - story and map item grants;
-- placed reusable pickup definitions;
-- non-circular recipes;
+- the complete definitions behind placed reusable objects, including pickup grants, reward items and boss defeat effects;
+- non-circular recipes that are available by default, listed in starting recipes or have an authored unlock route;
 - merchant stock attached to a placed reusable NPC definition.
 
 Required capabilities are then connected to the equipment items that grant them and to those items’ acquisition routes.
@@ -99,6 +99,7 @@ Blockers:
 - `progression.insufficient_finite_supply`
 - `progression.merchant_source_unbound`
 - `progression.recipe_cycle`
+- `progression.recipe_never_unlocked`
 - `progression.capability_item_no_source`
 - `progression.capability_self_lock`
 
@@ -107,9 +108,9 @@ Warnings:
 - `progression.item_only_gated_sources`
 - `progression.capability_only_gated_sources`
 
-A blocker is reserved for evidence the static records can prove: no route, a circular recipe, an exact self-gate, an unreachable merchant definition, or authored finite supply below an explicit required quantity. A source that is merely conditional remains a warning because executable play may prove a valid ordering.
+A blocker is reserved for evidence the static records can prove: no route, a circular recipe, a required recipe with no default, starting or authored unlock, an exact self-gate, an unbound merchant definition, or authored finite supply below an explicit required quantity. A source that is merely conditional remains a warning because executable play may prove a valid ordering.
 
-Recipe outputs are treated as repeatable for finite-supply accounting only after cycle detection. This prevents a legal crafting loop from being mistaken for a one-time pickup while still rejecting recipes that require their own output directly or indirectly.
+Recipe outputs are treated as repeatable for finite-supply accounting only after cycle detection and recipe-unlock verification. This prevents a legal crafting loop from being mistaken for a one-time pickup while rejecting recipes that require their own output directly or indirectly, or that can never become available through campaign data.
 
 ### 8. Merchant-only progression affordability
 

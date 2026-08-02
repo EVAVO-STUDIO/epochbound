@@ -1,7 +1,7 @@
 @tool
 extends RefCounted
 
-const CURRENT_RUNTIME_SCRIPT := "res://src/supply_runtime.gd"
+const CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"
 const CURRENT_CAMERA_SCRIPT := "res://src/presentation_camera.gd"

@@ -27,6 +27,7 @@ try {
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Compile player settings runtime storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
+        @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
         @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
         @("Smoke test persistent player settings and accessibility", "res://tools/smoke_player_settings.gd"),
         @("Smoke test player settings crash recovery and modal freeze edges", "res://tools/smoke_player_settings_recovery_edges.gd"),
@@ -49,8 +50,10 @@ try {
         @("Smoke test Loadout Studio editor state", "res://tools/smoke_loadout_studio.gd"),
         @("Smoke test malformed equipment capabilities and gates", "res://tools/smoke_equipment_validation_edges.gd"),
         @("Smoke test merchant transactions and durable economy", "res://tools/smoke_economy_runtime.gd"),
-        @("Smoke test Merchant and Economy Studio editor state", "res://tools/smoke_trade_studio.gd"),
+        @("Smoke test Merchant Economy and Supply Studio editor state", "res://tools/smoke_trade_studio.gd"),
         @("Smoke test malformed currencies merchants stock and economy saves", "res://tools/smoke_economy_validation_edges.gd"),
+        @("Smoke test deterministic regional supply scarcity catch-up and saves", "res://tools/smoke_supply_regions.gd"),
+        @("Smoke test malformed supply routes replenishment and saved cycles", "res://tools/smoke_supply_validation_edges.gd"),
         @("Smoke test Arsenal ranged combat and durable magazines", "res://tools/smoke_arsenal_runtime.gd"),
         @("Smoke test Arsenal Studio editor state", "res://tools/smoke_arsenal_studio.gd"),
         @("Smoke test malformed ranged weapons ammunition enemies and saves", "res://tools/smoke_arsenal_validation_edges.gd"),
@@ -87,7 +90,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, crash recovery, modal freeze, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, regional supply, scarcity, crash recovery, modal freeze, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

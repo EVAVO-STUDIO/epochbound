@@ -2,7 +2,7 @@ extends "res://src/presentation_runtime_base.gd"
 
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
-const SupplyValidator = preload("res://src/content/supply_region_validator.gd")
+const CompleteValidator = preload("res://src/content/complete_content_validator.gd")
 const SupplyModel = preload("res://src/game/supply_region_model.gd")
 const SupplySaveProfile = preload("res://src/content/save_profile.gd")
 const SupplySaveStore = preload("res://src/content/save_profile_store.gd")
@@ -14,10 +14,10 @@ var last_supply_delivery: Dictionary = {}
 
 
 func load_campaign(path: String) -> bool:
-	var validation := SupplyValidator.validate_campaign_path(path)
+	var validation := CompleteValidator.validate_campaign_path(path)
 	if not bool(validation.get("ok", false)):
 		load_error = format_errors(validation.get("errors", []))
-		push_error("Regional supply validation failed: %s" % load_error)
+		push_error("Complete campaign validation failed: %s" % load_error)
 		if campaign.is_empty():
 			load_fallback_campaign()
 		return false
@@ -160,7 +160,7 @@ func save_current_profile(slot_id: String, reason: String) -> bool:
 	if save_operation_depth > 0:
 		return false
 	var profile := capture_save_profile(slot_id, reason)
-	var validation := SupplyValidator.validate_profile(profile, campaign_path)
+	var validation := CompleteValidator.validate_profile(profile, campaign_path)
 	if not bool(validation.get("ok", false)):
 		set_save_notice("Save validation failed: %s" % format_errors(validation.get("errors", [])), 2.4)
 		return false
@@ -178,7 +178,7 @@ func save_current_profile(slot_id: String, reason: String) -> bool:
 
 
 func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bool:
-	var validation := SupplyValidator.validate_profile(profile, target_campaign_path)
+	var validation := CompleteValidator.validate_profile(profile, target_campaign_path)
 	if not bool(validation.get("ok", false)):
 		load_error = format_errors(validation.get("errors", []))
 		set_save_notice("Profile rejected: %s" % load_error, 2.6)

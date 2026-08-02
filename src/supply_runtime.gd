@@ -1,4 +1,4 @@
-extends "res://src/merchant_runtime.gd"
+extends "res://src/presentation_runtime_current.gd"
 
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")

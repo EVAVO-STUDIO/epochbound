@@ -77,6 +77,7 @@ forbid(
         "Time.get_datetime",
         "OS.get_unix_time",
         "DateTime",
+        "offline_seconds",
     ],
 )
 
@@ -170,11 +171,7 @@ forbid(
 )
 
 scene = read("src/app.tscn")
-require(
-    "src/app.tscn",
-    scene,
-    ['res://src/presentation_runtime_current.gd'],
-)
+require("src/app.tscn", scene, ['res://src/presentation_runtime_current.gd'])
 
 runtime_contract = read("src/game/runtime_scene_contract.gd")
 require(
@@ -226,10 +223,9 @@ require(
         "Change rolled back",
     ],
 )
-trade_plugin = read("addons/epochbound_trade_studio/plugin.gd")
 require(
     "addons/epochbound_trade_studio/plugin.gd",
-    trade_plugin,
+    read("addons/epochbound_trade_studio/plugin.gd"),
     ['res://addons/epochbound_trade_studio/trade_studio_supply.gd'],
 )
 
@@ -247,10 +243,9 @@ require(
         "CompleteValidator.validate_profile",
     ],
 )
-state_plugin = read("addons/epochbound_save_state_studio/plugin.gd")
 require(
     "addons/epochbound_save_state_studio/plugin.gd",
-    state_plugin,
+    read("addons/epochbound_save_state_studio/plugin.gd"),
     ['res://addons/epochbound_save_state_studio/save_state_studio_supply.gd'],
 )
 
@@ -263,14 +258,24 @@ require(
         'SupplyCompleteValidator = preload("res://src/content/complete_content_validator.gd")',
         "SupplyCompleteValidator.validate_campaign_path",
         "SupplyCompleteValidator.validate_all",
-        "Change rolled back" if False else "populate_release_fields",
+        "populate_release_fields",
     ],
 )
-package_plugin = read("addons/epochbound_package_studio/plugin.gd")
 require(
     "addons/epochbound_package_studio/plugin.gd",
-    package_plugin,
+    read("addons/epochbound_package_studio/plugin.gd"),
     ['res://addons/epochbound_package_studio/package_studio_supply.gd'],
+)
+
+install_service = read("src/content/campaign_install_service.gd")
+require(
+    "src/content/campaign_install_service.gd",
+    install_service,
+    [
+        'CurrentValidator = preload("res://src/content/complete_content_validator.gd")',
+        "CurrentValidator.validate_campaign_path",
+        "fully validated campaign installation",
+    ],
 )
 
 audit = read("src/content/supply_campaign_audit.gd")
@@ -298,10 +303,9 @@ require(
         "Renewable stock %d",
     ],
 )
-audit_plugin = read("addons/epochbound_campaign_audit/plugin.gd")
 require(
     "addons/epochbound_campaign_audit/plugin.gd",
-    audit_plugin,
+    read("addons/epochbound_campaign_audit/plugin.gd"),
     ['res://addons/epochbound_campaign_audit/campaign_audit_supply.gd'],
 )
 
@@ -315,10 +319,9 @@ require(
         "renewable stock entry(s)",
     ],
 )
-audit_cli = read("tools/audit_campaigns.gd")
 require(
     "tools/audit_campaigns.gd",
-    audit_cli,
+    read("tools/audit_campaigns.gd"),
     ['CampaignAudit = preload("res://src/content/supply_campaign_audit.gd")'],
 )
 
@@ -331,6 +334,7 @@ require(
         "supply_region_validator.gd",
         "complete_content_validator.gd",
         "supply_campaign_audit.gd",
+        "campaign_install_service.gd",
         "supply_region_model.gd",
         "presentation_runtime_base.gd",
         "presentation_runtime_current.gd",
@@ -340,6 +344,7 @@ require(
         "campaign_audit_supply.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
+        "smoke_package_current_validation.gd",
         "app.tscn",
     ],
 )
@@ -401,11 +406,7 @@ audit_smoke = read("tools/smoke_campaign_audit.gd")
 require(
     "tools/smoke_campaign_audit.gd",
     audit_smoke,
-    [
-        "supply_campaign_audit.gd",
-        "supply_region_count",
-        "renewable_stock_count",
-    ],
+    ["supply_campaign_audit.gd", "supply_region_count", "renewable_stock_count"],
 )
 audit_studio_smoke = read("tools/smoke_campaign_audit_studio.gd")
 require(
@@ -416,6 +417,18 @@ require(
         "Supply regions 2",
         "Renewable stock 5",
         "Exported report must preserve supply-route evidence",
+    ],
+)
+package_smoke = read("tools/smoke_package_current_validation.gd")
+require(
+    "tools/smoke_package_current_validation.gd",
+    package_smoke,
+    [
+        "INVALID_SUPPLY_PACKAGE",
+        "invalid_supply_bytes",
+        'merchant["supply_region_id"] = "missing_route"',
+        "Invalid-supply package must remain structurally and cryptographically valid",
+        "Rejected supply package must never be promoted",
     ],
 )
 
@@ -437,23 +450,19 @@ for workflow_path in [
     ".github/workflows/audio-mood-validation.yml",
     ".github/workflows/sprite-animation-validation.yml",
 ]:
-    workflow = read(workflow_path)
     require(
         workflow_path,
-        workflow,
-        [
-            "python3 tools/check_supply_region_contract.py",
-        ],
+        read(workflow_path),
+        ["python3 tools/check_supply_region_contract.py"],
     )
 
-for focused_workflow_path in [
+for workflow_path in [
     ".github/workflows/audio-mood-validation.yml",
     ".github/workflows/sprite-animation-validation.yml",
 ]:
-    workflow = read(focused_workflow_path)
     require(
-        focused_workflow_path,
-        workflow,
+        workflow_path,
+        read(workflow_path),
         [
             "compile_supply_region_probe.gd",
             "smoke_supply_regions.gd",
@@ -473,10 +482,9 @@ require(
     ],
 )
 
-documentation = read("docs/MERCHANT_ECONOMY_STUDIO.md")
 require(
     "docs/MERCHANT_ECONOMY_STUDIO.md",
-    documentation,
+    read("docs/MERCHANT_ECONOMY_STUDIO.md"),
     [
         "Supply routes and scarcity",
         "restock_interval_seconds",
@@ -489,30 +497,26 @@ require(
         "Supply Cycles",
     ],
 )
-
-playtest = read("docs/ECONOMY_PLAYTEST_CHECKLIST.md")
 require(
     "docs/ECONOMY_PLAYTEST_CHECKLIST.md",
-    playtest,
+    read("docs/ECONOMY_PLAYTEST_CHECKLIST.md"),
     [
         "Regional supply and scarcity",
-        "full-stock cycle",
-        "bounded catch-up",
-        "old save",
-        "progression equipment",
+        "Full-stock cycle",
+        "Bounded catch-up",
+        "Old save compatibility",
+        "Progression equipment scarcity",
     ],
 )
-
-readme = read("README.md")
 require(
     "README.md",
-    readme,
+    read("README.md"),
     [
         "regional supply routes",
         "bounded restocking",
-        "scarcity",
+        "authored scarcity",
         "Supply Cycles",
-        "regional supply",
+        "Regional supply and scarcity",
     ],
 )
 
@@ -526,4 +530,4 @@ print("epochbound_supply_region_contract_passed")
 print("- supply routes use durable gameplay time with bounded catch-up and no offline windfalls")
 print("- only recovery materials consumables and ammunition replenish; equipment and progression stock remain scarce")
 print("- cycle cursors persist through saves including full-stock cycles and old-save initialisation")
-print("- Trade State Package Audit compile local and governed workflow gates cover the integration")
+print("- Trade State Package installation Audit compile local and governed workflow gates cover the integration")

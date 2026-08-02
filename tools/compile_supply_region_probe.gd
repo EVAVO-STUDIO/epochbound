@@ -7,6 +7,7 @@ const TARGETS := [
 	"res://src/content/supply_region_validator.gd",
 	"res://src/content/complete_content_validator.gd",
 	"res://src/content/supply_campaign_audit.gd",
+	"res://src/content/campaign_install_service.gd",
 	"res://src/game/economy_model.gd",
 	"res://src/game/supply_region_model.gd",
 	"res://src/presentation_runtime_base.gd",
@@ -34,6 +35,7 @@ const TARGETS := [
 	"res://tools/smoke_save_state_studio.gd",
 	"res://tools/smoke_campaign_audit.gd",
 	"res://tools/smoke_campaign_audit_studio.gd",
+	"res://tools/smoke_package_current_validation.gd",
 	"res://src/app.tscn"
 ]
 
@@ -51,7 +53,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Regional supply compile probe passed: catalogues, validators, deterministic model, canonical runtime, Trade, State, Package, Audit and regressions load cleanly.")
+		print("Regional supply compile probe passed: catalogues, validators, deterministic model, canonical runtime, Trade, State, Package, staged installation, Audit and regressions load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

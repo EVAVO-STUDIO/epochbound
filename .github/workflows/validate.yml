@@ -1,6 +1,9 @@
 name: Validate Godot Project
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       expected_sha:
@@ -17,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: epochbound-validation-${{ inputs.expected_sha }}
+  group: epochbound-validation-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -32,29 +35,38 @@ jobs:
       GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
 
     steps:
-      - name: Validate governed dispatch
+      - name: Validate governed invocation
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           REQUEST_SOURCE: ${{ inputs.request_source }}
         run: |
           set -euo pipefail
-          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid expected_sha" >&2; exit 1; }
-          [[ "${REQUEST_SOURCE}" == "evavo-development-studio" ]] || { echo "Unsupported request_source" >&2; exit 1; }
-          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || { echo "Validation must be dispatched from main" >&2; exit 1; }
-          [[ "${EXPECTED_SHA}" == "${GITHUB_SHA}" ]] || { echo "expected_sha must equal the dispatched main SHA" >&2; exit 1; }
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || { echo "Validation must run from main" >&2; exit 1; }
+          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid GitHub candidate SHA" >&2; exit 1; }
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid expected_sha" >&2; exit 1; }
+            [[ "${REQUEST_SOURCE}" == "evavo-development-studio" ]] || { echo "Unsupported request_source" >&2; exit 1; }
+            [[ "${EXPECTED_SHA}" == "${GITHUB_SHA}" ]] || { echo "expected_sha must equal the dispatched main SHA" >&2; exit 1; }
+          elif [[ "${EVENT_NAME}" == "push" ]]; then
+            [[ -z "${EXPECTED_SHA}" ]] || { echo "Push validation must not accept a manual expected_sha" >&2; exit 1; }
+          else
+            echo "Unsupported validation event: ${EVENT_NAME}" >&2
+            exit 1
+          fi
 
       - name: Check out exact mainline candidate
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
-          ref: ${{ inputs.expected_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Verify exact mainline candidate and clean source
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           [[ "$(git rev-parse HEAD)" == "${EXPECTED_SHA}" ]]
@@ -115,7 +127,8 @@ jobs:
         if: success()
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
           import json
@@ -123,11 +136,11 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.3",
+              "schemaVersion": "1.4",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
-              "workflow": "exact-manual",
+              "workflow": "exact-main-push" if os.environ["EVENT_NAME"] == "push" else "exact-manual",
               "runtimeCompositionValidation": "passed",
               "playerSettingsValidation": "passed",
               "campaignAudit": "passed",
@@ -145,7 +158,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: epochbound-validation-${{ inputs.expected_sha }}
+          name: epochbound-validation-${{ github.sha }}
           path: ${{ runner.temp }}/epochbound-validation-receipt.json
           if-no-files-found: warn
           retention-days: 14

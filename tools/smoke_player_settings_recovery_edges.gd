@@ -62,6 +62,14 @@ func test_modal_presentation_freeze() -> void:
 	root.add_child(runtime)
 	await process_frame
 
+	var migration_result: Dictionary = PlayerSettings.migrate({"schema_version": 0, "master_volume": 0.6})
+	check(bool(migration_result.get("ok", false)), "Recovery edge setup must produce a supported migrated settings result.")
+	runtime.call("apply_player_settings_load_result", migration_result)
+	check(str(runtime.get("player_settings_load_status")) == "migrated", "Runtime Options must preserve supported migration status.")
+	check(bool(runtime.get("player_settings_dirty")), "Migrated runtime settings must remain pending for atomic promotion.")
+	check(str(runtime.call("player_settings_open_notice")) == "SETTINGS UPDATED TO CURRENT VERSION", "Options must explain when settings were migrated.")
+	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 1.0)), 0.6), "Runtime migration must preserve recognised legacy values.")
+
 	runtime.call("load_player_settings", TEST_ROOT)
 	check(str(runtime.get("player_settings_load_status")) == "recovered", "Runtime Options must preserve the backup recovery status.")
 	check(bool(runtime.get("player_settings_dirty")), "Recovered runtime settings must remain pending for atomic primary repair.")
@@ -131,7 +139,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Player settings recovery-edge smoke test passed: backup-only recovery, atomic runtime healing, frozen particles, cleared shake and centred modal camera are coherent.")
+		print("Player settings recovery-edge smoke test passed: migration status, backup-only recovery, atomic runtime healing, frozen particles, cleared shake and centred modal camera are coherent.")
 		quit(0)
 		return
 	for failure in failures:

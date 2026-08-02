@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource path="res://src/supply_runtime.gd" type="Script" id="1_app"]
+[ext_resource path="res://src/presentation_runtime_current.gd" type="Script" id="1_app"]
 [ext_resource path="res://src/combat_readability_overlay.gd" type="Script" id="2_presentation"]
 [ext_resource path="res://src/presentation_camera.gd" type="Script" id="3_camera"]
 [ext_resource path="res://src/audio_mood_runtime.gd" type="Script" id="4_audio"]

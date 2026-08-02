@@ -82,8 +82,13 @@ require(
         'PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")',
         '"OPTIONS"',
         "load_player_settings",
-        "open_player_settings",
+        "apply_player_settings_load_result",
+        "player_settings_open_notice",
         "close_player_settings",
+        "root_path: String = PlayerSettingsStore.ROOT",
+        "player_settings_dirty = recovered or migrated",
+        '"RECOVERED SETTINGS FROM BACKUP"',
+        '"SETTINGS UPDATED TO CURRENT VERSION"',
         "update_player_settings_menu",
         "player_setting_number",
         "player_setting_bool",
@@ -160,6 +165,7 @@ require(
         "combat_readability_overlay.gd",
         "audio_mood_runtime.gd",
         "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
         "app.tscn",
     ],
 )
@@ -176,6 +182,20 @@ require(
         "Manual saving must remain blocked while Options is open",
         "Options must freeze animation and environment time",
         "Reset Defaults must restore master volume",
+    ],
+)
+
+recovery_smoke = read("tools/smoke_player_settings_recovery_edges.gd")
+require(
+    "tools/smoke_player_settings_recovery_edges.gd",
+    recovery_smoke,
+    [
+        'TEST_ROOT := "user://epochbound_test_player_settings_recovery"',
+        "Recovered runtime settings must remain pending for atomic primary repair",
+        'runtime.call("close_player_settings", TEST_ROOT)',
+        "The next settings load must use the healed primary file",
+        "Options must freeze existing atmosphere particles exactly",
+        "Options must centre and neutralise the presentation camera",
     ],
 )
 
@@ -197,6 +217,7 @@ require(
     [
         "compile_player_settings_probe.gd",
         "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
         "player settings",
     ],
 )
@@ -249,6 +270,9 @@ require(
         "Campaign saves remain separate",
         "Action Prompts",
         "High Contrast UI",
+        "pending repair",
+        "Startup itself remains read-only",
+        "isolated primary healing on Options close",
     ],
 )
 
@@ -260,6 +284,7 @@ if errors:
 
 print("epochbound_player_settings_contract_passed")
 print("- player-local settings are versioned, sanitised and stored atomically")
+print("- backup recovery and supported migrations remain pending until a deliberate isolated-safe Options close")
 print("- Options controls Audio, presentation intensity, prompts and contrast")
 print("- campaign saves and portable campaign packages remain separate")
 print("- primary unified, Audio, Sprite and local gates cover the complete integration")

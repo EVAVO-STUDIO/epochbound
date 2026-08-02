@@ -7,6 +7,7 @@ const EconomyModel = preload("res://src/game/economy_model.gd")
 
 const SOURCE_QUANTITY_UNLIMITED := -1
 
+
 static func build_item_source_index(
 	campaign: Dictionary,
 	maps: Dictionary,
@@ -18,22 +19,39 @@ static func build_item_source_index(
 	merchant_bindings: Dictionary
 ) -> Dictionary:
 	var output: Dictionary = {}
+	var starting_inventory_quantities: Dictionary = {}
 	for entry_value in campaign.get("starting_inventory", []):
 		if typeof(entry_value) != TYPE_DICTIONARY:
 			continue
 		var entry: Dictionary = entry_value
-		add_item_source(output, str(entry.get("item_id", "")), {
+		var item_id := str(entry.get("item_id", ""))
+		var quantity := maxi(0, int(entry.get("quantity", 0)))
+		if item_id.is_empty() or quantity <= 0:
+			continue
+		starting_inventory_quantities[item_id] = maxi(quantity, int(starting_inventory_quantities.get(item_id, 0)))
+	for item_id in sorted_dictionary_keys(starting_inventory_quantities):
+		add_item_source(output, item_id, {
 			"kind": "starting_inventory",
 			"context": "campaign.starting_inventory",
-			"quantity": maxi(0, int(entry.get("quantity", 0))),
+			"quantity": int(starting_inventory_quantities.get(item_id, 0)),
 			"gated": false,
 			"gate_items": PackedStringArray(),
 			"gate_capabilities": PackedStringArray()
 		})
+
+	var emitted_starting_equipment: Dictionary = {}
 	var starting_equipment_value: Variant = campaign.get("starting_equipment", {})
 	if typeof(starting_equipment_value) == TYPE_DICTIONARY:
 		for item_id_value in (starting_equipment_value as Dictionary).values():
-			add_item_source(output, str(item_id_value), {
+			var item_id := str(item_id_value)
+			if item_id.is_empty() or emitted_starting_equipment.has(item_id):
+				continue
+			emitted_starting_equipment[item_id] = true
+			# Equipment normally points at the same physical item already present in
+			# starting_inventory. Count it only when the campaign omits that item.
+			if int(starting_inventory_quantities.get(item_id, 0)) > 0:
+				continue
+			add_item_source(output, item_id, {
 				"kind": "starting_equipment",
 				"context": "campaign.starting_equipment",
 				"quantity": 1,
@@ -42,35 +60,48 @@ static func build_item_source_index(
 				"gate_capabilities": PackedStringArray()
 			})
 
+	var recipe_unlock_sources: Dictionary = {}
 	collect_item_grant_sources(story, "story", output, PackedStringArray(), PackedStringArray(), false)
+	collect_recipe_unlock_sources(story, "story", recipe_unlock_sources, PackedStringArray(), PackedStringArray(), false)
 	for map_id in sorted_dictionary_keys(maps):
 		var map_data: Dictionary = maps.get(map_id, {})
-		collect_item_grant_sources(map_data, "map:%s" % map_id, output, PackedStringArray(), PackedStringArray(), false)
+		var map_context := "map:%s" % map_id
+		collect_item_grant_sources(map_data, map_context, output, PackedStringArray(), PackedStringArray(), false)
+		collect_recipe_unlock_sources(map_data, map_context, recipe_unlock_sources, PackedStringArray(), PackedStringArray(), false)
 		for placement_value in map_data.get("object_placements", []):
 			if typeof(placement_value) != TYPE_DICTIONARY:
 				continue
 			var placement: Dictionary = placement_value
 			var object_id := str(placement.get("object_id", ""))
 			var definition: Dictionary = objects.get(object_id, {})
+			if definition.is_empty():
+				continue
 			var gate_items := PackedStringArray()
 			var gate_capabilities := PackedStringArray()
 			collect_gate_requirements(placement, gate_items, gate_capabilities)
 			collect_gate_requirements(definition, gate_items, gate_capabilities)
 			var gated := source_record_is_gated(placement) or source_record_is_gated(definition)
-			for grant_field in ["item_grants", "reward_items"]:
-				for grant_value in definition.get(grant_field, []):
-					if typeof(grant_value) != TYPE_DICTIONARY:
-						continue
-					var grant: Dictionary = grant_value
-					add_item_source(output, str(grant.get("item_id", "")), {
-						"kind": "object_placement",
-						"context": "%s:%s" % [map_id, str(placement.get("id", object_id))],
-						"quantity": maxi(0, int(grant.get("quantity", 0))),
-						"gated": gated,
-						"gate_items": gate_items.duplicate(),
-						"gate_capabilities": gate_capabilities.duplicate()
-					})
+			var placement_context := "%s:%s" % [map_id, str(placement.get("id", object_id))]
+			# Scan the complete placed definition so pickup grants, reward_items,
+			# story-style effects and boss defeat effects all become real sources.
+			collect_item_grant_sources(
+				definition,
+				placement_context,
+				output,
+				gate_items,
+				gate_capabilities,
+				gated
+			)
+			collect_recipe_unlock_sources(
+				definition,
+				placement_context,
+				recipe_unlock_sources,
+				gate_items,
+				gate_capabilities,
+				gated
+			)
 
+	var starting_recipes := ItemCatalog.starting_recipes(campaign)
 	for recipe_id in sorted_dictionary_keys(recipes):
 		var recipe: Dictionary = recipes.get(recipe_id, {})
 		var output_value: Variant = recipe.get("output", {})
@@ -79,14 +110,28 @@ static func build_item_source_index(
 		var item_id := str((output_value as Dictionary).get("item_id", ""))
 		if item_id.is_empty():
 			continue
-		add_item_source(output, item_id, {
-			"kind": "recipe",
-			"context": recipe_id,
-			"quantity": SOURCE_QUANTITY_UNLIMITED,
-			"gated": not bool(recipe.get("unlocked_by_default", false)) and not ItemCatalog.starting_recipes(campaign).has(recipe_id),
-			"gate_items": PackedStringArray(),
-			"gate_capabilities": PackedStringArray()
-		})
+		if bool(recipe.get("unlocked_by_default", false)) or starting_recipes.has(recipe_id):
+			add_recipe_item_source(
+				output,
+				item_id,
+				recipe_id,
+				{"context": "campaign.recipe_start", "gated": false, "gate_items": PackedStringArray(), "gate_capabilities": PackedStringArray()},
+				true
+			)
+			continue
+		var unlocks := source_array(recipe_unlock_sources.get(recipe_id, []))
+		if unlocks.is_empty():
+			add_recipe_item_source(
+				output,
+				item_id,
+				recipe_id,
+				{"context": recipe_id, "gated": true, "gate_items": PackedStringArray(), "gate_capabilities": PackedStringArray()},
+				false
+			)
+			continue
+		for unlock_value in unlocks:
+			if typeof(unlock_value) == TYPE_DICTIONARY:
+				add_recipe_item_source(output, item_id, recipe_id, unlock_value as Dictionary, true)
 
 	var merchants: Dictionary = economy.get("merchants", {})
 	for merchant_id in sorted_dictionary_keys(merchants):
@@ -132,7 +177,7 @@ static func collect_item_grant_sources(
 		var gated := inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
 		if str(data.get("type", "")) == "grant_item":
 			add_item_source(output, str(data.get("item_id", "")), {
-				"kind": "story_grant",
+				"kind": "authored_effect",
 				"context": context,
 				"quantity": maxi(0, int(data.get("quantity", 0))),
 				"gated": gated,
@@ -160,6 +205,82 @@ static func collect_item_grant_sources(
 	elif typeof(value) == TYPE_ARRAY:
 		for child_value in value:
 			collect_item_grant_sources(child_value, context, output, inherited_items, inherited_capabilities, inherited_gated)
+
+
+static func collect_recipe_unlock_sources(
+	value: Variant,
+	context: String,
+	output: Dictionary,
+	inherited_items: PackedStringArray,
+	inherited_capabilities: PackedStringArray,
+	inherited_gated: bool
+) -> void:
+	if typeof(value) == TYPE_DICTIONARY:
+		var data: Dictionary = value
+		var gate_items := inherited_items.duplicate()
+		var gate_capabilities := inherited_capabilities.duplicate()
+		collect_gate_requirements(data, gate_items, gate_capabilities)
+		var gated := inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
+		if str(data.get("type", "")) == "unlock_recipe":
+			add_recipe_unlock_source(output, str(data.get("recipe_id", "")), {
+				"context": context,
+				"gated": gated,
+				"gate_items": gate_items.duplicate(),
+				"gate_capabilities": gate_capabilities.duplicate()
+			})
+		var unlocks_value: Variant = data.get("unlock_recipes", [])
+		if typeof(unlocks_value) == TYPE_ARRAY:
+			for recipe_value in unlocks_value:
+				add_recipe_unlock_source(output, str(recipe_value), {
+					"context": context,
+					"gated": true,
+					"gate_items": gate_items.duplicate(),
+					"gate_capabilities": gate_capabilities.duplicate()
+				})
+		for key_value in data.keys():
+			var key := str(key_value)
+			var child_gated := gated or ["rewards", "defeat_effects"].has(key)
+			collect_recipe_unlock_sources(data.get(key_value), context, output, gate_items, gate_capabilities, child_gated)
+	elif typeof(value) == TYPE_ARRAY:
+		for child_value in value:
+			collect_recipe_unlock_sources(child_value, context, output, inherited_items, inherited_capabilities, inherited_gated)
+
+
+static func add_recipe_unlock_source(output: Dictionary, recipe_id: String, source: Dictionary) -> void:
+	if recipe_id.is_empty():
+		return
+	var current_value: Variant = output.get(recipe_id, [])
+	var current: Array = current_value as Array if typeof(current_value) == TYPE_ARRAY else []
+	current.append(source)
+	output[recipe_id] = current
+
+
+static func add_recipe_item_source(
+	output: Dictionary,
+	item_id: String,
+	recipe_id: String,
+	unlock_source: Dictionary,
+	unlockable: bool
+) -> void:
+	add_item_source(output, item_id, {
+		"kind": "recipe",
+		"context": "%s via %s" % [recipe_id, str(unlock_source.get("context", recipe_id))],
+		"quantity": SOURCE_QUANTITY_UNLIMITED,
+		"gated": bool(unlock_source.get("gated", true)),
+		"gate_items": duplicate_packed_strings(unlock_source.get("gate_items", PackedStringArray())),
+		"gate_capabilities": duplicate_packed_strings(unlock_source.get("gate_capabilities", PackedStringArray())),
+		"unlockable": unlockable
+	})
+
+
+static func duplicate_packed_strings(value: Variant) -> PackedStringArray:
+	if typeof(value) == TYPE_PACKED_STRING_ARRAY:
+		return (value as PackedStringArray).duplicate()
+	var output := PackedStringArray()
+	if typeof(value) == TYPE_ARRAY:
+		for item_value in value:
+			append_unique(output, str(item_value))
+	return output
 
 
 static func add_item_source(output: Dictionary, item_id: String, source: Dictionary) -> void:
@@ -235,7 +356,10 @@ static func usable_item_sources(sources: Array) -> Array:
 		if typeof(source_value) != TYPE_DICTIONARY:
 			continue
 		var source: Dictionary = source_value
-		if str(source.get("kind", "")) == "merchant" and not bool(source.get("bound", false)):
+		var kind := str(source.get("kind", ""))
+		if kind == "merchant" and not bool(source.get("bound", false)):
+			continue
+		if kind == "recipe" and not bool(source.get("unlockable", true)):
 			continue
 		output.append(source)
 	return output
@@ -247,6 +371,16 @@ static func has_unbound_merchant_source(sources: Array) -> bool:
 			continue
 		var source: Dictionary = source_value
 		if str(source.get("kind", "")) == "merchant" and not bool(source.get("bound", false)):
+			return true
+	return false
+
+
+static func has_locked_recipe_source(sources: Array) -> bool:
+	for source_value in sources:
+		if typeof(source_value) != TYPE_DICTIONARY:
+			continue
+		var source: Dictionary = source_value
+		if str(source.get("kind", "")) == "recipe" and not bool(source.get("unlockable", true)):
 			return true
 	return false
 
@@ -267,10 +401,7 @@ static func every_source_requires_item(sources: Array, item_id: String) -> bool:
 		if typeof(source_value) != TYPE_DICTIONARY:
 			return false
 		var source: Dictionary = source_value
-		var gate_value: Variant = source.get("gate_items", PackedStringArray())
-		var gate_items := PackedStringArray()
-		if typeof(gate_value) == TYPE_PACKED_STRING_ARRAY:
-			gate_items = gate_value as PackedStringArray
+		var gate_items := duplicate_packed_strings(source.get("gate_items", PackedStringArray()))
 		if not gate_items.has(item_id):
 			return false
 	return true
@@ -283,10 +414,7 @@ static func every_source_requires_capability(sources: Array, capability_id: Stri
 		if typeof(source_value) != TYPE_DICTIONARY:
 			return false
 		var source: Dictionary = source_value
-		var gate_value: Variant = source.get("gate_capabilities", PackedStringArray())
-		var gate_capabilities := PackedStringArray()
-		if typeof(gate_value) == TYPE_PACKED_STRING_ARRAY:
-			gate_capabilities = gate_value as PackedStringArray
+		var gate_capabilities := duplicate_packed_strings(source.get("gate_capabilities", PackedStringArray()))
 		if not gate_capabilities.has(capability_id):
 			return false
 	return true

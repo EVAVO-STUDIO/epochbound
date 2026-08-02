@@ -16,10 +16,15 @@ static func audit(
 	required_capabilities: Dictionary,
 	findings: Array[Dictionary]
 ) -> Dictionary:
-	var requirements: Dictionary = {}
-	RecipeAudit.collect_required_items(maps, requirements)
-	RecipeAudit.collect_required_items(story, requirements)
-	RecipeAudit.collect_required_items(economy, requirements)
+	var held_requirements: Dictionary = {}
+	var consumed_requirements: Dictionary = {}
+	RecipeAudit.collect_required_item_evidence(maps, held_requirements, consumed_requirements)
+	RecipeAudit.collect_story_required_item_evidence(story, held_requirements, consumed_requirements)
+	RecipeAudit.collect_required_item_evidence(economy, held_requirements, consumed_requirements)
+	var requirements := RecipeAudit.required_items_from_evidence(
+		held_requirements,
+		consumed_requirements
+	)
 	var output_recipes := RecipeAudit.recipe_output_index(recipes)
 	var cyclic_items := RecipeAudit.detect_recipe_cycle_items(output_recipes)
 	RecipeAudit.expand_recipe_requirements(requirements, output_recipes, cyclic_items)
@@ -86,6 +91,8 @@ static func audit(
 
 	return {
 		"requirements": requirements,
+		"held_requirements": held_requirements,
+		"consumed_requirements": consumed_requirements,
 		"sources": sources,
 		"capability_items": capability_items,
 		"starting_capabilities": starting_capabilities,

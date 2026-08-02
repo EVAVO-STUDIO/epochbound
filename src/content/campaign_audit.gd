@@ -4,12 +4,14 @@ extends RefCounted
 const Repository = preload("res://src/content/campaign_repository.gd")
 const ReleaseValidator = preload("res://src/content/package_release_validator.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
+const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const ProgressionSourceAudit = preload("res://src/content/progression_source_audit.gd")
+const ProgressionAffordabilityAudit = preload("res://src/content/progression_affordability_audit.gd")
 
-const PROBE_COUNT := 6
+const PROBE_COUNT := 8
 const SEVERITY_RANK := {"blocker": 0, "warning": 1, "info": 2}
-
 
 static func audit_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	var reports: Array[Dictionary] = []
@@ -45,21 +47,31 @@ static func audit_campaign_path(campaign_path: String) -> Dictionary:
 		return build_report(campaign_path.get_file().get_basename(), findings, {})
 	var campaign: Dictionary = result.get("data", {})
 	var maps := load_maps(campaign_path, campaign, findings)
+
 	var item_result: Dictionary = ItemCatalog.load_item_catalogs(campaign_path, campaign)
 	for error_value in item_result.get("errors", []):
 		add_finding(findings, "blocker", "items.unreadable", str(error_value), campaign_path)
+	var recipe_result: Dictionary = ItemCatalog.load_recipe_catalogs(campaign_path, campaign)
+	for error_value in recipe_result.get("errors", []):
+		add_finding(findings, "blocker", "recipes.unreadable", str(error_value), campaign_path)
 	var story_result: Dictionary = StoryCatalog.load_catalogs(campaign_path, campaign)
 	for error_value in story_result.get("errors", []):
 		add_finding(findings, "blocker", "story.unreadable", str(error_value), campaign_path)
 	var economy_result: Dictionary = EconomyCatalog.load_catalogs(campaign_path, campaign)
 	for error_value in economy_result.get("errors", []):
 		add_finding(findings, "blocker", "economy.unreadable", str(error_value), campaign_path)
+	var object_result: Dictionary = ObjectCatalog.load_catalogs(campaign_path, campaign)
+	for error_value in object_result.get("errors", []):
+		add_finding(findings, "blocker", "objects.unreadable", str(error_value), campaign_path)
+
 	var loaded := audit_loaded(
 		campaign,
 		maps,
 		item_result.get("definitions", {}),
 		{"quests": story_result.get("quests", {}), "conversations": story_result.get("conversations", {})},
-		{"currencies": economy_result.get("currencies", {}), "merchants": economy_result.get("merchants", {})}
+		{"currencies": economy_result.get("currencies", {}), "merchants": economy_result.get("merchants", {})},
+		recipe_result.get("definitions", {}),
+		object_result.get("definitions", {})
 	)
 	for finding_value in loaded.get("findings", []):
 		if typeof(finding_value) == TYPE_DICTIONARY:
@@ -72,7 +84,9 @@ static func audit_loaded(
 	maps: Dictionary,
 	items: Dictionary,
 	story: Dictionary,
-	economy: Dictionary
+	economy: Dictionary,
+	recipes: Dictionary = {},
+	objects: Dictionary = {}
 ) -> Dictionary:
 	var findings: Array[Dictionary] = []
 	var metrics: Dictionary = {
@@ -81,7 +95,12 @@ static func audit_loaded(
 		"reachable_map_count": 0,
 		"required_capability_count": 0,
 		"quest_count": 0,
-		"restorative_source_count": 0
+		"restorative_source_count": 0,
+		"progression_item_count": 0,
+		"progression_capability_count": 0,
+		"progression_source_risk_count": 0,
+		"merchant_only_progression_count": 0,
+		"affordability_risk_count": 0
 	}
 	var graph := graph_from_maps(maps)
 	var reachable := probe_map_reachability(campaign, maps, graph, findings)
@@ -92,6 +111,30 @@ static func audit_loaded(
 	metrics["restorative_source_count"] = probe_economy_recovery(campaign, items, economy, findings)
 	metrics["quest_count"] = probe_quest_startability(campaign, story, findings)
 	probe_save_policy(campaign, findings)
+
+	var source_finding_start := findings.size()
+	var progression := ProgressionSourceAudit.audit(
+		campaign,
+		maps,
+		items,
+		recipes,
+		story,
+		economy,
+		objects,
+		required_capabilities,
+		findings
+	)
+	metrics["progression_item_count"] = int(progression.get("progression_item_count", 0))
+	metrics["progression_capability_count"] = int(progression.get("progression_capability_count", 0))
+	metrics["progression_source_risk_count"] = findings.size() - source_finding_start
+
+	var affordability_finding_start := findings.size()
+	metrics["merchant_only_progression_count"] = ProgressionAffordabilityAudit.audit(
+		economy,
+		progression,
+		findings
+	)
+	metrics["affordability_risk_count"] = findings.size() - affordability_finding_start
 	return build_report(str(campaign.get("id", "campaign")), findings, metrics)
 
 
@@ -363,6 +406,14 @@ static func probe_save_policy(campaign: Dictionary, findings: Array[Dictionary])
 		add_finding(findings, "warning", "save.autosave_never_requested", "Autosave is enabled but neither travel nor durable progress requests it.", "save_policy")
 	if bool(policy.get("allow_manual_save_in_combat", false)):
 		add_finding(findings, "warning", "save.manual_in_combat", "Manual saving is permitted during active directed combat.", "save_policy")
+
+
+static func sorted_dictionary_keys(value: Dictionary) -> PackedStringArray:
+	var output := PackedStringArray()
+	for key_value in value.keys():
+		output.append(str(key_value))
+	output.sort()
+	return output
 
 
 static func reachable_from(graph: Dictionary, start_id: String) -> Dictionary:

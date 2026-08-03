@@ -79,7 +79,8 @@ func rebuild_input_binding_cache(profile_value: Variant) -> void:
 		PlayerInputBindings.DEVICE_GAMEPAD: {}
 	}
 	control_binding_row_cache = {}
-	for action_id in PlayerInputBindings.managed_action_ids():
+	var action_ids := PlayerInputBindings.managed_action_ids()
+	for action_id in action_ids:
 		input_action_hint_cache[action_id] = PlayerInputBindings.action_hint(profile, action_id)
 		for device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
 			var device_cache: Dictionary = input_device_hint_cache.get(device, {})
@@ -327,10 +328,10 @@ func input_binding_profile() -> Dictionary:
 
 
 func input_action_hint(action_id: String) -> String:
-	if PlayerInputBindings.managed_action_ids().has(action_id):
-		if input_binding_profile_cache.is_empty():
-			input_binding_profile()
-		return str(input_action_hint_cache.get(action_id, action_id.replace("_", " ").to_upper()))
+	if input_binding_profile_cache.is_empty():
+		input_binding_profile()
+	if input_action_hint_cache.has(action_id):
+		return str(input_action_hint_cache.get(action_id, ""))
 	match action_id:
 		"options_menu":
 			return "O"
@@ -342,13 +343,14 @@ func input_action_hint(action_id: String) -> String:
 
 
 func input_action_device_hint(action_id: String, device: String) -> String:
-	if not PlayerInputBindings.managed_action_ids().has(action_id):
-		return input_action_hint(action_id)
 	if input_binding_profile_cache.is_empty():
 		input_binding_profile()
+	if not input_action_hint_cache.has(action_id):
+		return input_action_hint(action_id)
 	var device_value: Variant = input_device_hint_cache.get(device, {})
 	var device_cache: Dictionary = device_value if typeof(device_value) == TYPE_DICTIONARY else {}
-	return str(device_cache.get(action_id, input_action_hint(action_id)))
+	var cached := str(device_cache.get(action_id, ""))
+	return cached if not cached.is_empty() else input_action_hint(action_id)
 
 
 func control_binding_device_label() -> String:
@@ -357,6 +359,8 @@ func control_binding_device_label() -> String:
 
 func input_binding_cache_contract_ok() -> bool:
 	if input_binding_cache_revision <= 0 or input_binding_profile_cache.is_empty():
+		return false
+	if input_binding_profile_cache != PlayerSettings.input_bindings(player_settings):
 		return false
 	if not bool(PlayerInputBindings.validate_profile(input_binding_profile_cache).get("ok", false)):
 		return false
@@ -380,7 +384,7 @@ func control_bindings_contract_ok() -> bool:
 	return (
 		input_binding_cache_contract_ok()
 		and bool(PlayerInputBindings.validate_profile(profile).get("ok", false))
-		and PlayerInputBindings.managed_action_ids().size() >= 14
+		and input_action_hint_cache.size() >= 14
 		and PlayerInputBindings.input_map_matches(profile)
 		and control_binding_device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]
 		and control_binding_index >= 0

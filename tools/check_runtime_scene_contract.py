@@ -30,9 +30,12 @@ require(
     [
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
+        'res://src/player_controls_overlay.gd',
         'res://src/presentation_camera.gd',
         'res://src/audio_mood_runtime.gd',
         '[node name="PresentationLayer" type="CanvasLayer" parent="."]',
+        '[node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]',
+        '[node name="PlayerControlsOverlay" type="Node2D" parent="PresentationLayer"]',
         'layer = 10',
     ],
 )
@@ -44,21 +47,26 @@ require(
     [
         'CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"',
         'CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"',
+        'CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"',
         'CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"',
         'CURRENT_CAMERA_SCRIPT := "res://src/presentation_camera.gd"',
         '"start_conversation"',
         '"capture_save_profile"',
         '"open_merchant"',
         '"apply_due_supply_restock"',
-        '"supply_region_status_text"',
         '"supply_runtime_contract_ok"',
         '"start_reload"',
         '"update_boss_engagements"',
         '"start_cinematic"',
         '"open_player_settings"',
+        '"apply_input_bindings"',
+        '"input_action_hint"',
+        '"open_control_bindings"',
+        '"control_bindings_contract_ok"',
         '"player_settings_contract_ok"',
         '"player_settings_overlay_contract_ok"',
         '"player_settings_audio_contract_ok"',
+        '"control_remapping_overlay_contract_ok"',
         '"root_presentation_suppression_contract_ok"',
         'validate_runtime_scene',
         'runtime_scene_is_valid',
@@ -71,14 +79,22 @@ require(
     runtime,
     [
         'extends "res://src/presentation_runtime_base.gd"',
+        'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
         'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
         'SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")',
         'SupplyModel = preload("res://src/game/supply_region_model.gd")',
+        'control_bindings_open',
+        'control_capture_event_consumed',
+        'apply_input_bindings',
+        'open_control_bindings',
+        'handle_control_capture_event',
+        'reset_control_bindings',
+        'input_action_hint',
+        'control_bindings_contract_ok',
         'supply_region_definitions',
         'supply_region_cycles',
         'supply_regions_initialized',
         'apply_due_supply_restock',
-        'supply_region_status_text',
         'supply_runtime_contract_ok',
         'CompleteValidator.validate_profile',
         'Regional supply caught up',
@@ -108,6 +124,22 @@ require(
         'func active_arena_context() -> Dictionary:',
         'func draw_projectiles() -> void:',
         'func draw_active_boss_arena() -> void:',
+    ],
+)
+
+controls_overlay = read("src/player_controls_overlay.gd")
+require(
+    "src/player_controls_overlay.gd",
+    controls_overlay,
+    [
+        'extends Node2D',
+        'PresentationOverlay',
+        'CONTROL_PANEL',
+        'runtime_action_hint',
+        'draw_dynamic_context_prompt',
+        'draw_dynamic_reload_hint',
+        'draw_control_settings_panel',
+        'control_remapping_overlay_contract_ok',
     ],
 )
 
@@ -172,12 +204,15 @@ require(
     "tools/compile_player_settings_probe.gd",
     settings_compile,
     [
+        'res://src/game/player_input_bindings.gd',
         'res://src/game/player_settings.gd',
         'res://src/game/player_settings_store.gd',
         'res://src/presentation_runtime_base.gd',
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
+        'res://src/player_controls_overlay.gd',
         'res://src/audio_mood_runtime.gd',
+        'res://tools/smoke_input_bindings.gd',
         'res://src/app.tscn',
     ],
 )
@@ -192,7 +227,9 @@ require(
         'compile_player_settings_probe.gd',
         'compile_supply_region_probe.gd',
         'smoke_player_settings.gd',
+        'smoke_input_bindings.gd',
         'smoke_supply_regions.gd',
+        'persistent controls',
         'canonical runtime',
     ],
 )
@@ -224,6 +261,7 @@ for workflow_path in [
             'python3 tools/check_supply_region_contract.py',
             'smoke_runtime_scene_contract.gd',
             'smoke_player_settings.gd',
+            'smoke_input_bindings.gd',
             'smoke_supply_regions.gd',
         ],
     )
@@ -238,6 +276,7 @@ require(
         'python3 tools/check_supply_region_contract.py',
         'smoke_runtime_scene_contract.gd',
         'smoke_player_settings.gd',
+        'smoke_input_bindings.gd',
         'smoke_supply_regions.gd',
     ],
 )
@@ -249,9 +288,9 @@ if errors:
     raise SystemExit(1)
 
 print("epochbound_runtime_scene_contract_passed")
-print("- canonical root, overlay, camera and Audio scripts are pinned")
-print("- durable regional supply cycles are layered above the canonical presentation runtime")
+print("- canonical root, combat overlay, control overlay, camera and Audio scripts are pinned")
+print("- persistent InputMap bindings and durable regional supply cycles layer above the canonical presentation runtime")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
-print("- player-local settings are required across runtime, presentation and Audio")
+print("- player-local settings, controls and Audio remain outside campaign saves and packages")
 print("- primary unified and focused validation gates cover the executable composition")

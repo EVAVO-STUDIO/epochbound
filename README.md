@@ -148,6 +148,8 @@ Player-local settings are stored separately from campaigns, save profiles and po
 
 The Controls submenu remaps fourteen gameplay actions across physical keyboard keys, controller buttons, D-pad directions and deliberate analogue-axis directions. Escape, O and Start remain fixed recovery inputs, so Pause and Options cannot become inaccessible. Conflicting managed inputs use a device-local swap rather than creating duplicates or leaving an action unbound.
 
+Keyboard capture accepts one physical key at a time. Modifier chords are rejected because Epochbound reads gameplay actions through Godot’s normal non-exact action matching, where additional key modifiers are not a safe way to distinguish two actions.
+
 The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
 
 Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts.
@@ -256,14 +258,14 @@ The table shows the authored defaults. The fourteen gameplay actions can be chan
 | Shift era | Q or X | West face button |
 | Cycle Morrow command | R | North face button |
 | Recall Morrow | F | Left shoulder |
-| Field Satchel | I | Guide |
+| Field Satchel | I | Back or View |
 | Quick restorative | V | Right shoulder |
 | Journal | J | Right stick click |
 | Save Profiles | K | Left stick click |
 | Pause, back or skip | Escape | Start |
 | Open Options directly | O | Pause, then confirm |
 
-Escape, O and Start are fixed recovery controls and are not assignable to gameplay actions. Menus use Left and Right for tabs or modes, Up and Down for selection, and the active Interact binding or controller confirm to act.
+Escape, O and Start are fixed recovery controls and are not assignable to gameplay actions. Keyboard capture accepts one physical key without Shift, Alt, Ctrl or Meta. Menus use Left and Right for tabs or modes, Up and Down for selection, and the active Interact binding or controller confirm to act.
 
 ## Complete local validation
 
@@ -284,7 +286,7 @@ The gate performs:
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide eight-probe campaign production audit with progression, affordability and supply evidence;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
-- schema migration, atomic settings recovery, reserved recovery inputs, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
+- schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
 - deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;

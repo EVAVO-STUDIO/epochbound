@@ -37,6 +37,18 @@ func test_binding_model() -> void:
 	captured_key.pressed = true
 	captured_key.physical_keycode = 84
 	check(PlayerInputBindings.binding_label(PlayerInputBindings.descriptor_from_event(captured_key)) == "T", "Physical keyboard capture must produce a readable key label.")
+	var modified_key := InputEventKey.new()
+	modified_key.pressed = true
+	modified_key.physical_keycode = 84
+	modified_key.shift_pressed = true
+	check(PlayerInputBindings.event_uses_modifiers(modified_key), "Keyboard capture must detect modifier chords before InputMap matching.")
+	var modified_descriptor := PlayerInputBindings.descriptor_from_event(modified_key)
+	check(not modified_descriptor.is_empty(), "Modifier capture must retain enough evidence to consume and explain the rejected event.")
+	check(PlayerInputBindings.descriptor_is_reserved(modified_descriptor), "Modifier chords must be consumed by the same guarded capture path as recovery inputs.")
+	check("non-exact InputMap matching" in PlayerInputBindings.reserved_descriptor_message(modified_descriptor), "Modifier rejection must explain Godot's non-exact action-matching constraint.")
+	var modified_rebind := PlayerInputBindings.rebind(defaults, "attack", PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.key_descriptor(84, true))
+	check(not bool(modified_rebind.get("ok", true)), "Stored or programmatic modifier chords must be rejected rather than creating overlapping actions.")
+
 	var quiet_axis := InputEventJoypadMotion.new()
 	quiet_axis.axis = 0
 	quiet_axis.axis_value = 0.25
@@ -135,7 +147,18 @@ func test_runtime_controls() -> void:
 		runtime.call("input_action_device_hint", "attack", PlayerInputBindings.DEVICE_KEYBOARD)
 	check(int(runtime.get("input_binding_cache_revision")) == rebound_cache_revision, "Cached post-rebind hints must remain stable across repeated draw reads.")
 
-	check(bool(runtime.call("begin_control_capture", "attack", PlayerInputBindings.DEVICE_KEYBOARD)), "Keyboard capture must be reusable.")
+	check(bool(runtime.call("begin_control_capture", "attack", PlayerInputBindings.DEVICE_KEYBOARD)), "Keyboard capture must be reusable for modifier rejection.")
+	var modified := InputEventKey.new()
+	modified.pressed = true
+	modified.physical_keycode = 84
+	modified.shift_pressed = true
+	check(bool(runtime.call("handle_control_capture_event", modified)), "Modifier chords must be consumed rather than leaking into a non-exact gameplay action.")
+	check(bool(runtime.get("control_capture_active")), "A rejected modifier chord must leave capture active for one physical key.")
+	check("MODIFIER CHORDS" in str(runtime.get("player_settings_notice")), "Modifier rejection must explain the physical-key-only rule.")
+	check(int(runtime.get("input_binding_cache_revision")) == rebound_cache_revision, "Rejected modifier chords must not mutate or rebuild the active binding caches.")
+	runtime.call("cancel_control_capture", false)
+
+	check(bool(runtime.call("begin_control_capture", "attack", PlayerInputBindings.DEVICE_KEYBOARD)), "Keyboard capture must be reusable for recovery-input rejection.")
 	var reserved := InputEventKey.new()
 	reserved.pressed = true
 	reserved.physical_keycode = PlayerInputBindings.RESERVED_OPTIONS_PHYSICAL
@@ -172,7 +195,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Input binding smoke test passed: schema migration, atomic persistence, reserved recovery inputs, conflict-safe swaps, analogue capture, cached dynamic hints and runtime InputMap application are coherent.")
+		print("Input binding smoke test passed: schema migration, atomic persistence, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, analogue thresholds, cached dynamic hints and runtime InputMap application are coherent.")
 		quit(0)
 		return
 	for failure in failures:

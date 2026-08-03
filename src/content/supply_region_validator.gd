@@ -133,7 +133,12 @@ static func validate_catalog_file(
 		var merchant: Dictionary = merchant_value
 		var merchant_id := str(merchant.get("id", ""))
 		var prefix := "%s/merchant/%s" % [path, merchant_id if not merchant_id.is_empty() else "merchant"]
-		var region_id := SupplyCatalog.merchant_region_id(merchant)
+		var region_value: Variant = merchant.get("supply_region_id", "")
+		var region_id := ""
+		if merchant.has("supply_region_id") and typeof(region_value) != TYPE_STRING:
+			errors.append("%s: supply_region_id must be a string." % prefix)
+		elif typeof(region_value) == TYPE_STRING:
+			region_id = str(region_value).strip_edges()
 		if not region_id.is_empty() and not all_regions.has(region_id):
 			errors.append("%s: unknown supply_region_id '%s'." % [prefix, region_id])
 		var merchant_renewable := 0
@@ -143,8 +148,19 @@ static func validate_catalog_file(
 			var entry: Dictionary = stock_value
 			var item_id := str(entry.get("item_id", ""))
 			var stock_prefix := "%s/stock/%s" % [prefix, item_id if not item_id.is_empty() else "item"]
-			var restock_quantity := int(entry.get("restock_quantity", 0))
-			var restock_target := int(entry.get("restock_target", EconomyCatalog.initial_stock_quantity(entry)))
+			var initial_quantity := EconomyCatalog.initial_stock_quantity(entry)
+			var restock_quantity_value: Variant = entry.get("restock_quantity", 0)
+			var restock_target_value: Variant = entry.get("restock_target", initial_quantity)
+			var restock_quantity := 0
+			var restock_target := initial_quantity
+			if typeof(restock_quantity_value) != TYPE_INT:
+				errors.append("%s: restock_quantity must be an integer." % stock_prefix)
+			else:
+				restock_quantity = int(restock_quantity_value)
+			if typeof(restock_target_value) != TYPE_INT:
+				errors.append("%s: restock_target must be an integer." % stock_prefix)
+			else:
+				restock_target = int(restock_target_value)
 			if restock_quantity < 0 or restock_quantity > EconomyCatalog.MAX_STOCK:
 				errors.append("%s: restock_quantity must be between zero and %d." % [stock_prefix, EconomyCatalog.MAX_STOCK])
 			if restock_target < 0 or restock_target > EconomyCatalog.MAX_STOCK:
@@ -154,7 +170,7 @@ static func validate_catalog_file(
 					errors.append("%s: unlimited stock cannot define replenishment fields." % stock_prefix)
 				continue
 			if restock_quantity <= 0:
-				if entry.has("restock_target") and restock_target != EconomyCatalog.initial_stock_quantity(entry):
+				if entry.has("restock_target") and restock_target != initial_quantity:
 					warnings.append("%s: restock_target has no effect while restock_quantity is zero." % stock_prefix)
 				continue
 			merchant_renewable += 1
@@ -163,7 +179,7 @@ static func validate_catalog_file(
 				errors.append("%s: renewable stock requires the merchant to declare supply_region_id." % stock_prefix)
 			if restock_target <= 0:
 				errors.append("%s: renewable stock requires a positive restock_target." % stock_prefix)
-			if restock_target < EconomyCatalog.initial_stock_quantity(entry):
+			if restock_target < initial_quantity:
 				errors.append("%s: restock_target cannot be lower than the initial quantity." % stock_prefix)
 			var item_data := ItemCatalog.item(items, item_id)
 			var kind := ItemCatalog.item_kind(item_data)
@@ -194,30 +210,49 @@ static func validate_region_records(
 			errors.append("%s: every supply region must be an object." % path)
 			continue
 		var data: Dictionary = record_value
-		var region_id := str(data.get("id", ""))
-		var prefix := "%s/supply_region/%s" % [path, region_id if not region_id.is_empty() else "region"]
-		if region_id.is_empty() or Repository.normalise_id(region_id) != region_id or region_id.length() > SupplyCatalog.MAX_REGION_ID_LENGTH:
-			errors.append("%s: id must be a normalised lowercase identifier no longer than %d characters." % [prefix, SupplyCatalog.MAX_REGION_ID_LENGTH])
-		elif local_ids.has(region_id):
-			errors.append("%s: supply region is repeated." % prefix)
+		var id_value: Variant = data.get("id", "")
+		var region_id := ""
+		if typeof(id_value) != TYPE_STRING:
+			errors.append("%s/supply_region/region: id must be a string." % path)
 		else:
-			local_ids[region_id] = true
-			if sources.has(region_id) and sources[region_id] != path:
-				errors.append("%s: supply region '%s' is also declared by %s." % [path, region_id, sources[region_id]])
-			sources[region_id] = path
-		var display_name := str(data.get("display_name", "")).strip_edges()
-		if display_name.is_empty():
-			errors.append("%s: display_name is required." % prefix)
-		elif display_name.length() > SupplyCatalog.MAX_DISPLAY_NAME_LENGTH:
-			errors.append("%s: display_name is too long." % prefix)
-		var interval := float(data.get("restock_interval_seconds", 0.0))
-		if interval < SupplyCatalog.MIN_INTERVAL_SECONDS or interval > SupplyCatalog.MAX_INTERVAL_SECONDS:
-			errors.append("%s: restock_interval_seconds must be between %.0f and %.0f." % [prefix, SupplyCatalog.MIN_INTERVAL_SECONDS, SupplyCatalog.MAX_INTERVAL_SECONDS])
-		var catchup := int(data.get("max_catchup_cycles", 0))
-		if catchup < 1 or catchup > SupplyCatalog.MAX_CATCHUP_CYCLES:
-			errors.append("%s: max_catchup_cycles must be between 1 and %d." % [prefix, SupplyCatalog.MAX_CATCHUP_CYCLES])
-		if interval >= 21600.0 and catchup == 1:
-			warnings.append("%s: a long route with one catch-up cycle may recover stock very slowly after extended play." % prefix)
+			region_id = str(id_value)
+		var prefix := "%s/supply_region/%s" % [path, region_id if not region_id.is_empty() else "region"]
+		if not region_id.is_empty():
+			if Repository.normalise_id(region_id) != region_id or region_id.length() > SupplyCatalog.MAX_REGION_ID_LENGTH:
+				errors.append("%s: id must be a normalised lowercase identifier no longer than %d characters." % [prefix, SupplyCatalog.MAX_REGION_ID_LENGTH])
+			elif local_ids.has(region_id):
+				errors.append("%s: supply region is repeated." % prefix)
+			else:
+				local_ids[region_id] = true
+				if sources.has(region_id) and sources[region_id] != path:
+					errors.append("%s: supply region '%s' is also declared by %s." % [path, region_id, sources[region_id]])
+				sources[region_id] = path
+		var display_name_value: Variant = data.get("display_name", "")
+		var display_name := ""
+		if typeof(display_name_value) != TYPE_STRING:
+			errors.append("%s: display_name must be a string." % prefix)
+		else:
+			display_name = str(display_name_value).strip_edges()
+			if display_name.is_empty():
+				errors.append("%s: display_name is required." % prefix)
+			elif display_name.length() > SupplyCatalog.MAX_DISPLAY_NAME_LENGTH:
+				errors.append("%s: display_name is too long." % prefix)
+		var interval_value: Variant = data.get("restock_interval_seconds", null)
+		if typeof(interval_value) not in [TYPE_INT, TYPE_FLOAT]:
+			errors.append("%s: restock_interval_seconds must be numeric." % prefix)
+		else:
+			var interval := float(interval_value)
+			if interval < SupplyCatalog.MIN_INTERVAL_SECONDS or interval > SupplyCatalog.MAX_INTERVAL_SECONDS:
+				errors.append("%s: restock_interval_seconds must be between %.0f and %.0f." % [prefix, SupplyCatalog.MIN_INTERVAL_SECONDS, SupplyCatalog.MAX_INTERVAL_SECONDS])
+		var catchup_value: Variant = data.get("max_catchup_cycles", null)
+		if typeof(catchup_value) != TYPE_INT:
+			errors.append("%s: max_catchup_cycles must be an integer." % prefix)
+		else:
+			var catchup := int(catchup_value)
+			if catchup < 1 or catchup > SupplyCatalog.MAX_CATCHUP_CYCLES:
+				errors.append("%s: max_catchup_cycles must be between 1 and %d." % [prefix, SupplyCatalog.MAX_CATCHUP_CYCLES])
+			elif float(interval_value) >= 21600.0 and catchup == 1:
+				warnings.append("%s: a long route with one catch-up cycle may recover stock very slowly after extended play." % prefix)
 
 
 static func validate_profile_supply(
@@ -228,21 +263,30 @@ static func validate_profile_supply(
 	warnings: Array[String]
 ) -> void:
 	var initialized_value: Variant = payload.get("supply_regions_initialized", false)
+	var initialized := false
 	if typeof(initialized_value) != TYPE_BOOL:
 		errors.append("Save payload supply_regions_initialized must be boolean.")
-	var initialized := bool(initialized_value)
+	else:
+		initialized = bool(initialized_value)
 	var cycles_value: Variant = payload.get("supply_region_cycles", {})
 	if typeof(cycles_value) != TYPE_DICTIONARY:
 		errors.append("Save payload supply_region_cycles must be an object.")
 		return
 	var cycles: Dictionary = cycles_value
 	for region_key in cycles.keys():
+		if typeof(region_key) != TYPE_STRING:
+			errors.append("Save supply_region_cycles keys must be strings.")
+			continue
 		var region_id := str(region_key)
 		if not region_definitions.has(region_id):
 			errors.append("Save supply_region_cycles references unknown region '%s'." % region_id)
 			continue
+		var saved_value: Variant = cycles.get(region_key, -1)
+		if typeof(saved_value) != TYPE_INT:
+			errors.append("Save supply cycle for '%s' must be an integer." % region_id)
+			continue
 		var current_cycle := SupplyModel.cycle_at(SupplyCatalog.region(region_definitions, region_id), play_time_seconds)
-		var saved_cycle := int(cycles.get(region_key, -1))
+		var saved_cycle := int(saved_value)
 		if saved_cycle < 0 or saved_cycle > current_cycle:
 			errors.append("Save supply cycle for '%s' must be between zero and %d." % [region_id, current_cycle])
 	if initialized:

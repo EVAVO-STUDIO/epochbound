@@ -190,6 +190,16 @@ static func sanitize_event_list(value: Variant) -> Array:
 	return unique_events(output)
 
 
+static func descriptor_has_modifiers(value: Variant) -> bool:
+	if typeof(value) != TYPE_DICTIONARY or str((value as Dictionary).get("type", "")) != "key":
+		return false
+	var descriptor: Dictionary = value
+	for modifier in ["shift", "alt", "ctrl", "meta"]:
+		if descriptor.has(modifier) and typeof(descriptor.get(modifier)) == TYPE_BOOL and bool(descriptor.get(modifier)):
+			return true
+	return false
+
+
 static func sanitize_descriptor(value: Variant) -> Dictionary:
 	if typeof(value) != TYPE_DICTIONARY:
 		return {}
@@ -197,10 +207,10 @@ static func sanitize_descriptor(value: Variant) -> Dictionary:
 	match str(source.get("type", "")):
 		"key":
 			var physical: Variant = source.get("physical_keycode", 0)
-			if typeof(physical) != TYPE_INT or int(physical) <= 0:
+			if typeof(physical) != TYPE_INT or int(physical) <= 0 or descriptor_has_modifiers(source):
 				return {}
 			for modifier in ["shift", "alt", "ctrl", "meta"]:
-				if source.has(modifier) and (typeof(source.get(modifier)) != TYPE_BOOL or bool(source.get(modifier))):
+				if source.has(modifier) and typeof(source.get(modifier)) != TYPE_BOOL:
 					return {}
 			return key_descriptor(int(physical))
 		"joy_button":
@@ -254,12 +264,12 @@ static func modifier_chord_message() -> String:
 static func descriptor_from_event(event: InputEvent) -> Dictionary:
 	if event is InputEventKey:
 		var key := event as InputEventKey
-		if not key.pressed or key.echo or event_uses_modifiers(key):
+		if not key.pressed or key.echo:
 			return {}
 		var physical := int(key.physical_keycode)
 		if physical <= 0:
 			physical = int(key.keycode)
-		return key_descriptor(physical) if physical > 0 else {}
+		return key_descriptor(physical, key.shift_pressed, key.alt_pressed, key.ctrl_pressed, key.meta_pressed) if physical > 0 else {}
 	if event is InputEventJoypadButton:
 		var button := event as InputEventJoypadButton
 		return button_descriptor(int(button.button_index)) if button.pressed else {}
@@ -355,6 +365,8 @@ static func rebind(value: Variant, action_id: String, device: String, descriptor
 		return {"ok": false, "profile": original, "errors": ["Unknown input action '%s'." % action_id]}
 	if device not in [DEVICE_KEYBOARD, DEVICE_GAMEPAD]:
 		return {"ok": false, "profile": original, "errors": ["Unknown input device '%s'." % device]}
+	if descriptor_has_modifiers(descriptor_value):
+		return {"ok": false, "profile": original, "errors": [modifier_chord_message()]}
 	var descriptor := sanitize_descriptor(descriptor_value)
 	if descriptor.is_empty() or descriptor_device(descriptor) != device:
 		return {"ok": false, "profile": original, "errors": ["Unsupported input event for the selected device."]}
@@ -457,12 +469,9 @@ static func device_binding_text_from_events(value: Variant, device: String) -> S
 static func binding_label(value: Variant) -> String:
 	var descriptor := sanitize_descriptor(value)
 	match str(descriptor.get("type", "")):
-		"key":
-			return physical_key_label(int(descriptor.get("physical_keycode", 0)))
-		"joy_button":
-			return joy_button_label(int(descriptor.get("button_index", 0)))
-		"joy_axis":
-			return joy_axis_label(int(descriptor.get("axis", 0)), float(descriptor.get("axis_value", 1.0)))
+		"key": return physical_key_label(int(descriptor.get("physical_keycode", 0)))
+		"joy_button": return joy_button_label(int(descriptor.get("button_index", 0)))
+		"joy_axis": return joy_axis_label(int(descriptor.get("axis", 0)), float(descriptor.get("axis_value", 1.0)))
 	return "UNBOUND"
 
 
@@ -538,6 +547,8 @@ static func unique_events(value: Variant) -> Array:
 
 
 static func descriptor_is_reserved(value: Variant) -> bool:
+	if descriptor_has_modifiers(value):
+		return true
 	var descriptor := sanitize_descriptor(value)
 	if str(descriptor.get("type", "")) == "key":
 		return int(descriptor.get("physical_keycode", 0)) in [RESERVED_ESCAPE_PHYSICAL, RESERVED_OPTIONS_PHYSICAL]
@@ -545,6 +556,8 @@ static func descriptor_is_reserved(value: Variant) -> bool:
 
 
 static func reserved_descriptor_message(value: Variant) -> String:
+	if descriptor_has_modifiers(value):
+		return modifier_chord_message()
 	var descriptor := sanitize_descriptor(value)
 	if str(descriptor.get("type", "")) == "key" and int(descriptor.get("physical_keycode", 0)) == RESERVED_ESCAPE_PHYSICAL:
 		return "Escape is reserved for cancel and Pause recovery."

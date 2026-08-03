@@ -62,6 +62,7 @@ require(
         '"apply_input_bindings"',
         '"input_action_hint"',
         '"open_control_bindings"',
+        '"input_binding_cache_contract_ok"',
         '"control_bindings_contract_ok"',
         '"player_settings_contract_ok"',
         '"player_settings_overlay_contract_ok"',
@@ -85,11 +86,18 @@ require(
         'SupplyModel = preload("res://src/game/supply_region_model.gd")',
         'control_bindings_open',
         'control_capture_event_consumed',
+        'input_binding_profile_cache',
+        'input_action_hint_cache',
+        'input_device_hint_cache',
+        'control_binding_row_cache',
+        'input_binding_cache_revision',
         'apply_input_bindings',
+        'rebuild_input_binding_cache',
         'open_control_bindings',
         'handle_control_capture_event',
         'reset_control_bindings',
         'input_action_hint',
+        'input_binding_cache_contract_ok',
         'control_bindings_contract_ok',
         'supply_region_definitions',
         'supply_region_cycles',
@@ -155,6 +163,17 @@ require(
         'Selective combat HUD suppression must not alter gameplay capabilities',
         'Removing the overlay must restore root fallback ownership',
         'Reattaching the overlay must restore duplicate-render suppression',
+    ],
+)
+
+control_smoke = read("tools/smoke_input_bindings.gd")
+require(
+    "tools/smoke_input_bindings.gd",
+    control_smoke,
+    [
+        'input_binding_cache_contract_ok',
+        'Repeated draw-time hint and row reads must not rebuild the binding profile cache',
+        'A successful capture must rebuild the binding caches exactly when the profile changes',
     ],
 )
 
@@ -289,7 +308,7 @@ if errors:
 
 print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, combat overlay, control overlay, camera and Audio scripts are pinned")
-print("- persistent InputMap bindings and durable regional supply cycles layer above the canonical presentation runtime")
+print("- persistent InputMap bindings, bounded prompt caches and durable regional supply cycles layer above the canonical presentation runtime")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
 print("- player-local settings, controls and Audio remain outside campaign saves and packages")

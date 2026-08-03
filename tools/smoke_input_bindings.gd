@@ -23,6 +23,18 @@ func run_test() -> void:
 	finish()
 
 
+func profile_with_modified_attack(profile_value: Variant) -> Dictionary:
+	var profile: Dictionary = (profile_value as Dictionary).duplicate(true) if typeof(profile_value) == TYPE_DICTIONARY else PlayerInputBindings.default_profile()
+	var actions_value: Variant = profile.get("actions", {})
+	var actions: Dictionary = (actions_value as Dictionary).duplicate(true) if typeof(actions_value) == TYPE_DICTIONARY else {}
+	actions["attack"] = [
+		PlayerInputBindings.key_descriptor(84, true),
+		PlayerInputBindings.button_descriptor(1)
+	]
+	profile["actions"] = actions
+	return profile
+
+
 func test_binding_model() -> void:
 	var defaults := PlayerInputBindings.default_profile()
 	check(bool(PlayerInputBindings.validate_profile(defaults).get("ok", false)), "Default keyboard and controller bindings must validate.")
@@ -48,6 +60,13 @@ func test_binding_model() -> void:
 	check("non-exact InputMap matching" in PlayerInputBindings.reserved_descriptor_message(modified_descriptor), "Modifier rejection must explain Godot's non-exact action-matching constraint.")
 	var modified_rebind := PlayerInputBindings.rebind(defaults, "attack", PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.key_descriptor(84, true))
 	check(not bool(modified_rebind.get("ok", true)), "Stored or programmatic modifier chords must be rejected rather than creating overlapping actions.")
+	var invalid_profile := profile_with_modified_attack(defaults)
+	check(not bool(PlayerInputBindings.validate_profile(invalid_profile).get("ok", true)), "A complete profile containing a modifier chord must fail validation.")
+	check(bool(PlayerInputBindings.apply_profile(defaults).get("ok", false)), "Fail-closed application setup must install the known-good defaults.")
+	var invalid_apply := PlayerInputBindings.apply_profile(invalid_profile)
+	check(not bool(invalid_apply.get("ok", true)), "Invalid modifier profiles must fail before InputMap mutation.")
+	check(PlayerInputBindings.input_map_matches(defaults), "Rejected modifier profiles must leave the previous complete InputMap unchanged.")
+	check(not PlayerInputBindings.input_map_matches(invalid_profile), "An invalid modifier profile must never be reported as matching InputMap.")
 
 	var quiet_axis := InputEventJoypadMotion.new()
 	quiet_axis.axis = 0
@@ -82,6 +101,15 @@ func test_atomic_binding_persistence() -> void:
 	check(bool(read.get("ok", false)), "Custom controls must load from the isolated player-settings store.")
 	var loaded_settings: Dictionary = read.get("settings", {})
 	check(PlayerInputBindings.device_binding_text(PlayerSettings.input_bindings(loaded_settings), "attack", PlayerInputBindings.DEVICE_KEYBOARD) == "T", "Atomic persistence must retain the custom keyboard binding exactly.")
+
+	var invalid_settings := loaded_settings.duplicate(true)
+	invalid_settings["input_bindings"] = profile_with_modified_attack(PlayerSettings.input_bindings(loaded_settings))
+	var rejected_write := PlayerSettingsStore.write_settings(invalid_settings, TEST_ROOT)
+	check(not bool(rejected_write.get("ok", true)), "Atomic settings writes must reject malformed controls before rotating the valid primary file.")
+	check(not FileAccess.file_exists(PlayerSettingsStore.temp_path(TEST_ROOT)), "Rejected control writes must not leave a temporary settings file.")
+	var after_rejection := PlayerSettingsStore.load_settings(TEST_ROOT)
+	var retained_settings: Dictionary = after_rejection.get("settings", {})
+	check(PlayerInputBindings.device_binding_text(PlayerSettings.input_bindings(retained_settings), "attack", PlayerInputBindings.DEVICE_KEYBOARD) == "T", "A rejected control write must preserve the previous complete primary profile.")
 	PlayerSettingsStore.delete_settings(TEST_ROOT)
 
 
@@ -195,7 +223,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Input binding smoke test passed: schema migration, atomic persistence, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, analogue thresholds, cached dynamic hints and runtime InputMap application are coherent.")
+		print("Input binding smoke test passed: schema migration, fail-closed atomic persistence, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, analogue thresholds, cached dynamic hints and runtime InputMap application are coherent.")
 		quit(0)
 		return
 	for failure in failures:

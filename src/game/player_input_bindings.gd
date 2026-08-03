@@ -92,8 +92,9 @@ static func validate_profile(value: Variant) -> Dictionary:
 		errors.append("Input binding actions must be an object.")
 		return {"ok": false, "errors": errors}
 	var actions: Dictionary = actions_value
+	var managed_ids := managed_action_ids()
 	var claimed: Dictionary = {}
-	for action_id in managed_action_ids():
+	for action_id in managed_ids:
 		if not actions.has(action_id):
 			errors.append("Input bindings are missing action '%s'." % action_id)
 			continue
@@ -132,7 +133,7 @@ static func validate_profile(value: Variant) -> Dictionary:
 		if gamepad_count == 0:
 			errors.append("Input binding action '%s' requires a controller binding." % action_id)
 	for key in actions.keys():
-		if not managed_action_ids().has(str(key)):
+		if not managed_ids.has(str(key)):
 			errors.append("Input binding profile contains unknown action '%s'." % key)
 	return {"ok": errors.is_empty(), "errors": errors}
 
@@ -153,8 +154,13 @@ static func validate_descriptor(value: Variant) -> PackedStringArray:
 			if typeof(physical) != TYPE_INT or int(physical) <= 0:
 				errors.append("physical_keycode must be a positive integer.")
 			for modifier in ["shift", "alt", "ctrl", "meta"]:
-				if descriptor.has(modifier) and typeof(descriptor.get(modifier)) != TYPE_BOOL:
+				if not descriptor.has(modifier):
+					continue
+				var modifier_value: Variant = descriptor.get(modifier)
+				if typeof(modifier_value) != TYPE_BOOL:
 					errors.append("%s must be boolean." % modifier)
+				elif bool(modifier_value):
+					errors.append(modifier_chord_message())
 		"joy_button":
 			var button: Variant = descriptor.get("button_index", -1)
 			if typeof(button) != TYPE_INT or int(button) < 0 or int(button) > 31:
@@ -193,7 +199,10 @@ static func sanitize_descriptor(value: Variant) -> Dictionary:
 			var physical: Variant = source.get("physical_keycode", 0)
 			if typeof(physical) != TYPE_INT or int(physical) <= 0:
 				return {}
-			return key_descriptor(int(physical), safe_bool(source, "shift"), safe_bool(source, "alt"), safe_bool(source, "ctrl"), safe_bool(source, "meta"))
+			for modifier in ["shift", "alt", "ctrl", "meta"]:
+				if source.has(modifier) and (typeof(source.get(modifier)) != TYPE_BOOL or bool(source.get(modifier))):
+					return {}
+			return key_descriptor(int(physical))
 		"joy_button":
 			var button: Variant = source.get("button_index", -1)
 			return button_descriptor(int(button)) if typeof(button) == TYPE_INT and int(button) >= 0 and int(button) <= 31 else {}
@@ -206,12 +215,21 @@ static func sanitize_descriptor(value: Variant) -> Dictionary:
 	return {}
 
 
-static func safe_bool(source: Dictionary, key: String) -> bool:
-	return bool(source.get(key, false)) if typeof(source.get(key, false)) == TYPE_BOOL else false
-
-
-static func key_descriptor(physical_keycode: int, shift: bool = false, alt: bool = false, ctrl: bool = false, meta: bool = false) -> Dictionary:
-	return {"type": "key", "physical_keycode": physical_keycode, "shift": shift, "alt": alt, "ctrl": ctrl, "meta": meta}
+static func key_descriptor(
+	physical_keycode: int,
+	shift: bool = false,
+	alt: bool = false,
+	ctrl: bool = false,
+	meta: bool = false
+) -> Dictionary:
+	return {
+		"type": "key",
+		"physical_keycode": physical_keycode,
+		"shift": shift,
+		"alt": alt,
+		"ctrl": ctrl,
+		"meta": meta
+	}
 
 
 static func button_descriptor(button_index: int) -> Dictionary:
@@ -222,15 +240,26 @@ static func axis_descriptor(axis: int, axis_value: float) -> Dictionary:
 	return {"type": "joy_axis", "axis": axis, "axis_value": -1.0 if axis_value < 0.0 else 1.0}
 
 
+static func event_uses_modifiers(event: InputEvent) -> bool:
+	if not event is InputEventKey:
+		return false
+	var key := event as InputEventKey
+	return key.shift_pressed or key.alt_pressed or key.ctrl_pressed or key.meta_pressed
+
+
+static func modifier_chord_message() -> String:
+	return "Modifier chords are unsupported because gameplay actions use non-exact InputMap matching; press one physical key instead."
+
+
 static func descriptor_from_event(event: InputEvent) -> Dictionary:
 	if event is InputEventKey:
 		var key := event as InputEventKey
-		if not key.pressed or key.echo:
+		if not key.pressed or key.echo or event_uses_modifiers(key):
 			return {}
 		var physical := int(key.physical_keycode)
 		if physical <= 0:
 			physical = int(key.keycode)
-		return key_descriptor(physical, key.shift_pressed, key.alt_pressed, key.ctrl_pressed, key.meta_pressed) if physical > 0 else {}
+		return key_descriptor(physical) if physical > 0 else {}
 	if event is InputEventJoypadButton:
 		var button := event as InputEventJoypadButton
 		return button_descriptor(int(button.button_index)) if button.pressed else {}
@@ -246,10 +275,6 @@ static func event_from_descriptor(value: Variant) -> InputEvent:
 		"key":
 			var key := InputEventKey.new()
 			key.physical_keycode = int(descriptor.get("physical_keycode", 0))
-			key.shift_pressed = bool(descriptor.get("shift", false))
-			key.alt_pressed = bool(descriptor.get("alt", false))
-			key.ctrl_pressed = bool(descriptor.get("ctrl", false))
-			key.meta_pressed = bool(descriptor.get("meta", false))
 			return key
 		"joy_button":
 			var button := InputEventJoypadButton.new()
@@ -310,10 +335,12 @@ static func input_map_matches(value: Variant) -> bool:
 static func descriptor_from_mapping_event(event: InputEvent) -> Dictionary:
 	if event is InputEventKey:
 		var key := event as InputEventKey
+		if event_uses_modifiers(key):
+			return {}
 		var physical := int(key.physical_keycode)
 		if physical <= 0:
 			physical = int(key.keycode)
-		return key_descriptor(physical, key.shift_pressed, key.alt_pressed, key.ctrl_pressed, key.meta_pressed) if physical > 0 else {}
+		return key_descriptor(physical) if physical > 0 else {}
 	if event is InputEventJoypadButton:
 		return button_descriptor(int((event as InputEventJoypadButton).button_index))
 	if event is InputEventJoypadMotion:
@@ -386,18 +413,26 @@ static func action_events(value: Variant, action_id: String) -> Array:
 
 
 static func rows(value: Variant, device: String) -> Array:
+	var profile := sanitize_profile(value)
+	var actions: Dictionary = profile.get("actions", {})
 	var output: Array = []
 	for raw in action_definitions():
 		var definition: Dictionary = raw
 		var action_id := str(definition.get("id", ""))
-		output.append({"id": action_id, "label": str(definition.get("label", action_id)).to_upper(), "kind": "binding", "value": device_binding_text(value, action_id, device)})
+		output.append({
+			"id": action_id,
+			"label": str(definition.get("label", action_id)).to_upper(),
+			"kind": "binding",
+			"value": device_binding_text_from_events(actions.get(action_id, []), device)
+		})
 	return output
 
 
 static func action_hint(value: Variant, action_id: String) -> String:
-	var keyboard := events_for_device(action_events(value, action_id), DEVICE_KEYBOARD)
-	var gamepad := events_for_device(action_events(value, action_id), DEVICE_GAMEPAD)
+	var events := action_events(value, action_id)
 	var labels := PackedStringArray()
+	var keyboard := events_for_device(events, DEVICE_KEYBOARD)
+	var gamepad := events_for_device(events, DEVICE_GAMEPAD)
 	if not keyboard.is_empty():
 		labels.append(binding_label(keyboard[0]))
 	if not gamepad.is_empty():
@@ -406,7 +441,11 @@ static func action_hint(value: Variant, action_id: String) -> String:
 
 
 static func device_binding_text(value: Variant, action_id: String, device: String) -> String:
-	var descriptors := events_for_device(action_events(value, action_id), device)
+	return device_binding_text_from_events(action_events(value, action_id), device)
+
+
+static func device_binding_text_from_events(value: Variant, device: String) -> String:
+	var descriptors := events_for_device(value, device)
 	var labels := PackedStringArray()
 	for index in range(mini(2, descriptors.size())):
 		labels.append(binding_label(descriptors[index]))
@@ -419,13 +458,7 @@ static func binding_label(value: Variant) -> String:
 	var descriptor := sanitize_descriptor(value)
 	match str(descriptor.get("type", "")):
 		"key":
-			var labels := PackedStringArray()
-			if bool(descriptor.get("ctrl", false)): labels.append("CTRL")
-			if bool(descriptor.get("alt", false)): labels.append("ALT")
-			if bool(descriptor.get("shift", false)): labels.append("SHIFT")
-			if bool(descriptor.get("meta", false)): labels.append("META")
-			labels.append(physical_key_label(int(descriptor.get("physical_keycode", 0))))
-			return "+".join(labels)
+			return physical_key_label(int(descriptor.get("physical_keycode", 0)))
 		"joy_button":
 			return joy_button_label(int(descriptor.get("button_index", 0)))
 		"joy_axis":
@@ -472,7 +505,7 @@ static func descriptor_device(value: Variant) -> String:
 static func descriptor_signature(value: Variant) -> String:
 	var descriptor := sanitize_descriptor(value)
 	match str(descriptor.get("type", "")):
-		"key": return "key:%d:%d:%d:%d:%d" % [int(descriptor.get("physical_keycode", 0)), int(bool(descriptor.get("shift", false))), int(bool(descriptor.get("alt", false))), int(bool(descriptor.get("ctrl", false))), int(bool(descriptor.get("meta", false)))]
+		"key": return "key:%d" % int(descriptor.get("physical_keycode", 0))
 		"joy_button": return "button:%d" % int(descriptor.get("button_index", -1))
 		"joy_axis": return "axis:%d:%d" % [int(descriptor.get("axis", -1)), 1 if float(descriptor.get("axis_value", 1.0)) >= 0.0 else -1]
 	return ""
@@ -483,7 +516,8 @@ static func signature_array(value: Variant) -> PackedStringArray:
 	if typeof(value) == TYPE_ARRAY:
 		for raw in value:
 			var signature := descriptor_signature(raw)
-			if not signature.is_empty(): output.append(signature)
+			if not signature.is_empty():
+				output.append(signature)
 	output.sort()
 	return output
 

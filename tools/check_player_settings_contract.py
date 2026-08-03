@@ -65,12 +65,7 @@ require(
 forbid(
     "src/game/player_input_bindings.gd",
     bindings,
-    [
-        '"options_menu",',
-        '"pause_game",',
-        "Time.get_unix_time",
-        "OS.get_unix_time",
-    ],
+    ['"options_menu",', '"pause_game",', "Time.get_unix_time", "OS.get_unix_time"],
 )
 
 model = read("src/game/player_settings.gd")
@@ -98,9 +93,23 @@ require(
         "sanitize",
         "validate",
         "migrate",
+        "number_step",
+        "settings.get(setting_id, 1.0)",
+        "settings.get(setting_id, default_value)",
         "input_bindings",
+        "PlayerInputBindings.sanitize_profile",
         "adjusted",
         "value_text",
+        "lookup never rebuilds fourteen actions",
+    ],
+)
+forbid(
+    "src/game/player_settings.gd",
+    model,
+    [
+        "sanitize(settings).get",
+        "var sanitized := sanitize(settings)",
+        "var value: Variant = sanitize(settings)",
     ],
 )
 
@@ -187,19 +196,6 @@ forbid(
     ],
 )
 
-overlay = read("src/combat_readability_overlay.gd")
-require(
-    "src/combat_readability_overlay.gd",
-    overlay,
-    [
-        "player_settings_is_open",
-        "player_setting_number",
-        "player_setting_bool",
-        "draw_player_settings_panel",
-        "player_settings_overlay_contract_ok",
-    ],
-)
-
 controls_overlay = read("src/player_controls_overlay.gd")
 require(
     "src/player_controls_overlay.gd",
@@ -213,6 +209,19 @@ require(
         "control_remapping_overlay_contract_ok",
         'runtime_action_hint("interact"',
         'runtime_action_hint("reload_weapon"',
+    ],
+)
+
+combat_overlay = read("src/combat_readability_overlay.gd")
+require(
+    "src/combat_readability_overlay.gd",
+    combat_overlay,
+    [
+        "player_settings_is_open",
+        "player_setting_number",
+        "player_setting_bool",
+        "draw_player_settings_panel",
+        "player_settings_overlay_contract_ok",
     ],
 )
 
@@ -276,17 +285,28 @@ require(
     ],
 )
 
-smoke = read("tools/smoke_player_settings.gd")
+settings_smoke = read("tools/smoke_player_settings.gd")
 require(
     "tools/smoke_player_settings.gd",
-    smoke,
+    settings_smoke,
     [
         'TEST_ROOT := "user://epochbound_test_player_settings"',
         "Schema-one player settings must migrate to persistent controls",
         "Default player settings must include a complete keyboard and controller binding profile",
         "Runtime must keep InputMap synchronized",
+        "Music gain must combine master and music settings",
         "Reset All Defaults must also restore and apply default controls",
         "Options must freeze animation and environment time",
+    ],
+)
+forbid(
+    "tools/smoke_player_settings.gd",
+    settings_smoke,
+    [
+        'audio.call("apply_player_volume_settings", runtime)',
+        'volume.get("music_linear"',
+        'volume.get("ambience_linear"',
+        'volume.get("sfx_linear"',
     ],
 )
 
@@ -354,18 +374,8 @@ require(
     ],
 )
 
-primary_workflow = read(".github/workflows/validate.yml")
-require(
-    ".github/workflows/validate.yml",
-    primary_workflow,
-    [
-        "python3 tools/check_player_settings_contract.py",
-        "scripts/validate.ps1",
-        "Run complete seventeen-system validation gate",
-    ],
-)
-
 for workflow_path in [
+    ".github/workflows/validate.yml",
     ".github/workflows/audio-mood-validation.yml",
     ".github/workflows/sprite-animation-validation.yml",
 ]:
@@ -375,11 +385,13 @@ for workflow_path in [
         workflow,
         [
             "python3 tools/check_player_settings_contract.py",
-            "compile_player_settings_probe.gd",
-            "smoke_player_settings.gd",
-            "smoke_input_bindings.gd",
+            "compile_player_settings_probe.gd" if workflow_path != ".github/workflows/validate.yml" else "scripts/validate.ps1",
         ],
     )
+if "smoke_input_bindings.gd" not in read(".github/workflows/audio-mood-validation.yml"):
+    errors.append(".github/workflows/audio-mood-validation.yml: missing smoke_input_bindings.gd")
+if "smoke_input_bindings.gd" not in read(".github/workflows/sprite-animation-validation.yml"):
+    errors.append(".github/workflows/sprite-animation-validation.yml: missing smoke_input_bindings.gd")
 
 release_policy = read("tools/check_release_workflow_policy.py")
 require(
@@ -412,6 +424,19 @@ require(
     ],
 )
 
+readme = read("README.md")
+require(
+    "README.md",
+    readme,
+    [
+        "persistent keyboard and controller remapping",
+        "Player settings, accessibility and controls",
+        "Options → Controls",
+        "Fixed recovery controls before unrestricted remapping",
+    ],
+)
+forbid("README.md", readme, ["controller remapping, automated long-form"])
+
 if errors:
     print("Epochbound player settings and controls contract failed:\n")
     for error in errors:
@@ -420,6 +445,7 @@ if errors:
 
 print("epochbound_player_settings_contract_passed")
 print("- player-local settings and control bindings are versioned, sanitised and stored atomically")
+print("- scalar Audio and presentation reads never traverse the nested control profile")
 print("- Escape, O and Start remain fixed recovery inputs while fourteen gameplay actions are remappable")
 print("- duplicate captures swap bindings instead of creating inaccessible or ambiguous actions")
 print("- validated control rows and prompt labels are cached only at profile mutation boundaries")

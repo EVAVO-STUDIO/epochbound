@@ -154,13 +154,10 @@ static func validate_descriptor(value: Variant) -> PackedStringArray:
 			if typeof(physical) != TYPE_INT or int(physical) <= 0:
 				errors.append("physical_keycode must be a positive integer.")
 			for modifier in ["shift", "alt", "ctrl", "meta"]:
-				if not descriptor.has(modifier):
-					continue
-				var modifier_value: Variant = descriptor.get(modifier)
-				if typeof(modifier_value) != TYPE_BOOL:
+				if descriptor.has(modifier) and typeof(descriptor.get(modifier)) != TYPE_BOOL:
 					errors.append("%s must be boolean." % modifier)
-				elif bool(modifier_value):
-					errors.append(modifier_chord_message())
+			if descriptor_has_modifiers(descriptor):
+				errors.append(modifier_chord_message())
 		"joy_button":
 			var button: Variant = descriptor.get("button_index", -1)
 			if typeof(button) != TYPE_INT or int(button) < 0 or int(button) > 31:
@@ -301,10 +298,10 @@ static func event_from_descriptor(value: Variant) -> InputEvent:
 
 
 static func apply_profile(value: Variant) -> Dictionary:
-	var profile := sanitize_profile(value)
-	var validation := validate_profile(profile)
+	var validation := validate_profile(value)
 	if not bool(validation.get("ok", false)):
-		return {"ok": false, "profile": profile, "errors": validation.get("errors", [])}
+		return {"ok": false, "profile": sanitize_profile(value), "errors": validation.get("errors", [])}
+	var profile := sanitize_profile(value)
 	var actions: Dictionary = profile.get("actions", {})
 	for raw in action_definitions():
 		var definition: Dictionary = raw
@@ -323,9 +320,9 @@ static func apply_profile(value: Variant) -> Dictionary:
 
 
 static func input_map_matches(value: Variant) -> bool:
-	var profile := sanitize_profile(value)
-	if not bool(validate_profile(profile).get("ok", false)):
+	if not bool(validate_profile(value).get("ok", false)):
 		return false
+	var profile := sanitize_profile(value)
 	var actions: Dictionary = profile.get("actions", {})
 	for action_id in managed_action_ids():
 		if not InputMap.has_action(action_id):
@@ -441,10 +438,13 @@ static func rows(value: Variant, device: String) -> Array:
 
 
 static func action_hint(value: Variant, action_id: String) -> String:
-	var events := action_events(value, action_id)
+	return action_hint_from_events(action_events(value, action_id))
+
+
+static func action_hint_from_events(value: Variant) -> String:
 	var labels := PackedStringArray()
-	var keyboard := events_for_device(events, DEVICE_KEYBOARD)
-	var gamepad := events_for_device(events, DEVICE_GAMEPAD)
+	var keyboard := events_for_device(value, DEVICE_KEYBOARD)
+	var gamepad := events_for_device(value, DEVICE_GAMEPAD)
 	if not keyboard.is_empty():
 		labels.append(binding_label(keyboard[0]))
 	if not gamepad.is_empty():

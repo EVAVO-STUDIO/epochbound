@@ -89,7 +89,7 @@ jobs:
           [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
           rm -rf .godot-download
 
-      - name: Compile runtime Audio player-settings and supply entrypoints
+      - name: Compile runtime Audio player-settings controls and supply entrypoints
         shell: bash
         run: |
           set -euo pipefail
@@ -132,7 +132,7 @@ jobs:
           if [ "$status" -ne 0 ]; then exit "$status"; fi
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
-      - name: Run canonical runtime player-settings supply and Audio regressions
+      - name: Run canonical runtime player-settings controls supply and Audio regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -149,6 +149,7 @@ jobs:
           }
           run_test res://tools/smoke_runtime_scene_contract.gd
           run_test res://tools/smoke_player_settings.gd
+          run_test res://tools/smoke_input_bindings.gd
           run_test res://tools/smoke_supply_regions.gd
           run_test res://tools/smoke_supply_validation_edges.gd
           run_test res://tools/smoke_audio_mood_runtime.gd

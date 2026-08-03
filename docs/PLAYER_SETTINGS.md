@@ -73,9 +73,17 @@ Save Profiles
 Reload
 ```
 
-Left and Right switch between Keyboard and Controller bindings. Confirm begins capture for the selected action. Keyboard capture accepts a physical key and controller capture accepts a button or a deliberate axis movement. Analogue noise below the capture threshold is ignored.
+Left and Right switch between Keyboard and Controller bindings. Confirm begins capture for the selected action. Keyboard capture accepts one physical key. Controller capture accepts a button or a deliberate axis movement. Analogue noise below the capture threshold is ignored.
 
 Movement defaults preserve both WASD and arrow keys, D-pad movement and left-stick axes. Rebinding one device does not remove the other device’s bindings.
+
+### Physical keys, not modifier chords
+
+Keyboard gameplay bindings represent one physical key location. Shift, Alt, Ctrl and Meta combinations are rejected during capture and validation.
+
+Epochbound’s gameplay code uses Godot action queries with normal non-exact matching. In that mode additional key modifiers are not a reliable way to distinguish `A` from `Shift+A`; both actions could otherwise match the same press. The capture remains open after a rejected chord and asks for one physical key instead.
+
+Standalone modifier keys may still be captured as their own physical key when pressed alone. This is different from using a modifier chord.
 
 ### Reserved recovery inputs
 
@@ -104,6 +112,8 @@ World interaction prompts, reload hints, title guidance, pause guidance and the 
 
 The complete profile is sanitized, validated and converted into keyboard rows, controller rows and prompt labels only when settings load or a binding actually changes. Draw-time hint reads consume those bounded caches without rebuilding the fourteen-action profile every frame. A cache revision changes after load, capture, conflict-safe swap or reset, but remains stable across repeated drawing and prompt queries.
 
+Scalar Audio and presentation reads are also isolated from the nested control profile. Reading one volume, shake, texture, motion, flash, prompt or contrast value inspects only that typed field and never traverses fourteen actions or their event descriptors.
+
 **Reset Controls** restores only the authored keyboard and controller defaults. **Reset All Defaults** restores controls together with every Audio, presentation and readability setting.
 
 ## Atomic persistence
@@ -113,7 +123,7 @@ Player settings use schema `2`. The nested control profile uses its own schema s
 The guarded write sequence is:
 
 1. Sanitize every recognised setting and binding descriptor.
-2. Validate schemas, value ranges, required actions, device coverage, reserved inputs and duplicate signatures.
+2. Validate schemas, value ranges, required actions, device coverage, physical-key policy, reserved inputs and duplicate signatures.
 3. Write the complete settings object to a temporary file.
 4. Flush and close it.
 5. Rotate the previous valid primary file into a backup.
@@ -150,6 +160,7 @@ The regression suite verifies:
 - all fourteen managed gameplay actions;
 - keyboard, button and axis descriptor validation;
 - physical-key labels and controller labels;
+- modifier-chord rejection under non-exact action matching;
 - analogue capture thresholds;
 - fixed Escape, O and Start recovery inputs;
 - conflict-safe binding swaps;
@@ -159,7 +170,8 @@ The regression suite verifies:
 - immediate dynamic prompt updates;
 - binding-cache rebuilds only at profile mutation boundaries;
 - stable cache revisions during repeated draw-time hint and row reads;
-- rejected reserved inputs leaving the active cache unchanged;
+- rejected modifier chords and reserved inputs leaving the active cache unchanged;
+- constant-time scalar Audio and presentation setting reads;
 - Reset Controls and Reset All Defaults;
 - title-menu Options exposure;
 - gameplay save and autosave blocking;
@@ -175,11 +187,13 @@ The regression suite verifies:
 - Never allow campaign data to erase, replace or require a local binding.
 - Keep Escape, O and Start reserved for recovery.
 - Persist physical keyboard locations rather than language-specific typed characters.
+- Reject modifier chords while gameplay uses non-exact Godot action queries.
 - Store controller axes with explicit direction and ignore small capture noise.
 - Apply the complete binding profile through `InputMap`; do not maintain a parallel gameplay-input system.
 - Use conflict-safe swaps instead of duplicate managed bindings.
 - Rebuild control rows and prompt-label caches only when the validated profile changes.
 - Keep draw-time hint reads allocation-bounded and free of full-profile sanitization.
+- Keep scalar Audio and presentation reads independent from nested control descriptors.
 - Apply presentation settings at draw time or through bounded runtime multipliers.
 - Do not let accessibility settings change durable progression outcomes.
 - Add new settings or actions with safe defaults and an explicit migration path.

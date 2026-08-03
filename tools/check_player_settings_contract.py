@@ -29,6 +29,17 @@ def forbid(relative_path: str, source: str, tokens: list[str]) -> None:
             errors.append(f"{relative_path}: contains forbidden {token}")
 
 
+def require_order(relative_path: str, source: str, earlier: str, later: str) -> None:
+    earlier_index = source.find(earlier)
+    later_index = source.find(later)
+    if earlier_index < 0:
+        errors.append(f"{relative_path}: missing ordered token {earlier}")
+    elif later_index < 0:
+        errors.append(f"{relative_path}: missing ordered token {later}")
+    elif earlier_index >= later_index:
+        errors.append(f"{relative_path}: expected {earlier} before {later}")
+
+
 bindings = read("src/game/player_input_bindings.gd")
 require(
     "src/game/player_input_bindings.gd",
@@ -49,18 +60,28 @@ require(
         "default_profile",
         "sanitize_profile",
         "validate_profile",
+        "validate_descriptor",
+        "descriptor_has_modifiers",
+        "event_uses_modifiers",
+        "modifier_chord_message",
+        "non-exact InputMap matching",
         "descriptor_from_event",
         "event_from_descriptor",
         "apply_profile",
         "input_map_matches",
         "rebind",
         "swapped_with",
-        "physical_key_label",
-        "joy_button_label",
-        "joy_axis_label",
+        "action_hint_from_events",
+        "device_binding_text_from_events",
         "descriptor_is_reserved",
         "reserved_descriptor_message",
     ],
+)
+require_order(
+    "src/game/player_input_bindings.gd",
+    bindings,
+    "static func apply_profile(value: Variant) -> Dictionary:\n\tvar validation := validate_profile(value)",
+    "\tvar profile := sanitize_profile(value)",
 )
 forbid(
     "src/game/player_input_bindings.gd",
@@ -106,11 +127,7 @@ require(
 forbid(
     "src/game/player_settings.gd",
     model,
-    [
-        "sanitize(settings).get",
-        "var sanitized := sanitize(settings)",
-        "var value: Variant = sanitize(settings)",
-    ],
+    ["sanitize(settings).get", "var sanitized := sanitize(settings)", "var value: Variant = sanitize(settings)"],
 )
 
 store = read("src/game/player_settings_store.gd")
@@ -120,16 +137,30 @@ require(
     [
         'ROOT := "user://settings"',
         'SETTINGS_FILENAME := "player_settings.json"',
-        "root_path: String = ROOT",
         "TEMP_SUFFIX",
         "BACKUP_SUFFIX",
         "load_settings",
+        "validate_raw_input_bindings",
+        'PlayerInputBindings.validate_profile(settings.get("input_bindings"))',
+        "fail closed before sanitization",
         "write_settings",
         "rewrite_loaded_settings",
         "recovered_from_backup",
         "rotate the previous player settings into a backup",
         "promote the temporary player settings file",
     ],
+)
+require_order(
+    "src/game/player_settings_store.gd",
+    store,
+    "var binding_validation := validate_raw_input_bindings(settings, final_path)",
+    "var sanitized := PlayerSettings.sanitize(settings)",
+)
+require_order(
+    "src/game/player_settings_store.gd",
+    store,
+    "var binding_validation := validate_raw_input_bindings(settings, final_path)",
+    "var file := FileAccess.open(temporary_path, FileAccess.WRITE)",
 )
 
 base_runtime = read("src/presentation_runtime_base.gd")
@@ -169,6 +200,8 @@ require(
         "input_binding_cache_revision",
         "apply_input_bindings",
         "rebuild_input_binding_cache",
+        "action_hint_from_events",
+        "device_binding_text_from_events",
         "cached_control_binding_rows",
         "open_control_bindings",
         "close_control_bindings",
@@ -317,16 +350,22 @@ require(
     [
         'TEST_ROOT := "user://epochbound_test_input_bindings"',
         "all fourteen gameplay actions",
-        "Escape must remain reserved",
-        "O must remain reserved",
-        "Start must remain reserved",
+        "Keyboard capture must detect modifier chords before InputMap matching",
+        "Invalid modifier profiles must fail before InputMap mutation",
         "Small analogue noise must not become a binding",
         "Binding a used key must swap",
         "Custom controls must write through the existing atomic player-settings store",
+        "Atomic settings writes must reject malformed controls before rotating the valid primary file",
+        "Rejected control writes must leave the valid primary settings file in place",
+        "Rejected control writes must not rotate the valid primary settings file into a backup",
+        "Rejected control writes must not leave a temporary settings file",
+        "A rejected control write must continue loading directly from the unchanged primary file",
         "Runtime must build complete validated binding, row and prompt caches",
         "Repeated draw-time hint and row reads must not rebuild the binding profile cache",
         "Runtime hints must update immediately after rebinding",
         "A successful capture must rebuild the binding caches exactly when the profile changes",
+        "Modifier chords must be consumed rather than leaking into a non-exact gameplay action",
+        "Rejected modifier chords must not mutate or rebuild the active binding caches",
         "Reserved recovery inputs must be consumed",
         "Rejected reserved input must not rebuild or mutate the active binding caches",
         "Reset Controls must restore",
@@ -402,6 +441,9 @@ require(
         "compile_player_settings_probe.gd",
         "smoke_player_settings.gd",
         "smoke_input_bindings.gd",
+        "modifier_chord_message",
+        "validate_raw_input_bindings",
+        "Rejected control writes must leave the valid primary settings file in place",
     ],
 )
 
@@ -412,12 +454,15 @@ require(
     [
         "user://settings/player_settings.json",
         "Keyboard and controller remapping",
+        "Physical keys, not modifier chords",
         "Escape, O and Start",
         "Conflict-safe swapping",
         "Dynamic prompts and bounded caches",
         "cache revision",
         "draw-time hint reads",
-        "Atomic persistence",
+        "Validate the raw nested binding profile before sanitization",
+        "A malformed control profile exits before any file mutation",
+        "clean primary load, rather than backup recovery, after a rejected write",
         "Campaign saves remain separate",
         "Startup itself remains read-only",
         "InputMap",
@@ -432,6 +477,7 @@ require(
         "persistent keyboard and controller remapping",
         "Player settings, accessibility and controls",
         "Options → Controls",
+        "Field Satchel | I | Back or View",
         "Fixed recovery controls before unrestricted remapping",
     ],
 )
@@ -445,8 +491,10 @@ if errors:
 
 print("epochbound_player_settings_contract_passed")
 print("- player-local settings and control bindings are versioned, sanitised and stored atomically")
+print("- raw control profiles fail before sanitization, temporary-file creation or backup rotation")
 print("- scalar Audio and presentation reads never traverse the nested control profile")
 print("- Escape, O and Start remain fixed recovery inputs while fourteen gameplay actions are remappable")
+print("- modifier chords are rejected because gameplay uses non-exact action matching")
 print("- duplicate captures swap bindings instead of creating inaccessible or ambiguous actions")
 print("- validated control rows and prompt labels are cached only at profile mutation boundaries")
 print("- runtime InputMap, dynamic prompts, Audio and presentation all consume the same profile")

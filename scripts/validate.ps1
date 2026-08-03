@@ -26,11 +26,12 @@ try {
     $Tests = @(
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
-        @("Compile player settings runtime storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
+        @("Compile player settings controls storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
         @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
         @("Smoke test persistent player settings and accessibility", "res://tools/smoke_player_settings.gd"),
         @("Smoke test player settings crash recovery and modal freeze edges", "res://tools/smoke_player_settings_recovery_edges.gd"),
+        @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
@@ -80,7 +81,7 @@ try {
         @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd"),
         @("Smoke test frame-based Sprite Animation runtime", "res://tools/smoke_sprite_animation_runtime.gd"),
         @("Smoke test animated terrain and movement-linked environmental responses", "res://tools/smoke_environment_animation.gd"),
-        @("Smoke test projectile boss pause and combat presentation ordering", "res://tools/smoke_combat_readability_overlay.gd"),
+        @("Smoke test projectile boss pause control hints and combat presentation ordering", "res://tools/smoke_combat_readability_overlay.gd"),
         @("Smoke test Sprite and Animation Studio editor state", "res://tools/smoke_sprite_animation_studio.gd"),
         @("Smoke test malformed Sprite Animation profiles atlases and paths", "res://tools/smoke_sprite_animation_validation_edges.gd"),
         @("Smoke test Sprite Animation scaffolding for new campaigns", "res://tools/smoke_sprite_campaign_scaffold.gd"),
@@ -91,7 +92,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

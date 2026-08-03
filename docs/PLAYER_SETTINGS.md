@@ -98,9 +98,11 @@ One physical input cannot silently control two managed gameplay actions. When a 
 
 The editor therefore avoids ambiguous duplicates without leaving either action unbound.
 
-### Dynamic prompts
+### Dynamic prompts and bounded caches
 
 World interaction prompts, reload hints, title guidance, pause guidance and the gameplay instruction rail read the active binding profile. They update immediately after a successful capture and do not require a restart.
+
+The complete profile is sanitized, validated and converted into keyboard rows, controller rows and prompt labels only when settings load or a binding actually changes. Draw-time hint reads consume those bounded caches without rebuilding the fourteen-action profile every frame. A cache revision changes after load, capture, conflict-safe swap or reset, but remains stable across repeated drawing and prompt queries.
 
 **Reset Controls** restores only the authored keyboard and controller defaults. **Reset All Defaults** restores controls together with every Audio, presentation and readability setting.
 
@@ -155,6 +157,9 @@ The regression suite verifies:
 - atomic custom-binding persistence;
 - bounded Controls pagination at 640 by 360;
 - immediate dynamic prompt updates;
+- binding-cache rebuilds only at profile mutation boundaries;
+- stable cache revisions during repeated draw-time hint and row reads;
+- rejected reserved inputs leaving the active cache unchanged;
 - Reset Controls and Reset All Defaults;
 - title-menu Options exposure;
 - gameplay save and autosave blocking;
@@ -173,6 +178,8 @@ The regression suite verifies:
 - Store controller axes with explicit direction and ignore small capture noise.
 - Apply the complete binding profile through `InputMap`; do not maintain a parallel gameplay-input system.
 - Use conflict-safe swaps instead of duplicate managed bindings.
+- Rebuild control rows and prompt-label caches only when the validated profile changes.
+- Keep draw-time hint reads allocation-bounded and free of full-profile sanitization.
 - Apply presentation settings at draw time or through bounded runtime multipliers.
 - Do not let accessibility settings change durable progression outcomes.
 - Add new settings or actions with safe defaults and an explicit migration path.

@@ -31,6 +31,7 @@ const REQUIRED_RUNTIME_METHODS := [
 	"apply_input_bindings",
 	"input_action_hint",
 	"open_control_bindings",
+	"input_binding_cache_contract_ok",
 	"control_bindings_contract_ok",
 	"presentation_overlay_handles_combat_readability",
 	"root_presentation_suppression_contract_ok"
@@ -141,6 +142,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 		errors.append("Runtime root did not initialise every regional supply cycle.")
 	if runtime.has_method("player_settings_contract_ok") and not bool(runtime.call("player_settings_contract_ok")):
 		errors.append("Runtime root did not confirm valid player-local settings.")
+	if runtime.has_method("input_binding_cache_contract_ok") and not bool(runtime.call("input_binding_cache_contract_ok")):
+		errors.append("Runtime root did not build complete stable input-binding caches.")
 	if runtime.has_method("control_bindings_contract_ok") and not bool(runtime.call("control_bindings_contract_ok")):
 		errors.append("Runtime root did not apply a valid complete control-binding profile.")
 	if runtime.has_method("presentation_overlay_handles_combat_readability") and not bool(runtime.call("presentation_overlay_handles_combat_readability")):

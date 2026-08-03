@@ -152,6 +152,7 @@ const TARGETS := [
 	"res://tools/smoke_campaign_audit.gd",
 	"res://tools/smoke_campaign_audit_studio.gd",
 	"res://tools/smoke_campaign_audit_edges.gd",
+	"res://tools/smoke_progression_affordability.gd",
 	"res://tools/smoke_presentation_runtime.gd",
 	"res://tools/smoke_presentation_studio.gd",
 	"res://tools/smoke_presentation_validation_edges.gd",

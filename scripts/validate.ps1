@@ -70,6 +70,7 @@ try {
         @("Smoke test deterministic campaign production audit", "res://tools/smoke_campaign_audit.gd"),
         @("Smoke test Campaign Audit Studio editor state and export", "res://tools/smoke_campaign_audit_studio.gd"),
         @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd"),
+        @("Smoke test multi-source progression affordability planning", "res://tools/smoke_progression_affordability.gd"),
         @("Smoke test original 16-bit presentation profiles and overlay", "res://tools/smoke_presentation_runtime.gd"),
         @("Smoke test Presentation and Feel Studio editor state", "res://tools/smoke_presentation_studio.gd"),
         @("Smoke test malformed presentation colours camera values atmosphere and bindings", "res://tools/smoke_presentation_validation_edges.gd"),
@@ -90,7 +91,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, regional supply, scarcity, crash recovery, modal freeze, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

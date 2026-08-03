@@ -33,11 +33,18 @@ Use this checklist after the automated Audit Studio report and before distributi
 
 - List each item counted by `progression_item_count` and the quantity required by the first mandatory gate.
 - Prove at least one authored source exists before that gate.
-- Confirm starting equipment that is already present in starting inventory represents one physical item rather than two sources.
-- For recipe-derived items, prove the recipe has a default, starting or authored unlock route before testing its ingredients.
-- Start recipe tests with an empty inventory and prove every ingredient can be acquired without using the output.
+- Confirm disconnected interactions, separate conversations and unrelated records use the largest provable demand rather than being summed without evidence.
+- For multiple `remove_item` effects in one effect bundle, verify every removal is counted.
+- For conversation nodes joined by explicit `next` links, verify sequential removals accumulate.
+- For mutually exclusive dialogue choices, verify the audit uses the largest one-branch cost rather than summing impossible choices.
+- Confirm a paired `has_item` guard and `remove_item` effect represent one physical cost, not two.
+- For recipe-derived items, start with an empty inventory and prove every ingredient can be acquired without using the output.
+- Verify finite pickups, rewards and merchant stock satisfy output demand before any recipe ingredients are counted.
+- Test partial supply, such as one pickup toward a two-item requirement, and verify only the residual unit expands into recipe ingredients.
+- Verify output batch sizes and nested recipes produce the same cumulative ingredient quantities shown by the audit.
+- Verify surplus from multi-unit recipe outputs is reused by later progression demand before another batch is counted.
+- Confirm a locked recipe with no authored unlock route produces `progression.recipe_never_unlocked` rather than fabricated ingredient requirements.
 - Confirm alternative recipes do not hide a dependency cycle.
-- Verify pickup, reward and boss-defeat sources come from reusable definitions that are actually placed on a reachable map.
 - Exhaust every finite pickup and merchant stack used by progression and verify the required quantity remains obtainable.
 - Confirm each merchant counted as a source has a reachable placed reusable NPC binding.
 - Review every `progression.item_only_gated_sources` warning against the intended encounter order.
@@ -48,6 +55,15 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Exhaust ranged ammunition and verify melee or merchant recovery remains viable.
 - Confirm conditional merchants are not the only solution to the condition that unlocks them.
 - Test starting balances against essential purchases.
+- Split a required quantity across two bound merchants and confirm their finite stock combines instead of producing `economy.progression_item_not_for_sale`.
+- Give the same required item valid stock in two independent currencies and confirm the audit evaluates each wallet separately rather than comparing nominal currency numbers.
+- Verify the reported affordable-unit capacity matches the cheapest valid stock order inside each currency.
+- Confirm a complete stock route that exceeds the starting wallets produces an affordability warning rather than a not-for-sale blocker.
+- Create two individually affordable, merchant-only progression requirements in the same currency whose aggregate review total exceeds the starting balance.
+- Confirm the report emits `economy.cumulative_progression_purchase_unaffordable` with that currency as context.
+- Confirm the warning explicitly distinguishes its aggregate review envelope from proof that every requirement belongs to one mandatory route.
+- Document which requirements truly co-occur and which live on disconnected or optional branches.
+- Confirm multi-currency alternatives and capability-equipment choices are not added to the aggregate total without proof that one exact route is mandatory.
 - For every affordability warning, document the earliest guaranteed currency source and its minimum value.
 - Spend currency on optional goods before the required purchase and confirm the campaign still offers a recovery route.
 - Verify failed purchases and sales remain transactional.

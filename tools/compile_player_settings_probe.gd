@@ -3,6 +3,7 @@ extends SceneTree
 const TARGETS := [
 	"res://src/game/player_settings.gd",
 	"res://src/game/player_settings_store.gd",
+	"res://src/presentation_runtime_base.gd",
 	"res://src/presentation_runtime_current.gd",
 	"res://src/presentation_camera.gd",
 	"res://src/combat_readability_overlay.gd",
@@ -26,7 +27,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Player settings compile probe passed: model, atomic store, runtime, modal camera, presentation, Audio, regressions and canonical scene load cleanly.")
+		print("Player settings compile probe passed: model, atomic store, presentation base, supply adapter, modal camera, presentation, Audio, regressions and canonical scene load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

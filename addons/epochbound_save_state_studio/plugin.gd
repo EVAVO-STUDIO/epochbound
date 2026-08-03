@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const SaveStateStudio = preload("res://addons/epochbound_save_state_studio/save_state_studio.gd")
+const SaveStateStudio = preload("res://addons/epochbound_save_state_studio/save_state_studio_supply.gd")
 
 var studio
 

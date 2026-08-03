@@ -14,6 +14,9 @@ const REQUIRED_RUNTIME_METHODS := [
 	"capture_save_profile",
 	"active_capabilities",
 	"open_merchant",
+	"apply_due_supply_restock",
+	"supply_region_status_text",
+	"supply_runtime_contract_ok",
 	"start_reload",
 	"update_projectiles",
 	"update_boss_engagements",
@@ -124,6 +127,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 		if overlay.has_method("player_settings_overlay_contract_ok") and not bool(overlay.call("player_settings_overlay_contract_ok")):
 			errors.append("PresentationOverlay did not preserve the player-settings presentation contract.")
 
+	if runtime.has_method("supply_runtime_contract_ok") and not bool(runtime.call("supply_runtime_contract_ok")):
+		errors.append("Runtime root did not initialise every regional supply cycle.")
 	if runtime.has_method("player_settings_contract_ok") and not bool(runtime.call("player_settings_contract_ok")):
 		errors.append("Runtime root did not confirm valid player-local settings.")
 	if runtime.has_method("presentation_overlay_handles_combat_readability"):

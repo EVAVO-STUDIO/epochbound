@@ -9,11 +9,26 @@
 			"max_balance": 999999
 		}
 	],
+	"supply_regions": [
+		{
+			"id": "bellweather_route",
+			"display_name": "Bellweather Museum Route",
+			"restock_interval_seconds": 180,
+			"max_catchup_cycles": 4
+		},
+		{
+			"id": "underworks_route",
+			"display_name": "Underworks Salvage Route",
+			"restock_interval_seconds": 300,
+			"max_catchup_cycles": 3
+		}
+	],
 	"merchants": [
 		{
 			"id": "bellweather_provisions",
 			"display_name": "Bellweather Provisions",
 			"currency_id": "archive_chits",
+			"supply_region_id": "bellweather_route",
 			"greeting": "The museum till still remembers honest prices. Take what keeps you moving.",
 			"farewell": "Bring back anything the hours have not claimed.",
 			"buy_multiplier": 1.0,
@@ -38,6 +53,8 @@
 					"unlimited": false,
 					"buy_price": 18,
 					"sell_price": 10,
+					"restock_quantity": 1,
+					"restock_target": 3,
 					"conditions": []
 				},
 				{
@@ -46,6 +63,8 @@
 					"unlimited": false,
 					"buy_price": 5,
 					"sell_price": 2,
+					"restock_quantity": 2,
+					"restock_target": 10,
 					"conditions": []
 				},
 				{
@@ -54,6 +73,8 @@
 					"unlimited": false,
 					"buy_price": 42,
 					"sell_price": 18,
+					"restock_quantity": 1,
+					"restock_target": 1,
 					"conditions": []
 				},
 				{
@@ -70,6 +91,8 @@
 					"unlimited": false,
 					"buy_price": 3,
 					"sell_price": 1,
+					"restock_quantity": 8,
+					"restock_target": 24,
 					"conditions": []
 				}
 			]
@@ -78,6 +101,7 @@
 			"id": "underworks_exchange",
 			"display_name": "Underworks Exchange",
 			"currency_id": "archive_chits",
+			"supply_region_id": "underworks_route",
 			"greeting": "Down here, value means what can survive two histories at once.",
 			"farewell": "Do not let the upper floors decide what your findings are worth.",
 			"buy_multiplier": 1.15,
@@ -107,6 +131,8 @@
 					"unlimited": false,
 					"buy_price": 10,
 					"sell_price": 5,
+					"restock_quantity": 1,
+					"restock_target": 4,
 					"conditions": []
 				},
 				{

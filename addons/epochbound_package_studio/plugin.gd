@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const PackageStudio = preload("res://addons/epochbound_package_studio/package_studio_current.gd")
+const PackageStudio = preload("res://addons/epochbound_package_studio/package_studio_supply.gd")
 
 var studio
 

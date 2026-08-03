@@ -24,7 +24,7 @@ jobs:
   validate-sprite-animation:
     name: Exact Godot 4.6.2 Sprite Animation gate
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Validate governed dispatch
@@ -66,6 +66,9 @@ jobs:
       - name: Validate player settings integration contract
         run: python3 tools/check_player_settings_contract.py
 
+      - name: Validate regional supply integration contract
+        run: python3 tools/check_supply_region_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -89,7 +92,7 @@ jobs:
           [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
           rm -rf .godot-download
 
-      - name: Compile presentation Sprite and player-settings entrypoints
+      - name: Compile presentation Sprite player-settings and supply entrypoints
         shell: bash
         run: |
           set -euo pipefail
@@ -107,6 +110,7 @@ jobs:
           run_test res://tools/compile_probe.gd
           run_test res://tools/compile_sprite_animation_probe.gd
           run_test res://tools/compile_player_settings_probe.gd
+          run_test res://tools/compile_supply_region_probe.gd
 
       - name: Import project
         shell: bash
@@ -132,7 +136,7 @@ jobs:
           if [ "$status" -ne 0 ]; then exit "$status"; fi
           if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
 
-      - name: Run canonical runtime player-settings Sprite environment and combat regressions
+      - name: Run canonical runtime player-settings supply Sprite environment and combat regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -149,6 +153,8 @@ jobs:
           }
           run_test res://tools/smoke_runtime_scene_contract.gd
           run_test res://tools/smoke_player_settings.gd
+          run_test res://tools/smoke_supply_regions.gd
+          run_test res://tools/smoke_supply_validation_edges.gd
           run_test res://tools/smoke_sprite_animation_runtime.gd
           run_test res://tools/smoke_environment_animation.gd
           run_test res://tools/smoke_combat_readability_overlay.gd

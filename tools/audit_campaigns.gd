@@ -1,6 +1,6 @@
 extends SceneTree
 
-const CampaignAudit = preload("res://src/content/campaign_audit.gd")
+const CampaignAudit = preload("res://src/content/supply_campaign_audit.gd")
 
 
 func _initialize() -> void:

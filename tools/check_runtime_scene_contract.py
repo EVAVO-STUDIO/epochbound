@@ -49,6 +49,9 @@ require(
         '"start_conversation"',
         '"capture_save_profile"',
         '"open_merchant"',
+        '"apply_due_supply_restock"',
+        '"supply_region_status_text"',
+        '"supply_runtime_contract_ok"',
         '"start_reload"',
         '"update_boss_engagements"',
         '"start_cinematic"',
@@ -66,6 +69,26 @@ runtime = read("src/presentation_runtime_current.gd")
 require(
     "src/presentation_runtime_current.gd",
     runtime,
+    [
+        'extends "res://src/presentation_runtime_base.gd"',
+        'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
+        'SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")',
+        'SupplyModel = preload("res://src/game/supply_region_model.gd")',
+        'supply_region_definitions',
+        'supply_region_cycles',
+        'supply_regions_initialized',
+        'apply_due_supply_restock',
+        'supply_region_status_text',
+        'supply_runtime_contract_ok',
+        'CompleteValidator.validate_profile',
+        'Regional supply caught up',
+    ],
+)
+
+presentation_base = read("src/presentation_runtime_base.gd")
+require(
+    "src/presentation_runtime_base.gd",
+    presentation_base,
     [
         'extends "res://src/cinematic_runtime.gd"',
         'PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")',
@@ -117,6 +140,23 @@ require(
     ],
 )
 
+supply_compile = read("tools/compile_supply_region_probe.gd")
+require(
+    "tools/compile_supply_region_probe.gd",
+    supply_compile,
+    [
+        'res://src/presentation_runtime_base.gd',
+        'res://src/presentation_runtime_current.gd',
+        'res://src/content/supply_region_catalog.gd',
+        'res://src/content/supply_region_validator.gd',
+        'res://src/content/complete_content_validator.gd',
+        'res://src/game/supply_region_model.gd',
+        'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/smoke_supply_regions.gd',
+        'res://src/app.tscn',
+    ],
+)
+
 focused_compile = read("tools/compile_sprite_animation_probe.gd")
 require(
     "tools/compile_sprite_animation_probe.gd",
@@ -134,6 +174,7 @@ require(
     [
         'res://src/game/player_settings.gd',
         'res://src/game/player_settings_store.gd',
+        'res://src/presentation_runtime_base.gd',
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
         'res://src/audio_mood_runtime.gd',
@@ -149,7 +190,9 @@ require(
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
         'compile_player_settings_probe.gd',
+        'compile_supply_region_probe.gd',
         'smoke_player_settings.gd',
+        'smoke_supply_regions.gd',
         'canonical runtime',
     ],
 )
@@ -161,6 +204,7 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_supply_region_contract.py',
         'scripts/validate.ps1',
         'Run complete seventeen-system validation gate',
     ],
@@ -177,8 +221,10 @@ for workflow_path in [
         [
             'python3 tools/check_runtime_scene_contract.py',
             'python3 tools/check_player_settings_contract.py',
+            'python3 tools/check_supply_region_contract.py',
             'smoke_runtime_scene_contract.gd',
             'smoke_player_settings.gd',
+            'smoke_supply_regions.gd',
         ],
     )
 
@@ -189,8 +235,10 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_supply_region_contract.py',
         'smoke_runtime_scene_contract.gd',
         'smoke_player_settings.gd',
+        'smoke_supply_regions.gd',
     ],
 )
 
@@ -202,6 +250,7 @@ if errors:
 
 print("epochbound_runtime_scene_contract_passed")
 print("- canonical root, overlay, camera and Audio scripts are pinned")
+print("- durable regional supply cycles are layered above the canonical presentation runtime")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
 print("- player-local settings are required across runtime, presentation and Audio")

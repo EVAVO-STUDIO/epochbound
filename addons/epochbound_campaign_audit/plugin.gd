@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const CampaignAuditStudio = preload("res://addons/epochbound_campaign_audit/campaign_audit_studio.gd")
+const CampaignAuditStudio = preload("res://addons/epochbound_campaign_audit/campaign_audit_supply.gd")
 
 var studio
 

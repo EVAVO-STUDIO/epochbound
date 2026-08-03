@@ -1,323 +1,270 @@
-# Merchant & Economy Manual Playtest Checklist
+# Merchant, Economy and Regional Supply Manual Playtest Checklist
 
-Use this checklist after the automated Godot 4.6.2 gate passes. It covers player-facing presentation, controller flow, transaction reliability, balance, progression safety and durable restoration that headless tests cannot fully judge.
+Use this checklist after the automated Godot 4.6.2 gate passes. It covers player-facing presentation, controller flow, transaction reliability, balance, durable restoration, regional supply and scarcity decisions that headless tests cannot fully judge.
 
 ## Setup
 
 - Pull the latest `main` branch.
 - Open `project.godot` in Godot 4.6.2.
-- Confirm the editor toolbar includes **Trade**.
-- Run the complete PowerShell validation script before manual play.
-- Start a new reference campaign rather than relying only on an older save.
-- Keep a separate manual slot available for transaction restoration tests.
+- Confirm the toolbar includes **Trade**, **State**, **Package** and **Audit**.
+- Run the complete PowerShell validation script.
+- Start a new reference campaign.
+- Keep one disposable manual slot for restoration tests.
+- Record the exact commit SHA used for the session.
 
 ## Trade Studio editor
 
-- Open the **Trade** tab.
-- Confirm the reference campaign loads automatically.
-- Confirm Archive Chits appears once in Currencies.
-- Confirm Bellweather Provisions and Underworks Exchange appear once each in Merchants.
-- Confirm currency name, symbol, starting balance and maximum balance populate correctly.
-- Confirm each merchant retains the authored transaction currency.
-- Confirm merchant greetings and farewells remain readable at the editor’s normal width.
-- Confirm buy and sell multipliers show the authored values.
-- Confirm accepted kinds and refused items round-trip without reordering important source data.
-- Confirm every stock JSON line remains a complete object.
-- Confirm Bellweather Provisions shows four stock entries.
-- Confirm Underworks Exchange shows three stock entries.
-- Confirm the NPC Bindings tab shows the Lost Archivist and both merchant NPC definitions.
-- Confirm the provisioner and salvager bindings select the correct merchants.
-- Enter malformed stock JSON and confirm the editor rejects it without modifying the catalogue.
-- Attempt to delete Archive Chits while merchants use it and confirm deletion is blocked.
-- Attempt to delete a bound merchant and confirm deletion is blocked.
-- Clear a binding, validate, then undo the test change before committing anything.
-- Confirm validation feedback remains readable and identifies the exact record.
+- Open **Trade** and select the reference campaign.
+- Confirm Archive Chits appears once.
+- Confirm Bellweather Provisions and Underworks Exchange appear once each.
+- Confirm every stock line remains a complete JSON object.
+- Confirm `restock_quantity` and `restock_target` remain visible on renewable entries.
+- Confirm **Supply Routes** contains Bellweather Museum Route and Underworks Salvage Route.
+- Confirm Bellweather uses a 180-second interval and four catch-up cycles.
+- Confirm Underworks uses a 300-second interval and three catch-up cycles.
+- Confirm each merchant selects the correct route.
+- Confirm the route selector also supports static stock.
+- Enter malformed route or stock JSON and confirm the write is rejected and rolled back.
+- Attempt to delete a route while a merchant uses it and confirm deletion is blocked.
+- Confirm validation identifies the exact route, merchant or stock item.
 
-## New-campaign scaffolding
+## Reference stock contract
 
-Create a disposable campaign through Campaign Studio.
+Confirm renewable entries are exactly:
 
-- Confirm `economy/core.json` is created.
-- Confirm `campaign.json` declares `economy_files`.
-- Confirm the default currency loads in Trade Studio.
-- Confirm the default merchant loads in Trade Studio.
-- Confirm its starter stock references existing default Item Forge items.
-- Confirm the new campaign passes complete validation without manual JSON repair.
-- Delete the disposable campaign after inspection.
+- Museum Tonic: +1 toward 3;
+- Brass Filings: +2 toward 10;
+- Ember Salve: +1 toward 1;
+- Archive Bolts: +8 toward 24;
+- Ashen Resin: +1 toward 4.
 
-## Bellweather Provisions presentation
+Confirm these remain finite and non-renewable:
 
-Start a new reference journey.
+- Museum Flashlight;
+- Clockglass Fragment;
+- Underworks Salvager Wrap;
+- Clockglass Dartcaster;
+- Clockglass Lens and Archivist Lens.
 
-- Confirm the HUD shows `AC 60`.
-- Confirm the currency readout does not obscure health, companion, shard, map or era information.
-- Approach the Bellweather Provisioner in Verdant Bellweather.
-- Confirm the merchant NPC is visually distinct enough from the Lost Archivist.
-- Interact and confirm the trade overlay opens rather than ordinary one-line dialogue.
-- Confirm world movement, enemies and Morrow pause while trade is open.
-- Confirm the merchant title, wallet, Buy and Sell labels are legible.
-- Confirm the selected row has a clear marker independent of colour.
-- Confirm finite stock quantities are visible.
-- Confirm the selected item’s description, kind, price and owned quantity are visible.
-- Close the overlay and confirm the farewell appears long enough to read.
-- Shift to Ashen Bellweather and confirm the same persistent merchant remains available.
+## Bellweather merchant presentation
 
-## Keyboard navigation
+- Start a new journey and confirm the HUD shows `AC 60`.
+- Open Bellweather Provisions.
+- Confirm the merchant name, wallet, Buy and Sell labels are legible.
+- Confirm the route line names Bellweather Museum Route.
+- Confirm the next supply countdown is readable and does not overlap item details.
+- Confirm finite quantities remain visible.
+- Confirm the selected row has a marker independent of colour.
+- Confirm gameplay, enemies and Morrow pause while trade is open.
+- Confirm closing trade restores gameplay without opening another menu underneath.
 
-- Open Bellweather Provisions using E or Z.
-- Use Left and Right to switch Buy and Sell.
-- Use Up and Down to move through every visible entry.
-- Confirm selection wraps predictably at the first and last row.
-- Confirm a long list scrolls while keeping the selected row visible.
-- Confirm E, Z, Space and C all activate the selected transaction as intended.
-- Confirm Escape closes the merchant.
-- Confirm I also closes the merchant without opening Field Satchel beneath it.
+## Keyboard and controller navigation
+
+- Open trade with keyboard and controller.
+- Switch Buy and Sell with Left and Right.
+- Move through all rows with Up and Down.
+- Confirm selection wraps predictably.
+- Confirm all supported confirmation actions execute one transaction.
+- Confirm rapid repeat input does not duplicate a transaction.
+- Close with Cancel and the Field Satchel action.
 - Confirm no gameplay input leaks through while the overlay is open.
 
-## Controller navigation
+## Atomic purchase and sale
 
-- Open the merchant with the South face button.
-- Switch Buy and Sell with D-pad Left and Right.
-- Select entries with D-pad Up and Down.
-- Confirm with South or East face button.
-- Close with the controller cancel or Field Satchel action.
-- Confirm the selected row and current mode remain understandable from normal viewing distance.
-- Confirm rapid repeated inputs do not execute duplicate transactions unexpectedly.
-
-## Valid purchase
-
-At Bellweather Provisions:
-
-- Record the starting wallet, Museum Tonic quantity and merchant tonic stock.
 - Buy one Museum Tonic.
-- Confirm the wallet decreases by exactly 18 AC.
-- Confirm inventory increases by exactly one.
-- Confirm finite merchant stock decreases by exactly one.
-- Confirm the transaction message names the item and complete price.
-- Close and reopen the merchant.
-- Confirm the new wallet, inventory and stock values remain visible.
+- Confirm wallet decreases by 18 AC.
+- Confirm inventory increases by one.
+- Confirm stock decreases by one.
+- Fill the tonic stack and confirm another purchase fails without changing wallet or stock.
+- Attempt a purchase without enough currency and confirm no state changes.
+- Sell an accepted item and confirm inventory, wallet and resold merchant stock all change exactly once.
+- Attempt to sell equipped gear and confirm it remains owned and equipped.
+- Attempt a sale that would exceed `max_balance` and confirm the item is not removed.
 
-## Stack-capacity rejection
+## Regional supply and scarcity
 
-- Fill Museum Tonic to its authored stack limit.
-- Attempt to buy another tonic.
-- Confirm the message explains that the stack cannot hold another.
-- Confirm no currency is removed.
-- Confirm merchant stock does not change.
-- Confirm inventory does not exceed its stack limit.
-- Repeat the attempt quickly and confirm state remains unchanged.
+### First Bellweather cycle
 
-## Insufficient-funds rejection
+- Deplete at least one Museum Tonic, Brass Filings and Archive Bolts.
+- Continue active gameplay until the 180-second Bellweather boundary is crossed.
+- Reopen Bellweather Provisions.
+- Confirm the expected quantities were added once.
+- Confirm no item exceeds its authored target.
+- Confirm the delivery message reports the total units added.
+- Close and reopen immediately and confirm the same cycle does not deliver again.
 
-- Spend or edit a test profile until the wallet contains less than the selected price.
-- Attempt a purchase.
-- Confirm the message explains insufficient currency.
-- Confirm stock and inventory do not change.
-- Confirm the wallet does not become negative.
+### Independent Underworks interval
 
-## Finite stock depletion
+- Deplete Ashen Resin.
+- Cross 180 seconds but remain below 300 seconds since the relevant origin.
+- Confirm Bellweather may replenish while Underworks does not.
+- Cross the 300-second Underworks boundary.
+- Confirm Ashen Resin increases by one toward four.
+- Confirm Clockglass Fragments remain unchanged.
 
-- Purchase every available unit of a finite stock item.
-- Confirm stock reaches zero and the item disappears or becomes clearly unavailable.
-- Close and reopen the merchant.
-- Confirm depleted stock remains depleted.
-- Change era and return.
-- Confirm depleted stock remains depleted.
+### Target caps
+
+- Leave a renewable entry one unit below target.
+- Cross several cycles.
+- Confirm it stops exactly at target.
+- Buy one unit after the cycles are consumed.
+- Confirm the prior cycles do not replay immediately.
+
+### Full-stock cycle
+
+- Fill every Bellweather renewable entry to its target.
+- Save shortly before the next Bellweather boundary.
+- Cross the boundary without buying anything.
+- Confirm quantities remain unchanged.
 - Save and reload.
-- Confirm depleted stock remains depleted.
+- Buy an item.
+- Confirm the already-consumed full-stock cycle does not deliver after reload.
 
-## Sale flow
+### Bounded catch-up
 
-- Switch to Sell mode.
-- Confirm only items accepted by the current merchant are listed.
-- Confirm key progression items do not appear when refused.
-- Sell one Museum Tonic.
-- Confirm inventory decreases by exactly one.
-- Confirm the wallet increases by exactly the authored sell price.
-- Confirm merchant stock increases because Bellweather Provisions resells player goods.
-- Switch to Buy and confirm the sold item is available in the updated stock.
+- Use a disposable save or editor-assisted play-time state to create more elapsed cycles than a route permits.
+- Confirm Bellweather applies at most four replenishment cycles.
+- Confirm Underworks applies at most three replenishment cycles.
+- Confirm excess cycles are discarded rather than queued.
+- Save and reload.
+- Confirm discarded cycles do not reappear.
 
-## Equipped-item protection
+### No offline restocking
 
-- Keep Brass Hook equipped.
-- Open Sell mode.
-- Confirm Brass Hook is absent from the sellable list, or a direct attempted sale is rejected.
-- Confirm a clear equipped-item warning is shown where relevant.
-- Confirm the item remains equipped and owned.
-- Unequip Brass Hook through Field Satchel.
-- Reopen the merchant and confirm it can now be sold if the merchant accepts it.
-- Do not leave the reference save without restoring the intended loadout.
+- Save with depleted renewable stock.
+- Close the game for several minutes.
+- Reopen without adding active gameplay time.
+- Confirm stock does not change.
+- Change the operating-system clock in a disposable test environment.
+- Confirm the game still does not grant stock.
 
-## Progression-item protection
+### Progression equipment scarcity
 
-- Obtain or inject Clockglass Lens and Archivist Lens in a test profile.
-- Confirm Bellweather Provisions refuses both.
-- Confirm Underworks Exchange refuses both.
-- Confirm the refusal is based on stable item ID rather than display name.
-- Confirm quest and capability progression cannot be broken by selling these tools.
+- Purchase or deplete Museum Flashlight, Salvager Wrap and Clockglass Dartcaster in a disposable profile.
+- Cross several supply cycles.
+- Confirm progression equipment does not return automatically.
+- Deplete conditional Clockglass Fragment stock.
+- Confirm it does not replenish through Underworks supply.
+- Verify another authored progression route remains available where the campaign requires one.
 
-## Wallet-capacity rejection
+## Old save compatibility
 
-- Create a test profile whose Archive Chits balance is close to `max_balance`.
-- Attempt to sell an item whose complete payment would exceed the maximum.
-- Confirm the sale is rejected before item removal.
-- Confirm the wallet does not exceed its maximum.
-- Confirm inventory remains unchanged.
+Using a backed-up current-schema old save created before regional supply fields existed:
 
-## Underworks Exchange availability
+- Load through the normal Continue or Load flow.
+- Confirm wallet and merchant stock restore exactly.
+- Confirm no historical supply delivery occurs.
+- Confirm the route cursor begins at the cycle derived from saved active play time.
+- Save normally.
+- Inspect the new profile and confirm `supply_region_cycles` and `supply_regions_initialized` are present.
+- Reload and confirm no duplicate delivery occurs.
 
-- Equip Museum Flashlight.
-- Enter Museum Underworks.
-- Approach the Underworks Salvager.
-- Confirm the exchange opens while Illuminate Darkness is active.
-- Close trade.
-- Equip Archivist Lens in the shared Tool slot.
-- Confirm Illuminate Darkness is no longer active.
-- Attempt to open the exchange.
-- Confirm the merchant remains unavailable and explains the missing light requirement.
-- Re-equip Museum Flashlight and confirm trade opens again.
-- Confirm failure does not open an empty or partially interactive overlay.
+## Save and reload exactness
 
-## Conditional stock
-
-- Start **The Missing Hour**.
-- Open Underworks Exchange with the flashlight equipped.
-- Confirm Clockglass Fragment appears while the quest is active.
-- Complete or leave the relevant quest state in a controlled test profile.
-- Confirm stock visibility updates according to its condition.
-- Confirm hidden stock cannot be bought through stale selection indices.
-
-## Equipment purchase and trade-off
-
-- Accumulate enough Archive Chits for Underworks Salvager Wrap.
-- Purchase the wrap.
-- Confirm the item enters inventory and merchant stock reaches zero.
-- Equip it in the Body slot.
-- Confirm defence and movement speed update immediately.
-- Confirm maximum health changes according to the active coat trade-off.
-- Compare against Museum Field Coat in actual movement and combat.
-- Confirm the wrap feels like a distinct choice rather than an unconditional upgrade.
-
-## Quest currency reward
-
-- Begin **Quiet the Ash Hunt**.
-- Record the current Archive Chits balance.
-- Clear East Ash Hunt.
-- Confirm the quest completes.
-- Confirm 12 Archive Chits are granted once.
-- Confirm the existing item and clock-shard rewards still occur.
-- Reevaluate the completed quest or travel away and back.
-- Confirm the currency reward cannot duplicate.
-
-## Save schema 3
-
-- Perform at least one purchase and one sale.
+- Perform a purchase and cross one supply boundary.
+- Record wallet, stock and route countdown.
 - Save to a manual slot.
-- Record wallet and both merchants’ stock.
-- Change wallet and stock through further transactions.
-- Load the manual slot.
-- Confirm exact wallet restoration.
-- Confirm exact finite merchant stock restoration.
-- Confirm dynamically resold stock restores.
-- Confirm inventory, equipment, quests, companion state, map and era also restore as before.
-- Confirm the merchant overlay is closed after load.
-
-## Schema-2 migration
-
-Using a backed-up schema-2 test profile:
-
-- Load the profile through the normal Continue or Load flow.
-- Confirm migration succeeds.
-- Confirm campaign-authored starting wallet is applied once.
-- Confirm initial merchant stock is applied once.
-- Save the migrated profile.
-- Reload it.
-- Confirm starting currency and stock are not granted again.
-- Inspect it in State Studio and confirm schema 3 with a valid checksum.
-
-## Backup recovery
-
-- Create an economy-aware manual save.
-- Make a second save to produce a backup.
-- Corrupt the promoted primary profile in a disposable test environment.
-- Load the slot.
-- Confirm backup recovery succeeds.
-- Confirm recovered wallet and stock correspond to the backup, not a mixture of primary and backup values.
-- Confirm State Studio reports backup recovery.
+- Perform more transactions and cross another boundary.
+- Reload the manual slot.
+- Confirm wallet and stock return exactly.
+- Confirm the saved route cursor returns exactly.
+- Confirm the already-recorded delivery is not repeated.
+- Confirm map, era, player, Morrow, quests, equipment, ammunition, boss and cinematic state still restore correctly.
 
 ## State Studio inspection
 
-- Open the **State** tab.
-- Select an economy-aware profile.
-- Confirm Overview shows wallet and merchant record counts.
-- Confirm Wallet lists Archive Chits with symbol, amount and stable ID.
-- Confirm Merchant Stock lists merchant name, item name, quantity and stable item ID.
-- Confirm unlimited stock is labelled distinctly if present.
-- Confirm Raw JSON contains `currency_balances`, `merchant_stock` and `economy_initialized`.
-- Confirm profile validation passes.
-- Confirm an invalid test profile with unknown currency or merchant is rejected.
+- Open **State** and select a supply-aware profile.
+- Confirm Overview displays **REGIONAL SUPPLY** and initialisation state.
+- Open **Supply Cycles**.
+- Confirm both route IDs appear.
+- Confirm saved and current cycle numbers are shown.
+- Confirm time until next active-gameplay cycle is shown.
+- Confirm Raw JSON contains `supply_region_cycles` and `supply_regions_initialized`.
+- Validate the selected profile and confirm zero errors.
+- Test an invalid copy with an unknown route and confirm validation rejects it.
+- Test a cycle greater than the saved play-time-derived current cycle and confirm rejection.
 
-## Merchant persistence across maps and eras
+## Package and installation
 
-- Buy an item in Verdant Bellweather.
-- Shift to Ashen Bellweather and reopen the provisioner.
-- Confirm the same stock state remains.
-- Travel to Clockwood and return.
-- Confirm state remains.
-- Visit Underworks Exchange and make a separate transaction.
-- Return to Bellweather.
-- Confirm the two merchants retain independent stock records.
+- Export the reference campaign.
+- Inspect the package manifest and hashes.
+- Install into a clean test root.
+- Confirm the installed campaign retains both supply routes and all five renewable entries.
+- Modify a disposable package so a renewable equipment entry or unknown route remains hash-valid.
+- Confirm staged installation rejects it before promotion.
+- Confirm a failed replacement restores the previous installed campaign.
 
-## Transaction stress
+## Audit Studio
 
-- Rapidly alternate Buy and Sell modes.
-- Repeat purchase input near a stack limit.
-- Repeat sale input when only one item remains.
-- Close the overlay during transaction feedback.
-- Open and close the merchant repeatedly.
-- Shift era immediately after closing.
-- Travel immediately after closing.
-- Save immediately after closing.
-- Confirm no negative balances, duplicated items, negative finite stock or stuck overlays occur.
+- Run the reference audit twice.
+- Confirm both JSON exports are identical.
+- Confirm the report still exposes all eight production probes.
+- Confirm metrics show two supply regions and five renewable stock entries.
+- Confirm malformed supply data produces `supply.invalid` blockers.
+- Confirm review-only supply concerns produce `supply.review` warnings.
+- Confirm no automation responds by making every item unlimited or renewable.
 
-## Economy balance review
+## Merchant availability and conditional stock
 
-Play the available reference progression without editor cheats.
+- Equip Museum Flashlight and open Underworks Exchange.
+- Replace it with a tool that does not grant illumination and confirm the exchange remains blocked.
+- Start **The Missing Hour** and confirm Clockglass Fragment becomes visible.
+- Change the quest state and confirm hidden stock cannot be bought through stale selection.
+- Confirm supply timing does not bypass merchant or stock conditions.
 
-- Confirm the starting 60 AC supports at least one meaningful preparation choice.
-- Confirm the player can earn the Quiet the Ash Hunt reward before any required purchase.
-- Confirm tonic pricing makes recovery useful without trivialising damage.
-- Confirm material prices do not make crafting irrelevant.
-- Confirm Clockglass Fragment availability does not bypass the intended exploration loop too cheaply.
-- Confirm Salvager Wrap price feels proportional to its defensive and movement trade-off.
-- Confirm selling ordinary finds is useful but cannot create an effortless buy-sell loop.
-- Record any item that is never worth buying or always worth selling.
+## Progression and affordability
+
+- Complete the available reference progression without editor cheats.
+- Confirm starting 60 AC supports at least one meaningful preparation choice.
+- Confirm the player can earn currency before mandatory purchases.
+- Spend currency on optional goods and verify a reasonable recovery route remains.
+- Confirm renewable recovery stock does not remove all scarcity pressure.
+- Confirm progression equipment prices still matter because those items do not restock.
+- Confirm selling ordinary finds cannot create a repeatable buy-sell profit loop.
+
+## Backup recovery
+
+- Produce a primary and backup supply-aware save.
+- Corrupt the primary in a disposable test environment.
+- Load the slot.
+- Confirm backup recovery restores wallet, merchant stock and supply cursors from one coherent profile.
+- Confirm no route combines a primary cursor with backup stock.
+- Confirm the recovered profile can be promoted safely on the next normal save.
+
+## Stress and boundary testing
+
+- Cross a supply boundary while moving between maps.
+- Cross a boundary immediately before opening a merchant.
+- Close trade during delivery feedback.
+- Save immediately after closing trade.
+- Trigger an autosave request from another durable event at the same time.
+- Pause at a boundary and confirm paused time does not create extra gameplay time.
+- Open Options, State, Journal and Field Satchel near a boundary and confirm blocking interfaces remain safe.
+- Confirm no negative stock, duplicated items, repeated cycles or stuck overlays occur.
 
 ## Accessibility and presentation
 
-- Verify text at 1280×720 and the project’s base low-resolution viewport.
-- Confirm selected rows use a marker and contrast, not colour alone.
-- Confirm Buy and Sell modes remain labelled.
-- Confirm wallet and price symbols are distinguishable.
-- Confirm finite quantities and unlimited stock are not communicated only by glyph shape.
-- Confirm transaction feedback remains visible long enough to read.
-- Confirm long item names and descriptions do not overlap prices or quantities.
-- Confirm every action is reachable by keyboard and controller.
+- Review at the base viewport and 1280×720.
+- Confirm route name and countdown use text, not colour alone.
+- Confirm **SCARCE STOCK** remains distinguishable.
+- Confirm delivery feedback remains visible long enough to read.
+- Confirm long route and item names do not overlap.
+- Confirm keyboard and controller can reach every Trade and State action.
+- Confirm high-contrast settings preserve stock and route readability.
 
 ## Failure reporting
 
-For every defect, record:
+Record:
 
-- campaign and save slot;
+- commit SHA;
+- campaign and slot;
 - map and era;
-- merchant ID;
-- selected mode and item ID;
-- wallet before and after;
-- inventory before and after;
-- stock before and after;
-- input device;
-- exact reproduction sequence;
-- screenshot or recording where presentation is involved;
-- relevant Godot output and validation logs.
+- merchant and route IDs;
+- saved and current cycle values;
+- active play time;
+- wallet, inventory and stock before and after;
+- exact input sequence;
+- screenshots or recordings for presentation defects;
+- Godot output and validation logs.
 
-Do not patch a balance or transaction defect only in the runtime. Correct the shared catalogue, model, validator, editor and executable test contract together.
+Do not patch a supply defect only in JSON or only in runtime. Correct the shared catalogue, deterministic model, validator, save contract, authoring tools, package path, audit and executable regression together.

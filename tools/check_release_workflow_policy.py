@@ -100,8 +100,10 @@ require(
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
+        "python3 tools/check_supply_region_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        '"supplyRegionValidation": "passed"',
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],
@@ -128,9 +130,13 @@ require(
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
+        "python3 tools/check_supply_region_contract.py",
         "compile_player_settings_probe.gd",
+        "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_supply_regions.gd",
+        "smoke_supply_validation_edges.gd",
         "smoke_audio_mood_runtime.gd",
         "smoke_audio_mood_studio.gd",
         "smoke_audio_mood_validation_edges.gd",
@@ -152,11 +158,15 @@ require(
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
+        "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
         "compile_player_settings_probe.gd",
+        "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_supply_regions.gd",
+        "smoke_supply_validation_edges.gd",
         "smoke_sprite_animation_runtime.gd",
         "smoke_environment_animation.gd",
         "smoke_combat_readability_overlay.gd",
@@ -174,6 +184,9 @@ require(
     "local_gate",
     local_gate,
     [
+        "compile_supply_region_probe.gd",
+        "smoke_supply_regions.gd",
+        "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
         "Smoke test multi-source progression affordability planning",
     ],
@@ -189,6 +202,67 @@ require(
     ],
 )
 
+supply_compile = read("supply_compile", ROOT / "tools/compile_supply_region_probe.gd")
+require(
+    "supply_compile",
+    supply_compile,
+    [
+        "supply_region_catalog.gd",
+        "supply_region_validator.gd",
+        "complete_content_validator.gd",
+        "supply_region_model.gd",
+        "smoke_supply_regions.gd",
+        "smoke_supply_validation_edges.gd",
+    ],
+)
+
+supply_validator = read("supply_validator", ROOT / "src/content/supply_region_validator.gd")
+require(
+    "supply_validator",
+    supply_validator,
+    [
+        "supply_region_id must be a string",
+        "restock_quantity must be an integer",
+        "restock_target must be an integer",
+        "restock_interval_seconds must be numeric",
+        "max_catchup_cycles must be an integer",
+        "supply_regions_initialized must be boolean",
+        "Save supply cycle for '%s' must be an integer",
+    ],
+)
+
+supply_edges = read("supply_edges", ROOT / "tools/smoke_supply_validation_edges.gd")
+require(
+    "supply_edges",
+    supply_edges,
+    [
+        "Supply route IDs must reject numeric coercion",
+        "Supply intervals must reject numeric strings",
+        "Restock quantities must reject numeric strings",
+        "Supply initialisation state must reject string coercion",
+    ],
+)
+
+trade_studio = read("trade_studio_supply", ROOT / "addons/epochbound_trade_studio/trade_studio_supply.gd")
+require(
+    "trade_studio_supply",
+    trade_studio,
+    [
+        "The selected supply route is not in the editable primary catalogue",
+        "merchant_supply_region_selector.disabled = true",
+    ],
+)
+
+trade_smoke = read("trade_studio_smoke", ROOT / "tools/smoke_trade_studio.gd")
+require(
+    "trade_studio_smoke",
+    trade_smoke,
+    [
+        "Deleting a route from a secondary catalogue must not rewrite the editable primary catalogue",
+        "Secondary-route deletion must explain why it was blocked",
+    ],
+)
+
 if errors:
     print("Epochbound release workflow policy failed:\n")
     for error in errors:
@@ -199,5 +273,5 @@ print("epochbound_release_workflow_policy_passed")
 print("- primary validation runs automatically for exact main-push SHAs and remains manually dispatchable")
 print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
-print("- runtime composition, player settings and progression affordability entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

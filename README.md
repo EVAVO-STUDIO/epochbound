@@ -20,12 +20,12 @@ The reference campaign, **The Hours Beneath**, currently provides:
 8. Encounter zones with activation, patrol, pursuit, leash return, reinforcement and clearing
 9. Items, equipment, capabilities, consumables, recipes, crafting and quick-use healing
 10. Branching conversations, typed conditions and effects, multi-stage quests, objectives and Journal
-11. Campaign currencies, finite merchant stock, atomic buying and selling, and durable economy state
+11. Campaign currencies, atomic trade, durable stock, regional supply routes, bounded restocking and authored scarcity
 12. A three-phase cross-era Underworks Sentinel boss encounter
 13. Skippable, progression-equivalent cinematic timelines
 14. Versioned save profiles, migrations, checksums, autosave, manual slots, backup recovery and Continue
-15. Deterministic campaign packages with manifests, SHA-256 verification, staging and safe installation
-16. Repository-wide campaign audits for reachability, capability definitions, progression sources, recipe unlocks and cycles, finite supply, merchant bindings, affordability, quest starts and save safety
+15. Deterministic campaign packages with manifests, SHA-256 verification, complete staged validation and safe installation
+16. Repository-wide campaign audits for reachability, capability definitions, progression sources, recipe unlocks and cycles, finite supply, merchant bindings, affordability, regional supply evidence, quest starts and save safety
 17. Original map and era presentation profiles with camera feel, atmosphere, restrained screen texture and framed HUD
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
@@ -86,7 +86,7 @@ Authors conversation graphs, choices, typed conditions and effects, quests, stag
 
 ### State
 
-Inspects, validates, migrates, recovers and deletes durable player save profiles.
+Inspects, validates, migrates, recovers and deletes durable player save profiles, including wallet, merchant stock and **Supply Cycles**.
 
 ### Loadout
 
@@ -94,7 +94,7 @@ Authors equipment slots, starting gear, derived statistics, semantic capabilitie
 
 ### Trade
 
-Authors currencies, merchant availability, stock, pricing, sale rules and reusable NPC shop bindings.
+Authors currencies, merchant availability, stock, pricing, sale rules, reusable NPC shop bindings, regional supply routes, replenishment targets and scarcity.
 
 ### Arsenal
 
@@ -110,11 +110,11 @@ Authors camera tracks, actor movement, dialogue, waits, fades, era changes, effe
 
 ### Package
 
-Authors release metadata and exports or imports data-only `.epochbound.zip` campaign packages with tamper-evident manifests.
+Authors release metadata and exports or imports data-only `.epochbound.zip` campaign packages with tamper-evident manifests and complete current-content validation.
 
 ### Audit
 
-Runs eight deterministic production probes covering structural reachability, recovery, progression-source softlocks and merchant-only affordability, then exports machine-readable blocker and warning reports for people and maintenance agents.
+Runs eight deterministic production probes covering structural reachability, recovery, progression-source softlocks and merchant-only affordability, then adds regional supply evidence and exports machine-readable blocker and warning reports.
 
 ### Presentation
 
@@ -127,6 +127,19 @@ Authors original procedural music scales and patterns, ambience character, dynam
 ### Sprite
 
 Authors frame dimensions, render size, pivots, one-row or four-direction layouts, optional transparent PNG atlases, fallback style and idle, walk, attack and hurt timing.
+
+## Regional supply and scarcity
+
+The reference economy now has two deterministic routes:
+
+- **Bellweather Museum Route**: 180-second active-play interval with at most four catch-up cycles.
+- **Underworks Salvage Route**: 300-second active-play interval with at most three catch-up cycles.
+
+Museum Tonic, Brass Filings, Ember Salve, Archive Bolts and Ashen Resin replenish toward authored caps. Museum Flashlight, Clockglass Fragments, Salvager Wrap, Clockglass Dartcaster and progression lenses remain finite.
+
+Supply uses durable `play_time_seconds`, never wall-clock time. Every elapsed cycle is consumed exactly once, including cycles where stock is already full. Catch-up is bounded, excess cycles are discarded deliberately, saved cursors are checksummed, and older compatible saves initialise at their current gameplay-time cycle without retroactive deliveries or offline windfalls.
+
+Trade Studio authors routes and merchant assignments. State Studio exposes exact saved cursors. Package installation rejects malformed supply policy before promotion. Campaign Audit Studio publishes route and renewable-stock evidence without treating restocking as guaranteed immediate progression supply.
 
 ## Original 16-bit presentation, audio and animation
 
@@ -252,10 +265,12 @@ Set-Location C:\GitRepos\epochbound
 The gate performs:
 
 - direct compilation of runtime, resources, validators, all seventeen editor plugins and every smoke test;
+- focused player-settings and regional-supply compile probes;
 - strict headless project import;
-- complete content validation through the strict Sprite Animation validator;
-- repository-wide eight-probe campaign production audit, including progression-source and affordability analysis;
+- complete content validation through Sprite Animation plus regional supply;
+- repository-wide eight-probe campaign production audit with progression, affordability and supply evidence;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
+- deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
 - projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions.
@@ -287,7 +302,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. Runtime composition, player settings and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -351,6 +366,8 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - Stable IDs before scene-tree serialization
 - Data-driven authoring before hidden runtime exceptions
 - Atomic transactions before partial mutation
+- Deterministic active-play clocks before wall-clock rewards
+- Bounded recovery supply without erasing progression scarcity
 - Skippable presentation with progression-equivalent outcomes
 - Campaign portability with strict validation and safe installation
 - Low-resolution authenticity with modern reliability and accessibility
@@ -358,4 +375,4 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, regional merchant restocking and scarcity, boss phase-specific music stems, controller remapping, automated long-form progression playthroughs and deeper economy-balance simulation.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, boss phase-specific music stems, controller remapping, automated long-form progression playthroughs and deeper economy-balance simulation.

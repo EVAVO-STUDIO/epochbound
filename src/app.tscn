@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource path="res://src/presentation_runtime_current.gd" type="Script" id="1_app"]
 [ext_resource path="res://src/combat_readability_overlay.gd" type="Script" id="2_presentation"]
 [ext_resource path="res://src/presentation_camera.gd" type="Script" id="3_camera"]
 [ext_resource path="res://src/audio_mood_runtime.gd" type="Script" id="4_audio"]
+[ext_resource path="res://src/player_controls_overlay.gd" type="Script" id="5_controls"]
 
 [node name="Epochbound" type="Node2D"]
 script = ExtResource("1_app")
@@ -21,3 +22,6 @@ layer = 10
 
 [node name="PresentationOverlay" type="Node2D" parent="PresentationLayer"]
 script = ExtResource("2_presentation")
+
+[node name="PlayerControlsOverlay" type="Node2D" parent="PresentationLayer"]
+script = ExtResource("5_controls")

@@ -1,6 +1,7 @@
 @tool
 extends RefCounted
 
+const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 
 const ROOT := "user://settings"
@@ -97,10 +98,29 @@ static func read_settings_path(path: String) -> Dictionary:
 	}
 
 
+static func validate_raw_input_bindings(settings: Dictionary, final_path: String) -> Dictionary:
+	if not settings.has("input_bindings"):
+		return {"ok": true, "errors": []}
+	var validation := PlayerInputBindings.validate_profile(settings.get("input_bindings"))
+	if bool(validation.get("ok", false)):
+		return {"ok": true, "errors": []}
+	return {
+		"ok": false,
+		"path": final_path,
+		"errors": validation.get("errors", ["Input bindings are invalid."])
+	}
+
+
 static func write_settings(settings: Dictionary, root_path: String = ROOT) -> Dictionary:
 	var final_path := settings_path(root_path)
 	var temporary_path := temp_path(root_path)
 	var fallback_path := backup_path(root_path)
+	# Range and boolean preferences are intentionally sanitized, but controls
+	# fail closed before sanitization so malformed descriptors cannot be silently
+	# replaced and promoted over a known-good player profile.
+	var binding_validation := validate_raw_input_bindings(settings, final_path)
+	if not bool(binding_validation.get("ok", false)):
+		return binding_validation
 	var sanitized := PlayerSettings.sanitize(settings)
 	var validation := PlayerSettings.validate(sanitized)
 	if not bool(validation.get("ok", false)):

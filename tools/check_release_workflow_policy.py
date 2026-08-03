@@ -35,6 +35,17 @@ def forbid(name: str, source: str, tokens: list[str]) -> None:
             errors.append(f"{name}: contains forbidden {token}")
 
 
+def require_order(name: str, source: str, earlier: str, later: str) -> None:
+    earlier_index = source.find(earlier)
+    later_index = source.find(later)
+    if earlier_index < 0:
+        errors.append(f"{name}: missing ordered token {earlier}")
+    elif later_index < 0:
+        errors.append(f"{name}: missing ordered token {later}")
+    elif earlier_index >= later_index:
+        errors.append(f"{name}: expected {earlier} before {later}")
+
+
 def events(source: str) -> set[str]:
     lines = source.splitlines()
     start = next((i for i, line in enumerate(lines) if line == "on:"), None)
@@ -55,9 +66,7 @@ for name, source in sources.items():
     workflow_events = events(source)
     allowed_events = {"push", "workflow_dispatch"} if name == "validate" else {"workflow_dispatch"}
     if workflow_events != allowed_events:
-        errors.append(
-            f"{name}: expected events {sorted(allowed_events)}, found {sorted(workflow_events)}"
-        )
+        errors.append(f"{name}: expected events {sorted(allowed_events)}, found {sorted(workflow_events)}")
     require(
         name,
         source,
@@ -108,6 +117,7 @@ require(
         "git diff --exit-code",
     ],
 )
+
 require(
     "linux_agent",
     sources["linux_agent"],
@@ -118,6 +128,7 @@ require(
         "inputs.expected_sha || 'invalid-request-source'",
     ],
 )
+
 require(
     "audio_mood",
     sources["audio_mood"],
@@ -135,6 +146,7 @@ require(
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_input_bindings.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_audio_mood_runtime.gd",
@@ -146,6 +158,7 @@ require(
         "git diff --exit-code",
     ],
 )
+
 require(
     "sprite_animation",
     sources["sprite_animation"],
@@ -165,6 +178,7 @@ require(
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_input_bindings.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_sprite_animation_runtime.gd",
@@ -184,7 +198,12 @@ require(
     "local_gate",
     local_gate,
     [
+        "compile_player_settings_probe.gd",
         "compile_supply_region_probe.gd",
+        "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
+        "smoke_input_bindings.gd",
+        "Smoke test persistent keyboard and controller remapping",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
@@ -192,13 +211,18 @@ require(
     ],
 )
 
-compile_probe = read("compile_probe", ROOT / "tools/compile_probe.gd")
+settings_compile = read("settings_compile", ROOT / "tools/compile_player_settings_probe.gd")
 require(
-    "compile_probe",
-    compile_probe,
+    "settings_compile",
+    settings_compile,
     [
-        "progression_affordability_audit.gd",
-        "smoke_progression_affordability.gd",
+        "player_input_bindings.gd",
+        "player_settings.gd",
+        "player_settings_store.gd",
+        "player_controls_overlay.gd",
+        "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
+        "smoke_input_bindings.gd",
     ],
 )
 
@@ -213,6 +237,162 @@ require(
         "supply_region_model.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
+    ],
+)
+
+bindings = read("input_bindings", ROOT / "src/game/player_input_bindings.gd")
+require(
+    "input_bindings",
+    bindings,
+    [
+        "RESERVED_ESCAPE_PHYSICAL",
+        "RESERVED_OPTIONS_PHYSICAL",
+        "RESERVED_START_BUTTON",
+        "descriptor_has_modifiers",
+        "event_uses_modifiers",
+        "modifier_chord_message",
+        "non-exact InputMap matching",
+        "apply_profile",
+        "input_map_matches",
+        "swapped_with",
+    ],
+)
+require_order(
+    "input_bindings",
+    bindings,
+    "static func apply_profile(value: Variant) -> Dictionary:\n\tvar validation := validate_profile(value)",
+    "\tvar profile := sanitize_profile(value)",
+)
+forbid(
+    "input_bindings",
+    bindings,
+    ['"options_menu",', '"pause_game",', "Time.get_unix_time", "OS.get_unix_time"],
+)
+
+settings_model = read("player_settings", ROOT / "src/game/player_settings.gd")
+require(
+    "player_settings",
+    settings_model,
+    [
+        "CURRENT_SCHEMA := 2",
+        '"input_bindings"',
+        '"controls"',
+        "number_step",
+        "lookup never rebuilds fourteen actions",
+        "PlayerInputBindings.validate_profile",
+    ],
+)
+forbid(
+    "player_settings",
+    settings_model,
+    ["sanitize(settings).get", "var sanitized := sanitize(settings)"],
+)
+
+settings_store = read("player_settings_store", ROOT / "src/game/player_settings_store.gd")
+require(
+    "player_settings_store",
+    settings_store,
+    [
+        "validate_raw_input_bindings",
+        'PlayerInputBindings.validate_profile(settings.get("input_bindings"))',
+        "fail closed before sanitization",
+        "write_settings",
+        "FileAccess.open(temporary_path, FileAccess.WRITE)",
+    ],
+)
+require_order(
+    "player_settings_store",
+    settings_store,
+    "var binding_validation := validate_raw_input_bindings(settings, final_path)",
+    "var sanitized := PlayerSettings.sanitize(settings)",
+)
+require_order(
+    "player_settings_store",
+    settings_store,
+    "var binding_validation := validate_raw_input_bindings(settings, final_path)",
+    "var file := FileAccess.open(temporary_path, FileAccess.WRITE)",
+)
+
+runtime = read("runtime_controls", ROOT / "src/presentation_runtime_current.gd")
+require(
+    "runtime_controls",
+    runtime,
+    [
+        "control_capture_event_consumed",
+        "input_binding_profile_cache",
+        "input_action_hint_cache",
+        "input_device_hint_cache",
+        "control_binding_row_cache",
+        "input_binding_cache_revision",
+        "apply_input_bindings",
+        "rebuild_input_binding_cache",
+        "action_hint_from_events",
+        "device_binding_text_from_events",
+        "open_control_bindings",
+        "handle_control_capture_event",
+        "input_action_hint",
+        "input_binding_cache_contract_ok",
+        "control_bindings_contract_ok",
+    ],
+)
+
+controls_overlay = read("controls_overlay", ROOT / "src/player_controls_overlay.gd")
+require(
+    "controls_overlay",
+    controls_overlay,
+    [
+        "draw_dynamic_context_prompt",
+        "draw_dynamic_reload_hint",
+        "draw_control_settings_panel",
+        "control_remapping_overlay_contract_ok",
+    ],
+)
+
+control_smoke = read("control_smoke", ROOT / "tools/smoke_input_bindings.gd")
+require(
+    "control_smoke",
+    control_smoke,
+    [
+        "all fourteen gameplay actions",
+        "Keyboard capture must detect modifier chords before InputMap matching",
+        "Invalid modifier profiles must fail before InputMap mutation",
+        "Small analogue noise must not become a binding",
+        "Binding a used key must swap",
+        "Atomic settings writes must reject malformed controls before rotating the valid primary file",
+        "Rejected control writes must leave the valid primary settings file in place",
+        "Rejected control writes must not rotate the valid primary settings file into a backup",
+        "Rejected control writes must not leave a temporary settings file",
+        "A rejected control write must continue loading directly from the unchanged primary file",
+        "Repeated draw-time hint and row reads must not rebuild the binding profile cache",
+        "Modifier chords must be consumed rather than leaking into a non-exact gameplay action",
+        "Reserved recovery inputs must be consumed",
+        "Reset Controls must invalidate and rebuild every cached hint and row",
+    ],
+)
+
+player_settings_contract = read("player_settings_contract", ROOT / "tools/check_player_settings_contract.py")
+require(
+    "player_settings_contract",
+    player_settings_contract,
+    [
+        "descriptor_has_modifiers",
+        "modifier_chord_message",
+        "validate_raw_input_bindings",
+        "require_order",
+        "Rejected control writes must leave the valid primary settings file in place",
+        "A malformed control profile exits before any file mutation",
+    ],
+)
+
+settings_documentation = read("player_settings_documentation", ROOT / "docs/PLAYER_SETTINGS.md")
+require(
+    "player_settings_documentation",
+    settings_documentation,
+    [
+        "Physical keys, not modifier chords",
+        "Validate the raw nested binding profile before sanitization",
+        "A malformed control profile exits before any file mutation",
+        "clean primary load, rather than backup recovery, after a rejected write",
     ],
 )
 
@@ -273,5 +453,6 @@ print("epochbound_release_workflow_policy_passed")
 print("- primary validation runs automatically for exact main-push SHAs and remains manually dispatchable")
 print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
-print("- runtime composition, player settings, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- raw controls fail before sanitization, temporary writes or backup rotation")
+print("- runtime composition, player settings, persistent controls, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

@@ -1,5 +1,6 @@
 extends SceneTree
 
+const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 const PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
 
@@ -24,12 +25,13 @@ func run_test() -> void:
 func test_model_contract() -> void:
 	var defaults: Dictionary = PlayerSettings.default_settings()
 	check(bool(PlayerSettings.validate(defaults).get("ok", false)), "Default player settings must validate.")
-	check(PlayerSettings.entries().size() == 12, "Player settings must expose ten adjustable values plus Reset and Back.")
+	check(PlayerSettings.entries().size() == 13, "Player settings must expose ten adjustable values, Controls, Reset All Defaults and Back.")
 	check(is_equal_approx(PlayerSettings.number(defaults, "master_volume"), 1.0), "Default master volume must be full.")
 	check(PlayerSettings.boolean(defaults, "show_action_prompts", false), "Action prompts must be enabled by default.")
+	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(defaults)).get("ok", false)), "Default player settings must include a complete keyboard and controller binding profile.")
 
 	var sanitized: Dictionary = PlayerSettings.sanitize({
-		"schema_version": 1,
+		"schema_version": 2,
 		"music_volume": 4.25,
 		"sfx_volume": -2.0,
 		"show_action_prompts": "invalid"
@@ -37,14 +39,16 @@ func test_model_contract() -> void:
 	check(is_equal_approx(PlayerSettings.number(sanitized, "music_volume"), 1.0), "Numeric player settings must clamp at their maximum.")
 	check(is_equal_approx(PlayerSettings.number(sanitized, "sfx_volume"), 0.0), "Numeric player settings must clamp at their minimum.")
 	check(PlayerSettings.boolean(sanitized, "show_action_prompts", false), "Malformed booleans must fall back to safe defaults.")
+	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(sanitized)).get("ok", false)), "Missing bindings must sanitize to the complete default profile.")
 
-	var migration: Dictionary = PlayerSettings.migrate({"schema_version": 0, "master_volume": 0.4})
-	check(bool(migration.get("ok", false)), "Schema-zero player settings must migrate.")
+	var migration: Dictionary = PlayerSettings.migrate({"schema_version": 1, "master_volume": 0.4})
+	check(bool(migration.get("ok", false)), "Schema-one player settings must migrate to persistent controls.")
 	check(bool(migration.get("migrated", false)), "Partial legacy player settings must report migration.")
 	var migrated: Dictionary = dictionary_field(migration, "settings")
 	check(int(migrated.get("schema_version", 0)) == PlayerSettings.CURRENT_SCHEMA, "Migrated player settings must use the current schema.")
 	check(is_equal_approx(PlayerSettings.number(migrated, "master_volume"), 0.4), "Migration must preserve recognised values.")
 	check(PlayerSettings.boolean(migrated, "show_action_prompts", false), "Migration must fill newly introduced settings.")
+	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(migrated)).get("ok", false)), "Migration must add complete default input bindings.")
 
 	var future: Dictionary = PlayerSettings.migrate({"schema_version": PlayerSettings.CURRENT_SCHEMA + 1})
 	check(not bool(future.get("ok", true)), "Unknown future player-setting schemas must be rejected.")
@@ -75,6 +79,7 @@ func test_isolated_atomic_storage() -> void:
 	var current: Dictionary = PlayerSettingsStore.load_settings(TEST_ROOT)
 	var current_settings := dictionary_field(current, "settings")
 	check(is_equal_approx(PlayerSettings.number(current_settings, "master_volume"), 0.8), "The promoted settings file must contain the latest value.")
+	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(current_settings)).get("ok", false)), "Atomic storage must preserve the complete binding profile.")
 
 	var corrupt: FileAccess = FileAccess.open(PlayerSettingsStore.settings_path(TEST_ROOT), FileAccess.WRITE)
 	check(corrupt != null, "Test must be able to corrupt the isolated primary settings file.")
@@ -109,11 +114,11 @@ func test_runtime_integration() -> void:
 	root.add_child(runtime)
 	await process_frame
 
-	check(bool(runtime.call("player_settings_contract_ok")), "Runtime player settings must satisfy the versioned model contract.")
+	check(bool(runtime.call("player_settings_contract_ok")), "Runtime player settings and input bindings must satisfy the versioned model contract.")
 	var title_value: Variant = runtime.call("title_menu")
 	var title_entries: Array = title_value as Array if typeof(title_value) == TYPE_ARRAY else []
 	check(title_entries.has("OPTIONS"), "Title menu must expose Options.")
-	check(int(runtime.call("player_settings_entry_count")) == 12, "Runtime Options surface must expose every authored row.")
+	check(int(runtime.call("player_settings_entry_count")) == 13, "Runtime Options surface must expose every authored row.")
 
 	var custom: Dictionary = PlayerSettings.default_settings()
 	custom["master_volume"] = 0.8
@@ -127,9 +132,14 @@ func test_runtime_integration() -> void:
 	custom["show_action_prompts"] = false
 	custom["high_contrast_ui"] = true
 	runtime.set("player_settings", PlayerSettings.sanitize(custom))
+	check(bool(runtime.call("apply_input_bindings")), "Runtime must keep InputMap synchronized after settings replacement.")
 
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Playable scene must include the settings-aware presentation overlay.")
+	var controls_overlay: Node = runtime.get_node_or_null("PresentationLayer/PlayerControlsOverlay")
+	check(controls_overlay != null, "Playable scene must include the remapping-aware controls overlay.")
+	if controls_overlay != null:
+		check(bool(controls_overlay.call("control_remapping_overlay_contract_ok")), "Controls overlay must preserve dynamic control hint contracts.")
 	if overlay != null:
 		check(bool(overlay.call("player_settings_overlay_contract_ok")), "Presentation overlay must preserve all inherited contracts while applying player settings.")
 		var prompt_value: Variant = overlay.call("resolve_context_prompt")
@@ -172,12 +182,13 @@ func test_runtime_integration() -> void:
 	runtime.set("player_settings_index", 8)
 	check(bool(runtime.call("activate_selected_player_setting")), "Confirm must toggle a selected boolean setting.")
 	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Action prompts must toggle back on.")
-	runtime.set("player_settings_index", 10)
-	check(bool(runtime.call("activate_selected_player_setting")), "Reset Defaults must activate.")
-	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 0.0)), 1.0), "Reset Defaults must restore master volume.")
-	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Reset Defaults must restore action prompts.")
+	runtime.set("player_settings_index", 11)
+	check(bool(runtime.call("activate_selected_player_setting")), "Reset All Defaults must activate.")
+	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 0.0)), 1.0), "Reset All Defaults must restore master volume.")
+	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Reset All Defaults must restore action prompts.")
+	check(PlayerInputBindings.input_map_matches(runtime.call("input_binding_profile")), "Reset All Defaults must also restore and apply default controls.")
 
-	# Persistence is exercised against the isolated store above. Avoid touching a
+	# Persistence is exercised against isolated stores above. Avoid touching a
 	# developer's real user://settings while still verifying the runtime close path.
 	runtime.set("player_settings_dirty", false)
 	check(bool(runtime.call("close_player_settings")), "Options must close cleanly when no write is pending.")
@@ -199,7 +210,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Player settings smoke test passed: schema migration, isolated atomic storage, backup recovery, Options controls, accessibility presentation and audio gains are coherent.")
+		print("Player settings smoke test passed: schema migration, isolated atomic storage, backup recovery, Options controls, persistent remapping, accessibility presentation and audio gains are coherent.")
 		quit(0)
 		return
 	for failure in failures:

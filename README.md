@@ -31,6 +31,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
 20. Animated water, grass sway, brass machinery cycles, material-specific foot response, foreground occlusion and contextual world feedback
 21. Camera-correct projectiles, shared combat depth, presentation-owned ammo and boss status, and pause-safe CanvasLayer ordering
+22. Versioned player-local Audio, presentation and accessibility settings with persistent keyboard and controller remapping
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -141,6 +142,18 @@ Supply uses durable `play_time_seconds`, never wall-clock time. Every elapsed cy
 
 Trade Studio authors routes and merchant assignments. State Studio exposes exact saved cursors. Package installation rejects malformed supply policy before promotion. Campaign Audit Studio publishes route and renewable-stock evidence without treating restocking as guaranteed immediate progression supply.
 
+## Player settings, accessibility and controls
+
+Player-local settings are stored separately from campaigns, save profiles and portable packages. Options controls Master, Music, Ambience and SFX volume; screen texture; camera shake; world motion; screen flashes; action prompts; and high-contrast interface treatment.
+
+The Controls submenu remaps fourteen gameplay actions across physical keyboard keys, controller buttons, D-pad directions and deliberate analogue-axis directions. Escape, O and Start remain fixed recovery inputs, so Pause and Options cannot become inaccessible. Conflicting managed inputs use a device-local swap rather than creating duplicates or leaving an action unbound.
+
+Keyboard capture accepts one physical key at a time. Modifier chords are rejected because Epochbound reads gameplay actions through Godot’s normal non-exact action matching, where additional key modifiers are not a safe way to distinguish two actions.
+
+The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
+
+Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts.
+
 ## Original 16-bit presentation, audio and animation
 
 ### Presentation
@@ -234,6 +247,8 @@ The project uses a 640 by 360 viewport, a 1280 by 720 window override, pixel sna
 
 ## Controls
 
+The table shows the authored defaults. The fourteen gameplay actions can be changed under **Options → Controls**.
+
 | Action | Keyboard | Controller |
 | --- | --- | --- |
 | Move | WASD or arrows | D-pad or left stick |
@@ -242,14 +257,15 @@ The project uses a 640 by 360 viewport, a 1280 by 720 window override, pixel sna
 | Confirm, interact or enter | E or Z | South face button |
 | Shift era | Q or X | West face button |
 | Cycle Morrow command | R | North face button |
-| Recall Morrow | F | Left stick click |
+| Recall Morrow | F | Left shoulder |
 | Field Satchel | I | Back or View |
 | Quick restorative | V | Right shoulder |
 | Journal | J | Right stick click |
 | Save Profiles | K | Left stick click |
 | Pause, back or skip | Escape | Start |
+| Open Options directly | O | Pause, then confirm |
 
-Menus use Left and Right for tabs or modes, Up and Down for selection, and E, Z, Space, C or controller confirm to act.
+Escape, O and Start are fixed recovery controls and are not assignable to gameplay actions. Keyboard capture accepts one physical key without Shift, Alt, Ctrl or Meta. Menus use Left and Right for tabs or modes, Up and Down for selection, and the active Interact binding or controller confirm to act.
 
 ## Complete local validation
 
@@ -265,11 +281,12 @@ Set-Location C:\GitRepos\epochbound
 The gate performs:
 
 - direct compilation of runtime, resources, validators, all seventeen editor plugins and every smoke test;
-- focused player-settings and regional-supply compile probes;
+- focused player-settings, persistent-control and regional-supply compile probes;
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide eight-probe campaign production audit with progression, affordability and supply evidence;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
+- schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
 - deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
@@ -302,7 +319,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. Runtime composition, player settings and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -324,6 +341,10 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md)
 - [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md)
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md)
+
+### Player accessibility and controls
+
+- [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
 
 ### Combat, bosses and cinematics
 
@@ -366,6 +387,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - Stable IDs before scene-tree serialization
 - Data-driven authoring before hidden runtime exceptions
 - Atomic transactions before partial mutation
+- Fixed recovery controls before unrestricted remapping
 - Deterministic active-play clocks before wall-clock rewards
 - Bounded recovery supply without erasing progression scarcity
 - Skippable presentation with progression-equivalent outcomes
@@ -375,4 +397,4 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, boss phase-specific music stems, controller remapping, automated long-form progression playthroughs and deeper economy-balance simulation.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, boss phase-specific music stems, automated long-form progression playthroughs and deeper economy-balance simulation.

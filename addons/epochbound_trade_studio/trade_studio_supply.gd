@@ -28,6 +28,7 @@ func build_ui() -> void:
 func build_merchants_tab() -> Control:
 	var tab := super.build_merchants_tab()
 	merchant_supply_region_selector = OptionButton.new()
+	merchant_supply_region_selector.disabled = true
 	var region_box := make_labeled_control("Supply route", merchant_supply_region_selector)
 	var scroll := tab.get_child(1) as ScrollContainer
 	if scroll != null and scroll.get_child_count() > 0:
@@ -253,11 +254,19 @@ func delete_supply_region() -> void:
 			return
 	var regions_value: Variant = active_economy_catalog.get("supply_regions", [])
 	var regions: Array = regions_value if typeof(regions_value) == TYPE_ARRAY else []
-	var previous := active_economy_catalog.duplicate(true)
+	var found := false
 	for index in range(regions.size() - 1, -1, -1):
-		if typeof(regions[index]) == TYPE_DICTIONARY and str((regions[index] as Dictionary).get("id", "")) == selected_supply_region_id:
-			regions.remove_at(index)
-			break
+		if typeof(regions[index]) != TYPE_DICTIONARY:
+			continue
+		if str((regions[index] as Dictionary).get("id", "")) != selected_supply_region_id:
+			continue
+		regions.remove_at(index)
+		found = true
+		break
+	if not found:
+		set_status("The selected supply route is not in the editable primary catalogue.", true)
+		return
+	var previous := active_economy_catalog.duplicate(true)
 	var deleted := selected_supply_region_id
 	active_economy_catalog["supply_regions"] = regions
 	selected_supply_region_id = ""

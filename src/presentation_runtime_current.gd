@@ -1,5 +1,7 @@
 extends "res://src/presentation_runtime_base.gd"
 
+const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
+const ControlsPlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const CompleteValidator = preload("res://src/content/complete_content_validator.gd")
@@ -7,10 +9,325 @@ const SupplyModel = preload("res://src/game/supply_region_model.gd")
 const SupplySaveProfile = preload("res://src/content/save_profile.gd")
 const SupplySaveStore = preload("res://src/content/save_profile_store.gd")
 
+const CONTROL_VISIBLE_ROWS := 12
+const CONTROL_NOTICE_DURATION := 2.2
+
+var control_bindings_open := false
+var control_binding_index := 0
+var control_binding_device := PlayerInputBindings.DEVICE_KEYBOARD
+var control_capture_active := false
+var control_capture_action_id := ""
+var control_capture_device := ""
+var control_return_index := 0
+var control_window_start := 0
+var control_capture_event_consumed := false
+
 var supply_region_definitions: Dictionary = {}
 var supply_region_cycles: Dictionary = {}
 var supply_regions_initialized := false
 var last_supply_delivery: Dictionary = {}
+
+
+func _ready() -> void:
+	super._ready()
+	apply_input_bindings()
+
+
+func _input(event: InputEvent) -> void:
+	if handle_control_capture_event(event):
+		control_capture_event_consumed = true
+		get_viewport().set_input_as_handled()
+
+
+func apply_player_settings_load_result(result: Dictionary) -> void:
+	super.apply_player_settings_load_result(result)
+	apply_input_bindings()
+
+
+func apply_input_bindings() -> bool:
+	var profile := PlayerSettings.input_bindings(player_settings)
+	var result := PlayerInputBindings.apply_profile(profile)
+	if not bool(result.get("ok", false)):
+		player_settings_notice = "CONTROLS FAILED: %s" % format_errors(result.get("errors", []))
+		player_settings_notice_timer = 3.0
+		return false
+	player_settings["input_bindings"] = result.get("profile", profile)
+	return true
+
+
+func update_player_settings_menu() -> void:
+	if control_bindings_open:
+		update_control_bindings_menu()
+		return
+	super.update_player_settings_menu()
+
+
+func activate_selected_player_setting() -> bool:
+	var definition := selected_player_setting_definition()
+	var setting_id := str(definition.get("id", ""))
+	if setting_id == "controls":
+		return open_control_bindings()
+	var activated := super.activate_selected_player_setting()
+	if activated and setting_id == "reset_defaults":
+		apply_input_bindings()
+	return activated
+
+
+func close_player_settings(root_path: String = ControlsPlayerSettingsStore.ROOT) -> bool:
+	cancel_control_capture(false)
+	control_bindings_open = false
+	return super.close_player_settings(root_path)
+
+
+func open_control_bindings() -> bool:
+	if not player_settings_open:
+		return false
+	control_return_index = player_settings_index
+	control_bindings_open = true
+	control_binding_index = clampi(control_binding_index, 0, maxi(0, control_binding_entries().size() - 1))
+	control_binding_device = PlayerInputBindings.DEVICE_KEYBOARD
+	control_capture_active = false
+	control_capture_action_id = ""
+	control_capture_device = ""
+	player_settings_notice = "LEFT / RIGHT CHOOSES KEYBOARD OR CONTROLLER"
+	player_settings_notice_timer = CONTROL_NOTICE_DURATION
+	return true
+
+
+func close_control_bindings() -> bool:
+	if not control_bindings_open:
+		return false
+	cancel_control_capture(false)
+	control_bindings_open = false
+	player_settings_index = clampi(control_return_index, 0, maxi(0, PlayerSettings.entries().size() - 1))
+	player_settings_notice = "CONTROL CHANGES ARE PENDING SAVE"
+	player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
+	return true
+
+
+func update_control_bindings_menu() -> void:
+	if control_capture_event_consumed:
+		control_capture_event_consumed = false
+		return
+	if control_capture_active:
+		return
+	if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("options_menu") or Input.is_action_just_pressed("pause_game"):
+		close_control_bindings()
+		return
+	var entries := control_binding_entries()
+	if entries.is_empty():
+		close_control_bindings()
+		return
+	if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("move_up"):
+		control_binding_index = posmod(control_binding_index - 1, entries.size())
+		return
+	if Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("move_down"):
+		control_binding_index = posmod(control_binding_index + 1, entries.size())
+		return
+	if Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("move_left"):
+		control_binding_device = PlayerInputBindings.DEVICE_KEYBOARD
+		player_settings_notice = "KEYBOARD BINDINGS"
+		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
+		return
+	if Input.is_action_just_pressed("ui_right") or Input.is_action_just_pressed("move_right"):
+		control_binding_device = PlayerInputBindings.DEVICE_GAMEPAD
+		player_settings_notice = "CONTROLLER BINDINGS"
+		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
+		return
+	if confirm() or Input.is_action_just_pressed("attack"):
+		activate_selected_control_binding()
+
+
+func control_binding_entries() -> Array:
+	var rows := PlayerInputBindings.rows(input_binding_profile(), control_binding_device)
+	rows.append({"id": "reset_controls", "label": "RESET CONTROLS", "kind": "action", "value": ""})
+	rows.append({"id": "back", "label": "BACK TO OPTIONS", "kind": "action", "value": ""})
+	return rows
+
+
+func control_binding_rows() -> Array:
+	var entries := control_binding_entries()
+	if entries.is_empty():
+		control_window_start = 0
+		player_settings_index = 0
+		return []
+	control_binding_index = clampi(control_binding_index, 0, entries.size() - 1)
+	var visible_count := mini(CONTROL_VISIBLE_ROWS, entries.size())
+	control_window_start = clampi(control_binding_index - int(floor(float(visible_count) * 0.5)), 0, maxi(0, entries.size() - visible_count))
+	player_settings_index = control_binding_index - control_window_start
+	var output: Array = []
+	for index in range(control_window_start, control_window_start + visible_count):
+		output.append((entries[index] as Dictionary).duplicate(true))
+	return output
+
+
+func player_settings_rows() -> Array:
+	if control_bindings_open:
+		return control_binding_rows()
+	return super.player_settings_rows()
+
+
+func selected_control_binding_definition() -> Dictionary:
+	var entries := control_binding_entries()
+	if entries.is_empty():
+		return {}
+	control_binding_index = clampi(control_binding_index, 0, entries.size() - 1)
+	return (entries[control_binding_index] as Dictionary).duplicate(true)
+
+
+func activate_selected_control_binding() -> bool:
+	var definition := selected_control_binding_definition()
+	var entry_id := str(definition.get("id", ""))
+	match entry_id:
+		"reset_controls":
+			return reset_control_bindings()
+		"back":
+			return close_control_bindings()
+	if not PlayerInputBindings.managed_action_ids().has(entry_id):
+		return false
+	return begin_control_capture(entry_id, control_binding_device)
+
+
+func begin_control_capture(action_id: String, device: String) -> bool:
+	if not control_bindings_open or not PlayerInputBindings.managed_action_ids().has(action_id):
+		return false
+	if device not in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
+		return false
+	control_capture_active = true
+	control_capture_action_id = action_id
+	control_capture_device = device
+	player_settings_notice = "PRESS A KEY — ESC CANCELS" if device == PlayerInputBindings.DEVICE_KEYBOARD else "PRESS A BUTTON OR MOVE AN AXIS — START CANCELS"
+	player_settings_notice_timer = 3600.0
+	return true
+
+
+func handle_control_capture_event(event: InputEvent) -> bool:
+	if not player_settings_open or not control_bindings_open or not control_capture_active:
+		return false
+	if control_capture_cancel_event(event):
+		cancel_control_capture(true)
+		return true
+	var descriptor := PlayerInputBindings.descriptor_from_event(event)
+	if descriptor.is_empty():
+		return false
+	if PlayerInputBindings.descriptor_device(descriptor) != control_capture_device:
+		player_settings_notice = "PRESS A KEY — ESC CANCELS" if control_capture_device == PlayerInputBindings.DEVICE_KEYBOARD else "PRESS A CONTROLLER INPUT — START CANCELS"
+		return true
+	if PlayerInputBindings.descriptor_is_reserved(descriptor):
+		player_settings_notice = PlayerInputBindings.reserved_descriptor_message(descriptor).to_upper()
+		player_settings_notice_timer = CONTROL_NOTICE_DURATION
+		return true
+	var rebound_action := control_capture_action_id
+	var result := PlayerInputBindings.rebind(input_binding_profile(), rebound_action, control_capture_device, descriptor)
+	if not bool(result.get("ok", false)):
+		player_settings_notice = "BINDING FAILED: %s" % format_errors(result.get("errors", []))
+		player_settings_notice_timer = CONTROL_NOTICE_DURATION
+		return true
+	player_settings["input_bindings"] = result.get("profile", input_binding_profile())
+	player_settings_dirty = true
+	apply_input_bindings()
+	control_capture_active = false
+	control_capture_action_id = ""
+	control_capture_device = ""
+	var swapped := str(result.get("swapped_with", ""))
+	player_settings_notice = "%s  %s" % [PlayerInputBindings.action_label(rebound_action).to_upper(), PlayerInputBindings.binding_label(descriptor)]
+	if not swapped.is_empty():
+		player_settings_notice += "  •  SWAPPED WITH %s" % PlayerInputBindings.action_label(swapped).to_upper()
+	player_settings_notice_timer = CONTROL_NOTICE_DURATION
+	return true
+
+
+func control_capture_cancel_event(event: InputEvent) -> bool:
+	if event is InputEventKey:
+		var key := event as InputEventKey
+		if not key.pressed or key.echo:
+			return false
+		var physical := int(key.physical_keycode)
+		if physical <= 0:
+			physical = int(key.keycode)
+		return physical == PlayerInputBindings.RESERVED_ESCAPE_PHYSICAL
+	if event is InputEventJoypadButton:
+		var button := event as InputEventJoypadButton
+		return button.pressed and int(button.button_index) == PlayerInputBindings.RESERVED_START_BUTTON
+	return false
+
+
+func cancel_control_capture(show_notice: bool = true) -> void:
+	if not control_capture_active:
+		return
+	control_capture_active = false
+	control_capture_action_id = ""
+	control_capture_device = ""
+	if show_notice:
+		player_settings_notice = "CONTROL CAPTURE CANCELLED"
+		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
+
+
+func reset_control_bindings() -> bool:
+	player_settings["input_bindings"] = PlayerInputBindings.default_profile()
+	player_settings_dirty = true
+	apply_input_bindings()
+	player_settings_notice = "DEFAULT CONTROLS RESTORED"
+	player_settings_notice_timer = CONTROL_NOTICE_DURATION
+	return true
+
+
+func input_binding_profile() -> Dictionary:
+	return PlayerSettings.input_bindings(player_settings)
+
+
+func input_action_hint(action_id: String) -> String:
+	if PlayerInputBindings.managed_action_ids().has(action_id):
+		return PlayerInputBindings.action_hint(input_binding_profile(), action_id)
+	match action_id:
+		"options_menu":
+			return "O"
+		"pause_game":
+			return "ESC / START"
+		"ui_cancel":
+			return "ESC / B"
+	return action_id.replace("_", " ").to_upper()
+
+
+func input_action_device_hint(action_id: String, device: String) -> String:
+	return PlayerInputBindings.device_binding_text(input_binding_profile(), action_id, device) if PlayerInputBindings.managed_action_ids().has(action_id) else input_action_hint(action_id)
+
+
+func control_binding_device_label() -> String:
+	return "KEYBOARD" if control_binding_device == PlayerInputBindings.DEVICE_KEYBOARD else "CONTROLLER"
+
+
+func control_bindings_contract_ok() -> bool:
+	var profile := input_binding_profile()
+	return bool(PlayerInputBindings.validate_profile(profile).get("ok", false)) and PlayerInputBindings.managed_action_ids().size() >= 14 and PlayerInputBindings.input_map_matches(profile) and control_binding_device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD] and control_binding_index >= 0 and control_binding_index < control_binding_entries().size()
+
+
+func player_settings_contract_ok() -> bool:
+	return super.player_settings_contract_ok() and control_bindings_contract_ok()
+
+
+func draw_game() -> void:
+	super.draw_game()
+	if player_settings_open or not dialogue.is_empty() or inventory_open or story_journal_open or save_overlay_open or merchant_open:
+		return
+	draw_rect(Rect2(88, 333, 464, 24), Color(0.03, 0.04, 0.05, 0.88))
+	draw_centered("%s USE   •   %s ATTACK   •   %s SHIFT" % [input_action_hint("interact"), input_action_hint("attack"), input_action_hint("era_shift")], 350, 8, Color("d7d0bd"))
+
+
+func draw_title() -> void:
+	super.draw_title()
+	if player_settings_open:
+		return
+	draw_rect(Rect2(122, 319, 396, 32), Color(0.03, 0.04, 0.05, 0.86))
+	draw_centered("%s  CONFIRM     ARROWS  SELECT" % input_action_hint("interact"), 339, 9, Color("68747e"))
+
+
+func draw_pause() -> void:
+	super.draw_pause()
+	if player_settings_open:
+		return
+	draw_rect(Rect2(202, 168, 236, 30), Color("111820"))
+	draw_centered("%s  OPTIONS" % input_action_hint("interact"), 187, 9, Color("bba76d"))
 
 
 func load_campaign(path: String) -> bool:
@@ -27,9 +344,7 @@ func load_campaign(path: String) -> bool:
 
 func load_fallback_campaign() -> void:
 	clear_supply_state()
-	supply_region_definitions = {
-		"local_route": SupplyCatalog.default_region("local_route", "Local Supply Route", 180.0, 4)
-	}
+	supply_region_definitions = {"local_route": SupplyCatalog.default_region("local_route", "Local Supply Route", 180.0, 4)}
 	super.load_fallback_campaign()
 
 
@@ -45,9 +360,7 @@ func load_economy_catalogs() -> bool:
 		return false
 	if campaign_path.is_empty():
 		if supply_region_definitions.is_empty():
-			supply_region_definitions = {
-				"local_route": SupplyCatalog.default_region("local_route", "Local Supply Route", 180.0, 4)
-			}
+			supply_region_definitions = {"local_route": SupplyCatalog.default_region("local_route", "Local Supply Route", 180.0, 4)}
 		return true
 	var result := SupplyCatalog.load_catalogs(campaign_path, campaign)
 	if not bool(result.get("ok", false)):
@@ -93,20 +406,8 @@ func open_merchant(merchant_id: String) -> bool:
 
 func apply_due_supply_restock() -> Dictionary:
 	if not supply_regions_initialized or supply_region_definitions.is_empty():
-		return {
-			"changed": false,
-			"cycles_advanced": 0,
-			"total_added": 0,
-			"regions": [],
-			"merchant_additions": {}
-		}
-	var result := SupplyModel.apply_due_restock(
-		merchant_stock,
-		merchant_definitions,
-		supply_region_definitions,
-		supply_region_cycles,
-		play_time_seconds
-	)
+		return {"changed": false, "cycles_advanced": 0, "total_added": 0, "regions": [], "merchant_additions": {}}
+	var result := SupplyModel.apply_due_restock(merchant_stock, merchant_definitions, supply_region_definitions, supply_region_cycles, play_time_seconds)
 	if int(result.get("total_added", 0)) > 0:
 		last_supply_delivery = result.duplicate(true)
 	return result
@@ -121,8 +422,7 @@ func record_supply_change(delivery: Dictionary, reason: String) -> void:
 
 func active_supply_region() -> Dictionary:
 	var merchant_data := active_merchant()
-	var region_id := SupplyCatalog.merchant_region_id(merchant_data)
-	return SupplyCatalog.region(supply_region_definitions, region_id)
+	return SupplyCatalog.region(supply_region_definitions, SupplyCatalog.merchant_region_id(merchant_data))
 
 
 func supply_region_status_text(merchant_id: String = "") -> String:
@@ -138,10 +438,7 @@ func supply_region_status_text(merchant_id: String = "") -> String:
 		return "INVALID SUPPLY ROUTE"
 	if not SupplyModel.merchant_has_renewable_stock(merchant_data):
 		return "%s  •  SCARCE STOCK" % SupplyCatalog.region_name(supply_region_definitions, region_id).to_upper()
-	return "%s  •  SUPPLY %s" % [
-		SupplyCatalog.region_name(supply_region_definitions, region_id).to_upper(),
-		SupplyCatalog.format_duration(SupplyModel.seconds_until_next_cycle(region_data, play_time_seconds))
-	]
+	return "%s  •  SUPPLY %s" % [SupplyCatalog.region_name(supply_region_definitions, region_id).to_upper(), SupplyCatalog.format_duration(SupplyModel.seconds_until_next_cycle(region_data, play_time_seconds))]
 
 
 func capture_save_profile(slot_id: String, reason: String = "Manual save") -> Dictionary:
@@ -188,11 +485,7 @@ func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bo
 	if not loaded:
 		return false
 	var payload: Dictionary = profile.get("payload", {})
-	supply_region_cycles = SupplyModel.sanitize_cycles(
-		payload.get("supply_region_cycles", {}),
-		supply_region_definitions,
-		play_time_seconds
-	)
+	supply_region_cycles = SupplyModel.sanitize_cycles(payload.get("supply_region_cycles", {}), supply_region_definitions, play_time_seconds)
 	supply_regions_initialized = true
 	var delivery := apply_due_supply_restock()
 	if bool(delivery.get("changed", false)):
@@ -202,31 +495,20 @@ func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bo
 
 
 func durable_progress_fingerprint() -> String:
-	return SupplySaveProfile.canonical_json({
-		"base": super.durable_progress_fingerprint(),
-		"supply_region_cycles": supply_region_cycles
-	})
+	return SupplySaveProfile.canonical_json({"base": super.durable_progress_fingerprint(), "supply_region_cycles": supply_region_cycles})
 
 
 func draw_merchant_overlay() -> void:
 	super.draw_merchant_overlay()
 	if active_merchant_id.is_empty():
 		return
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(330, 68),
-		supply_region_status_text(),
-		HORIZONTAL_ALIGNMENT_RIGHT,
-		248,
-		8,
-		Color("91a6a1")
-	)
+	draw_string(ThemeDB.fallback_font, Vector2(330, 68), supply_region_status_text(), HORIZONTAL_ALIGNMENT_RIGHT, 248, 8, Color("91a6a1"))
 
 
 func supply_runtime_contract_ok() -> bool:
 	if not supply_regions_initialized:
 		return false
-	for region_id_value in supply_region_definitions.keys():
-		if not supply_region_cycles.has(str(region_id_value)):
+	for region_id in supply_region_definitions.keys():
+		if not supply_region_cycles.has(str(region_id)):
 			return false
 	return true

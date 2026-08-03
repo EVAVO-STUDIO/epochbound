@@ -30,7 +30,12 @@ func test_model_contract() -> void:
 	check(PlayerSettings.boolean(defaults, "show_action_prompts", false), "Action prompts must be enabled by default.")
 	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(defaults)).get("ok", false)), "Default player settings must include a complete keyboard and controller binding profile.")
 
-	var sanitized: Dictionary = PlayerSettings.sanitize({"schema_version": 2, "music_volume": 4.25, "sfx_volume": -2.0, "show_action_prompts": "invalid"})
+	var sanitized: Dictionary = PlayerSettings.sanitize({
+		"schema_version": 2,
+		"music_volume": 4.25,
+		"sfx_volume": -2.0,
+		"show_action_prompts": "invalid"
+	})
 	check(is_equal_approx(PlayerSettings.number(sanitized, "music_volume"), 1.0), "Numeric player settings must clamp at their maximum.")
 	check(is_equal_approx(PlayerSettings.number(sanitized, "sfx_volume"), 0.0), "Numeric player settings must clamp at their minimum.")
 	check(PlayerSettings.boolean(sanitized, "show_action_prompts", false), "Malformed booleans must fall back to safe defaults.")
@@ -111,72 +116,91 @@ func test_runtime_integration() -> void:
 
 	check(bool(runtime.call("player_settings_contract_ok")), "Runtime player settings and input bindings must satisfy the versioned model contract.")
 	var title_value: Variant = runtime.call("title_menu")
-	var title_entries: Array = title_value if typeof(title_value) == TYPE_ARRAY else []
+	var title_entries: Array = title_value as Array if typeof(title_value) == TYPE_ARRAY else []
 	check(title_entries.has("OPTIONS"), "Title menu must expose Options.")
-	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
-	check(overlay != null, "Player settings test requires the presentation overlay.")
-	if overlay != null:
-		check(bool(overlay.call("player_settings_overlay_contract_ok")), "Presentation overlay must expose the settings contract.")
-	var controls_overlay: Node = runtime.get_node_or_null("PresentationLayer/PlayerControlsOverlay")
-	check(controls_overlay != null, "Player settings test requires the controls overlay.")
-	if controls_overlay != null:
-		check(bool(controls_overlay.call("control_remapping_overlay_contract_ok")), "Controls overlay must expose its presentation contract.")
-	var audio: Node = runtime.get_node_or_null("AudioMood")
-	check(audio != null, "Player settings test requires the AudioMood runtime.")
+	check(int(runtime.call("player_settings_entry_count")) == 13, "Runtime Options surface must expose every authored row.")
 
-	var custom := PlayerSettings.default_settings()
-	custom["master_volume"] = 0.5
-	custom["music_volume"] = 0.4
-	custom["ambience_volume"] = 0.6
-	custom["sfx_volume"] = 0.8
-	custom["screen_texture_intensity"] = 0.0
+	var custom: Dictionary = PlayerSettings.default_settings()
+	custom["master_volume"] = 0.8
+	custom["music_volume"] = 0.5
+	custom["ambience_volume"] = 0.25
+	custom["sfx_volume"] = 0.75
+	custom["screen_texture_intensity"] = 0.25
 	custom["camera_shake_intensity"] = 0.0
 	custom["environment_motion_intensity"] = 0.0
-	custom["flash_intensity"] = 0.25
+	custom["flash_intensity"] = 0.5
 	custom["show_action_prompts"] = false
 	custom["high_contrast_ui"] = true
-	runtime.set("player_settings", custom)
-	check(bool(runtime.call("apply_input_bindings")), "Runtime must keep InputMap synchronized when a complete settings profile is applied.")
+	runtime.set("player_settings", PlayerSettings.sanitize(custom))
+	check(bool(runtime.call("apply_input_bindings")), "Runtime must keep InputMap synchronized after settings replacement.")
+
+	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
+	check(overlay != null, "Playable scene must include the settings-aware presentation overlay.")
+	var controls_overlay: Node = runtime.get_node_or_null("PresentationLayer/PlayerControlsOverlay")
+	check(controls_overlay != null, "Playable scene must include the remapping-aware controls overlay.")
+	if controls_overlay != null:
+		check(bool(controls_overlay.call("control_remapping_overlay_contract_ok")), "Controls overlay must preserve dynamic control hint contracts.")
 	if overlay != null:
-		check(is_equal_approx(float(overlay.call("screen_texture_intensity")), 0.0), "Screen texture setting must reach the presentation layer.")
-		check(is_equal_approx(float(overlay.call("camera_shake_intensity")), 0.0), "Camera shake setting must reach the presentation layer.")
-		check(is_equal_approx(float(overlay.call("environment_motion_intensity")), 0.0), "World motion setting must reach the presentation layer.")
-		check(not bool(overlay.call("show_action_prompts")), "Action Prompts off must reach the presentation layer.")
-		check(bool(overlay.call("high_contrast_ui")), "High Contrast UI must reach the presentation layer.")
+		check(bool(overlay.call("player_settings_overlay_contract_ok")), "Presentation overlay must preserve all inherited contracts while applying player settings.")
+		var prompt_value: Variant = overlay.call("resolve_context_prompt")
+		var prompt: Dictionary = prompt_value as Dictionary if typeof(prompt_value) == TYPE_DICTIONARY else {}
+		check(prompt.is_empty(), "Disabled action prompts must suppress prompt selection before drawing.")
+		overlay.set("shake_strength", 0.0)
+		overlay.set("shake_timer", 0.0)
+		overlay.call("trigger_shake", 5.0, 0.3)
+		check(is_equal_approx(float(overlay.get("shake_strength")), 0.0), "Zero camera-shake intensity must prevent new shake.")
+		check(not bool(overlay.call("environment_spawn_allowed")), "Zero world-motion intensity must suppress new movement disturbances.")
+		var contrast_value: Variant = overlay.call("profile_color", "ui_text", "eee3c6")
+		var contrast: Color = contrast_value if contrast_value is Color else Color.BLACK
+		check(contrast.is_equal_approx(Color("ffffff")), "High-contrast UI must resolve white interface text.")
+
+	var audio: Node = runtime.get_node_or_null("AudioMood")
+	check(audio != null, "Playable scene must include settings-aware AudioMood.")
 	if audio != null:
-		audio.call("apply_player_volume_settings", runtime)
-		var volume_snapshot: Dictionary = audio.call("player_volume_snapshot")
-		check(is_equal_approx(float(volume_snapshot.get("music_linear", -1.0)), 0.2), "Music gain must combine master and music settings.")
-		check(is_equal_approx(float(volume_snapshot.get("ambience_linear", -1.0)), 0.3), "Ambience gain must combine master and ambience settings.")
-		check(is_equal_approx(float(volume_snapshot.get("sfx_linear", -1.0)), 0.4), "SFX gain must combine master and SFX settings.")
+		audio.call("apply_player_volume_settings")
+		var volume_value: Variant = audio.call("player_volume_snapshot")
+		var volume: Dictionary = volume_value as Dictionary if typeof(volume_value) == TYPE_DICTIONARY else {}
+		check(is_equal_approx(float(volume.get("music", 0.0)), 0.4), "Music gain must combine master and music settings.")
+		check(is_equal_approx(float(volume.get("ambience", 0.0)), 0.2), "Ambience gain must combine master and ambience settings.")
+		check(is_equal_approx(float(volume.get("sfx", 0.0)), 0.6), "SFX gain must combine master and SFX settings.")
+		check(bool(audio.call("player_settings_audio_contract_ok")), "Audio players must apply the current player gain settings exactly.")
 
 	runtime.call("change_flow", 4)
 	runtime.set("transition_lock", 0.0)
 	runtime.set("dialogue", "")
 	runtime.set("active_cinematic_id", "")
 	check(bool(runtime.call("open_player_settings")), "Options must open during safe gameplay.")
+	check(bool(runtime.get("player_settings_open")), "Options open state must be explicit.")
 	check(not bool(runtime.call("can_open_save_overlay")), "Manual saving must remain blocked while Options is open.")
-	check(not bool(runtime.call("can_flush_autosave")), "Autosaving must remain blocked while Options is open.")
+	check(not bool(runtime.call("can_flush_autosave")), "Autosave must defer while Options is open.")
 	if overlay != null:
-		var before_time := float(overlay.get("environment_time"))
-		overlay.call("update_environment_animation", 0.5)
-		check(is_equal_approx(float(overlay.get("environment_time")), before_time), "Options must freeze animation and environment time.")
+		check(bool(overlay.call("animation_should_freeze")), "Options must freeze animation and environment time.")
 
+	runtime.set("player_settings_index", 0)
+	check(bool(runtime.call("adjust_selected_player_setting", -1)), "Left adjustment must change the selected numeric setting.")
+	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 1.0)), 0.7), "Master volume must step from eighty to seventy percent.")
+	runtime.set("player_settings_index", 8)
+	check(bool(runtime.call("activate_selected_player_setting")), "Confirm must toggle a selected boolean setting.")
+	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Action prompts must toggle back on.")
 	runtime.set("player_settings_index", 11)
 	check(bool(runtime.call("activate_selected_player_setting")), "Reset All Defaults must activate.")
 	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 0.0)), 1.0), "Reset All Defaults must restore master volume.")
-	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Reset All Defaults must restore prompts.")
+	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Reset All Defaults must restore action prompts.")
 	check(PlayerInputBindings.input_map_matches(runtime.call("input_binding_profile")), "Reset All Defaults must also restore and apply default controls.")
+
+	# Persistence is exercised against isolated stores above. Avoid touching a
+	# developer's real user://settings while still verifying the runtime close path.
 	runtime.set("player_settings_dirty", false)
-	check(bool(runtime.call("close_player_settings")), "Options must close cleanly.")
+	check(bool(runtime.call("close_player_settings")), "Options must close cleanly when no write is pending.")
+	check(not bool(runtime.get("player_settings_open")), "Closing Options must restore the previous flow without changing campaign state.")
 
 	root.remove_child(runtime)
 	runtime.free()
 
 
-func dictionary_field(value: Dictionary, key: String) -> Dictionary:
-	var field: Variant = value.get(key, {})
-	return field if typeof(field) == TYPE_DICTIONARY else {}
+func dictionary_field(source: Dictionary, key: String) -> Dictionary:
+	var value: Variant = source.get(key, {})
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
 
 
 func check(condition: bool, message: String) -> void:
@@ -186,7 +210,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Player settings smoke test passed: schema-two controls, atomic persistence, runtime presentation, Audio, save blocking, freeze behaviour and defaults are coherent.")
+		print("Player settings smoke test passed: schema migration, isolated atomic storage, backup recovery, Options controls, persistent remapping, accessibility presentation and audio gains are coherent.")
 		quit(0)
 		return
 	for failure in failures:

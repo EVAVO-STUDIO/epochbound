@@ -153,7 +153,14 @@ require(
         "control_binding_device",
         "control_capture_active",
         "control_capture_event_consumed",
+        "input_binding_profile_cache",
+        "input_action_hint_cache",
+        "input_device_hint_cache",
+        "control_binding_row_cache",
+        "input_binding_cache_revision",
         "apply_input_bindings",
+        "rebuild_input_binding_cache",
+        "cached_control_binding_rows",
         "open_control_bindings",
         "close_control_bindings",
         "update_control_bindings_menu",
@@ -163,6 +170,7 @@ require(
         "reset_control_bindings",
         "input_action_hint",
         "input_action_device_hint",
+        "input_binding_cache_contract_ok",
         "control_bindings_contract_ok",
         "PlayerInputBindings.input_map_matches",
         "player_settings_contract_ok",
@@ -295,9 +303,14 @@ require(
         "Small analogue noise must not become a binding",
         "Binding a used key must swap",
         "Custom controls must write through the existing atomic player-settings store",
+        "Runtime must build complete validated binding, row and prompt caches",
+        "Repeated draw-time hint and row reads must not rebuild the binding profile cache",
         "Runtime hints must update immediately after rebinding",
+        "A successful capture must rebuild the binding caches exactly when the profile changes",
         "Reserved recovery inputs must be consumed",
+        "Rejected reserved input must not rebuild or mutate the active binding caches",
         "Reset Controls must restore",
+        "Reset Controls must invalidate and rebuild every cached hint and row",
     ],
 )
 
@@ -318,11 +331,13 @@ require(
     "src/game/runtime_scene_contract.gd",
     runtime_contract,
     [
+        '"input_binding_cache_contract_ok"',
         '"control_bindings_contract_ok"',
         '"control_remapping_overlay_contract_ok"',
         '"player_settings_contract_ok"',
         '"player_settings_overlay_contract_ok"',
         '"player_settings_audio_contract_ok"',
+        "Runtime root did not build complete stable input-binding caches",
     ],
 )
 
@@ -387,6 +402,9 @@ require(
         "Keyboard and controller remapping",
         "Escape, O and Start",
         "Conflict-safe swapping",
+        "Dynamic prompts and bounded caches",
+        "cache revision",
+        "draw-time hint reads",
         "Atomic persistence",
         "Campaign saves remain separate",
         "Startup itself remains read-only",
@@ -404,6 +422,7 @@ print("epochbound_player_settings_contract_passed")
 print("- player-local settings and control bindings are versioned, sanitised and stored atomically")
 print("- Escape, O and Start remain fixed recovery inputs while fourteen gameplay actions are remappable")
 print("- duplicate captures swap bindings instead of creating inaccessible or ambiguous actions")
+print("- validated control rows and prompt labels are cached only at profile mutation boundaries")
 print("- runtime InputMap, dynamic prompts, Audio and presentation all consume the same profile")
 print("- campaign saves and portable campaign packages remain separate")
 print("- primary unified, Audio, Sprite and local gates cover the complete integration")

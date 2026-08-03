@@ -185,7 +185,8 @@ static func merchant_sources_by_currency(
 			continue
 		if not output.has(currency_id):
 			output[currency_id] = []
-		var records: Array = output.get(currency_id, [])
+		var records_value: Variant = output.get(currency_id, [])
+		var records: Array = records_value as Array if typeof(records_value) == TYPE_ARRAY else []
 		records.append({
 			"unit_price": unit_price,
 			"quantity": quantity,
@@ -201,7 +202,7 @@ static func currency_purchase_plan(
 	quantity: int,
 	starting_balance: int
 ) -> Dictionary:
-	var entries: Array = entries_value.duplicate(true) if typeof(entries_value) == TYPE_ARRAY else []
+	var entries: Array = (entries_value as Array).duplicate(true) if typeof(entries_value) == TYPE_ARRAY else []
 	entries.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
 		var price_order := int(left.get("unit_price", 0)) - int(right.get("unit_price", 0))
 		if price_order != 0:
@@ -282,7 +283,7 @@ static func append_cumulative_progression_cost(
 	var record_value: Variant = output.get(currency_id, {})
 	var record: Dictionary = record_value if typeof(record_value) == TYPE_DICTIONARY else {}
 	var item_records_value: Variant = record.get("items", [])
-	var item_records: Array = item_records_value if typeof(item_records_value) == TYPE_ARRAY else []
+	var item_records: Array = item_records_value as Array if typeof(item_records_value) == TYPE_ARRAY else []
 	item_records.append({"item_id": item_id, "cost": minimum_cost})
 	record["items"] = item_records
 	record["total_cost"] = mini(MAX_PURCHASE_COST, int(record.get("total_cost", 0)) + minimum_cost)
@@ -298,7 +299,7 @@ static func audit_cumulative_progression_budget(
 	for currency_id in sorted_dictionary_keys(costs_by_currency):
 		var record: Dictionary = costs_by_currency.get(currency_id, {})
 		var items_value: Variant = record.get("items", [])
-		var items: Array = items_value if typeof(items_value) == TYPE_ARRAY else []
+		var items: Array = items_value as Array if typeof(items_value) == TYPE_ARRAY else []
 		if items.size() < 2:
 			continue
 		items.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
@@ -319,7 +320,7 @@ static func audit_cumulative_progression_budget(
 			findings,
 			"warning",
 			"economy.cumulative_progression_purchase_unaffordable",
-			"Individually affordable merchant-only progression purchases [%s] require at least %s %d in total, above the starting balance of %s %d; prove cumulative earning and spending order before these requirements." % [
+			"Across the statically identified merchant-only progression requirements, individually affordable purchases [%s] total at least %s %d, above the starting balance of %s %d. This is an aggregate review envelope, not proof that every requirement shares one mandatory route; document which purchases co-occur and where cumulative earnings are available." % [
 				", ".join(labels),
 				symbol,
 				total_cost,

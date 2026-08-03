@@ -1,6 +1,6 @@
-# Player Settings and Accessibility
+# Player Settings, Accessibility and Controls
 
-Epochbound now separates player-local preferences from campaign content and durable journey progress.
+Epochbound separates player-local preferences from campaign content and durable journey progress.
 
 Player settings live at:
 
@@ -8,21 +8,20 @@ Player settings live at:
 user://settings/player_settings.json
 ```
 
-They apply across built-in and installed campaigns. Campaign authors cannot force a player to use a particular volume, screen texture, camera shake, environmental-motion, flash, prompt or contrast level.
+They apply across built-in and installed campaigns. Campaign authors cannot force a player to use a particular volume, screen texture, camera shake, environmental-motion, flash, prompt, contrast or control-binding level.
 
-Campaign saves remain separate under `user://save_profiles`, and portable `.epochbound.zip` campaign packages do not contain player settings.
+Campaign saves remain separate under `user://save_profiles`, and portable `.epochbound.zip` campaign packages do not contain player settings or input bindings.
 
 ## Opening Options
 
 Options is available from the title menu and from safe gameplay.
 
-| Action | Keyboard | Controller |
-| --- | --- | --- |
-| Open Options directly | O | Use Pause, then Confirm |
-| Move selection | Up / Down | D-pad Up / Down |
-| Change selected value | Left / Right | D-pad Left / Right |
-| Toggle or activate | E, Z, Space or C | South or East face button |
-| Close and save | Escape, O or Start | Start |
+| Action | Fixed recovery input |
+| --- | --- |
+| Open Options directly | O |
+| Pause or close blocking menus | Escape or Start |
+| Move menu selection | Arrow keys or D-pad |
+| Confirm menu selection | Enter, E, Z, Space, C or controller confirm |
 
 During normal gameplay, Options opens only when no blocking dialogue, cinematic, transition, inventory, Journal, save menu or merchant interface is active. Gameplay simulation, animation and environmental time remain frozen while the panel is open.
 
@@ -53,12 +52,66 @@ These controls do not change collision, actor movement, projectile timing, comba
 - **Action Prompts** enables or disables nearest-target prompt boxes and their matching world pulse. Interactions remain usable when prompts are hidden.
 - **High Contrast UI** uses black interface fills, white text, a brighter gold frame and a stronger danger colour. It does not rewrite campaign palettes or final sprite art.
 
+## Keyboard and controller remapping
+
+The **Controls** row opens a player-local binding editor. It exposes fourteen gameplay actions:
+
+```text
+Move Up
+Move Down
+Move Left
+Move Right
+Interact / Confirm
+Attack / Fire
+Shift Era
+Morrow Command
+Recall Morrow
+Field Satchel
+Quick Restorative
+Journal
+Save Profiles
+Reload
+```
+
+Left and Right switch between Keyboard and Controller bindings. Confirm begins capture for the selected action. Keyboard capture accepts a physical key and controller capture accepts a button or a deliberate axis movement. Analogue noise below the capture threshold is ignored.
+
+Movement defaults preserve both WASD and arrow keys, D-pad movement and left-stick axes. Rebinding one device does not remove the other device’s bindings.
+
+### Reserved recovery inputs
+
+Escape, O and Start remain fixed recovery inputs and cannot be assigned to gameplay actions:
+
+- **Escape** always provides cancel and Pause recovery.
+- **O** always provides direct Options recovery.
+- **Start** always provides Pause and controller-menu recovery.
+
+This prevents a malformed or accidental remap from making Options inaccessible. The reserved actions remain in `project.godot`; only the fourteen gameplay actions are replaced through the runtime `InputMap` profile.
+
+### Conflict-safe swapping
+
+One physical input cannot silently control two managed gameplay actions. When a captured key, button or axis is already used, Epochbound performs a conflict-safe swap:
+
+1. The selected action receives the captured input.
+2. The displaced action receives the selected action’s previous bindings for that device.
+3. The complete profile is validated.
+4. The runtime `InputMap` is replaced only after the profile remains complete and unique.
+
+The editor therefore avoids ambiguous duplicates without leaving either action unbound.
+
+### Dynamic prompts
+
+World interaction prompts, reload hints, title guidance, pause guidance and the gameplay instruction rail read the active binding profile. They update immediately after a successful capture and do not require a restart.
+
+**Reset Controls** restores only the authored keyboard and controller defaults. **Reset All Defaults** restores controls together with every Audio, presentation and readability setting.
+
 ## Atomic persistence
 
-Player settings use a versioned schema and a guarded write sequence:
+Player settings use schema `2`. The nested control profile uses its own schema so input descriptors can evolve independently.
 
-1. Sanitize every recognised value.
-2. Validate the current schema and value ranges.
+The guarded write sequence is:
+
+1. Sanitize every recognised setting and binding descriptor.
+2. Validate schemas, value ranges, required actions, device coverage, reserved inputs and duplicate signatures.
 3. Write the complete settings object to a temporary file.
 4. Flush and close it.
 5. Rotate the previous valid primary file into a backup.
@@ -69,55 +122,60 @@ An invalid primary file is never rotated over a known-good backup. On startup, t
 
 When startup uses a valid backup or migrates an older supported schema, the sanitized settings remain marked as a pending repair. Options names the recovery or migration source instead of presenting it as an ordinary load. The next deliberate Options close writes the current complete settings through the same atomic path, recreates the primary file and prevents later launches from repeating the same recovery. Startup itself remains read-only.
 
-The current schema is `1`. Unknown future schemas are rejected rather than guessed. Older or partial supported records are migrated by preserving recognised values and filling newly introduced settings from safe defaults.
+Schema-one settings migrate by preserving every recognised Audio, presentation and readability value and adding the complete default keyboard/controller profile. Unknown future schemas are rejected rather than guessed.
 
 ## Test isolation
 
-The settings store accepts an alternate root for automated tests. The permanent regression suite uses:
+The settings and controls stores accept alternate roots for automated tests. Permanent regressions use:
 
 ```text
 user://epochbound_test_player_settings
-```
-
-and the recovery-edge suite uses:
-
-```text
 user://epochbound_test_player_settings_recovery
+user://epochbound_test_input_bindings
 ```
 
-Neither suite edits a developer or player’s real `user://settings` directory.
+They do not edit a developer or player’s real `user://settings` directory.
 
-The regression verifies:
+The regression suite verifies:
 
-- default validation;
+- schema-one migration into schema two;
 - range clamping and boolean fallback;
-- schema-zero migration;
 - future-schema rejection;
-- exact range steps and toggles;
-- temporary-file promotion;
-- previous-file backup rotation;
+- temporary-file promotion and backup rotation;
 - corrupt-primary and backup-only recovery;
-- recovery and migration status presentation;
 - pending repair after a recovered load;
 - isolated primary healing on Options close;
-- a clean primary load after runtime healing;
+- all fourteen managed gameplay actions;
+- keyboard, button and axis descriptor validation;
+- physical-key labels and controller labels;
+- analogue capture thresholds;
+- fixed Escape, O and Start recovery inputs;
+- conflict-safe binding swaps;
+- exact runtime `InputMap` replacement;
+- atomic custom-binding persistence;
+- bounded Controls pagination at 640 by 360;
+- immediate dynamic prompt updates;
+- Reset Controls and Reset All Defaults;
 - title-menu Options exposure;
 - gameplay save and autosave blocking;
 - frozen animation while Options is open;
 - independent Audio channel gains;
 - zero-shake and zero-world-motion behaviour;
 - disabled Action Prompts;
-- High Contrast UI colours;
-- Reset Defaults behaviour.
+- High Contrast UI colours.
 
 ## Production rules
 
-- Keep player preferences outside campaign JSON and save-profile payloads.
-- Never package local settings with a campaign.
+- Keep player preferences and input bindings outside campaign JSON, save-profile payloads and campaign packages.
+- Never allow campaign data to erase, replace or require a local binding.
+- Keep Escape, O and Start reserved for recovery.
+- Persist physical keyboard locations rather than language-specific typed characters.
+- Store controller axes with explicit direction and ignore small capture noise.
+- Apply the complete binding profile through `InputMap`; do not maintain a parallel gameplay-input system.
+- Use conflict-safe swaps instead of duplicate managed bindings.
 - Apply presentation settings at draw time or through bounded runtime multipliers.
 - Do not let accessibility settings change durable progression outcomes.
-- Keep every range between zero and one so future interfaces can represent values consistently.
-- Add new fields with safe defaults and a migration path.
+- Add new settings or actions with safe defaults and an explicit migration path.
 - Treat unknown future schemas as incompatible.
 - Preserve the last complete valid settings file before replacement.
 - Keep startup reads non-destructive; promote recovered or migrated values only through the atomic writer.

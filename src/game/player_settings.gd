@@ -69,7 +69,9 @@ static func sanitize(value: Variant) -> Dictionary:
 			output[setting_id] = clampf(snappedf(float(raw), step), minimum, maximum)
 		elif kind == "boolean" and typeof(raw) == TYPE_BOOL:
 			output[setting_id] = bool(raw)
-	output["input_bindings"] = PlayerInputBindings.sanitize_profile(source.get("input_bindings", PlayerInputBindings.default_profile()))
+	output["input_bindings"] = PlayerInputBindings.sanitize_profile(
+		source.get("input_bindings", PlayerInputBindings.default_profile())
+	)
 	output["schema_version"] = CURRENT_SCHEMA
 	return output
 
@@ -130,19 +132,45 @@ static func migrate(value: Variant) -> Dictionary:
 	return {"ok": true, "settings": sanitize(source), "migrated": migrated, "from_version": from_version, "errors": []}
 
 
+# Scalar reads run every frame through presentation and Audio. Keep them
+# independent from the nested control profile so a volume, shake or prompt
+# lookup never rebuilds fourteen actions and their event descriptors.
+static func number_step(setting_id: String) -> float:
+	match setting_id:
+		"master_volume", "music_volume", "ambience_volume", "sfx_volume":
+			return 0.1
+		"screen_texture_intensity", "camera_shake_intensity", "environment_motion_intensity", "flash_intensity":
+			return 0.25
+	return 0.0
+
+
 static func number(settings: Dictionary, setting_id: String, fallback: float = 1.0) -> float:
-	var value: Variant = sanitize(settings).get(setting_id, fallback)
-	return float(value) if typeof(value) in [TYPE_INT, TYPE_FLOAT] else fallback
+	var step := number_step(setting_id)
+	if step <= 0.0:
+		return fallback
+	var raw: Variant = settings.get(setting_id, 1.0)
+	if typeof(raw) not in [TYPE_INT, TYPE_FLOAT]:
+		return 1.0
+	return clampf(snappedf(float(raw), step), 0.0, 1.0)
 
 
 static func boolean(settings: Dictionary, setting_id: String, fallback: bool = false) -> bool:
-	var value: Variant = sanitize(settings).get(setting_id, fallback)
-	return bool(value) if typeof(value) == TYPE_BOOL else fallback
+	var default_value := fallback
+	match setting_id:
+		"show_action_prompts":
+			default_value = true
+		"high_contrast_ui":
+			default_value = false
+		_:
+			return fallback
+	var raw: Variant = settings.get(setting_id, default_value)
+	return bool(raw) if typeof(raw) == TYPE_BOOL else default_value
 
 
 static func input_bindings(settings: Dictionary) -> Dictionary:
-	var value: Variant = sanitize(settings).get("input_bindings", PlayerInputBindings.default_profile())
-	return (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else PlayerInputBindings.default_profile()
+	return PlayerInputBindings.sanitize_profile(
+		settings.get("input_bindings", PlayerInputBindings.default_profile())
+	)
 
 
 static func adjusted(settings: Dictionary, setting_id: String, direction: int) -> Dictionary:
@@ -163,10 +191,9 @@ static func adjusted(settings: Dictionary, setting_id: String, direction: int) -
 
 
 static func value_text(settings: Dictionary, setting_id: String) -> String:
-	var kind := str(entry(setting_id).get("kind", ""))
-	if kind == "range":
+	if number_step(setting_id) > 0.0:
 		return "%d%%" % int(round(number(settings, setting_id, 0.0) * 100.0))
-	if kind == "boolean":
+	if setting_id in ["show_action_prompts", "high_contrast_ui"]:
 		return "ON" if boolean(settings, setting_id, false) else "OFF"
 	return ""
 

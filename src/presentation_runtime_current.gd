@@ -78,22 +78,39 @@ func rebuild_input_binding_cache(profile_value: Variant) -> void:
 		PlayerInputBindings.DEVICE_KEYBOARD: {},
 		PlayerInputBindings.DEVICE_GAMEPAD: {}
 	}
-	control_binding_row_cache = {}
-	var action_ids := PlayerInputBindings.managed_action_ids()
-	for action_id in action_ids:
-		input_action_hint_cache[action_id] = PlayerInputBindings.action_hint(profile, action_id)
-		for device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
-			var device_cache: Dictionary = input_device_hint_cache.get(device, {})
-			device_cache[action_id] = PlayerInputBindings.device_binding_text(profile, action_id, device)
-			input_device_hint_cache[device] = device_cache
-	control_binding_row_cache[PlayerInputBindings.DEVICE_KEYBOARD] = PlayerInputBindings.rows(
-		profile,
-		PlayerInputBindings.DEVICE_KEYBOARD
-	)
-	control_binding_row_cache[PlayerInputBindings.DEVICE_GAMEPAD] = PlayerInputBindings.rows(
-		profile,
-		PlayerInputBindings.DEVICE_GAMEPAD
-	)
+	var keyboard_rows: Array = []
+	var gamepad_rows: Array = []
+	var actions_value: Variant = profile.get("actions", {})
+	var actions: Dictionary = actions_value if typeof(actions_value) == TYPE_DICTIONARY else {}
+	for definition_value in PlayerInputBindings.action_definitions():
+		if typeof(definition_value) != TYPE_DICTIONARY:
+			continue
+		var definition: Dictionary = definition_value
+		var action_id := str(definition.get("id", ""))
+		var label := str(definition.get("label", action_id)).to_upper()
+		var events_value: Variant = actions.get(action_id, [])
+		var events: Array = events_value if typeof(events_value) == TYPE_ARRAY else []
+		var keyboard_text := PlayerInputBindings.device_binding_text_from_events(
+			events,
+			PlayerInputBindings.DEVICE_KEYBOARD
+		)
+		var gamepad_text := PlayerInputBindings.device_binding_text_from_events(
+			events,
+			PlayerInputBindings.DEVICE_GAMEPAD
+		)
+		input_action_hint_cache[action_id] = PlayerInputBindings.action_hint_from_events(events)
+		var keyboard_cache: Dictionary = input_device_hint_cache.get(PlayerInputBindings.DEVICE_KEYBOARD, {})
+		keyboard_cache[action_id] = keyboard_text
+		input_device_hint_cache[PlayerInputBindings.DEVICE_KEYBOARD] = keyboard_cache
+		var gamepad_cache: Dictionary = input_device_hint_cache.get(PlayerInputBindings.DEVICE_GAMEPAD, {})
+		gamepad_cache[action_id] = gamepad_text
+		input_device_hint_cache[PlayerInputBindings.DEVICE_GAMEPAD] = gamepad_cache
+		keyboard_rows.append({"id": action_id, "label": label, "kind": "binding", "value": keyboard_text})
+		gamepad_rows.append({"id": action_id, "label": label, "kind": "binding", "value": gamepad_text})
+	control_binding_row_cache = {
+		PlayerInputBindings.DEVICE_KEYBOARD: keyboard_rows,
+		PlayerInputBindings.DEVICE_GAMEPAD: gamepad_rows
+	}
 	input_binding_cache_revision += 1
 
 

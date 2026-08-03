@@ -1,6 +1,7 @@
 extends SceneTree
 
 const TradeStudio = preload("res://addons/epochbound_trade_studio/trade_studio_supply.gd")
+const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const SupplyValidator = preload("res://src/content/supply_region_validator.gd")
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
@@ -74,6 +75,18 @@ func run_smoke_test() -> void:
 	var duplicate_ids: Variant = studio.call("parse_id_lines", "material\nmaterial", "accepted kinds")
 	check(typeof(duplicate_ids) == TYPE_DICTIONARY and not bool((duplicate_ids as Dictionary).get("ok", true)), "Trade Studio must reject duplicate list entries.")
 
+	var definitions_value: Variant = studio.get("supply_region_definitions")
+	var definitions: Dictionary = definitions_value.duplicate(true) if typeof(definitions_value) == TYPE_DICTIONARY else {}
+	definitions["secondary_route"] = SupplyCatalog.default_region("secondary_route", "Secondary Route", 600.0, 2)
+	studio.set("supply_region_definitions", definitions)
+	studio.set("selected_supply_region_id", "secondary_route")
+	var catalogue_before := JSON.stringify(studio.get("active_economy_catalog"))
+	studio.call("delete_supply_region")
+	check(JSON.stringify(studio.get("active_economy_catalog")) == catalogue_before, "Deleting a route from a secondary catalogue must not rewrite the editable primary catalogue.")
+	var status_value: Variant = studio.get("status_label")
+	if status_value is RichTextLabel:
+		check((status_value as RichTextLabel).text.contains("not in the editable primary catalogue"), "Secondary-route deletion must explain why it was blocked.")
+
 	var validation := SupplyValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Trade Studio reference campaign must pass supply-aware validation.")
 	check(int(validation.get("merchant_stock_count", 0)) == 9, "Trade Studio validator must count every authored stock record.")
@@ -87,7 +100,7 @@ func run_smoke_test() -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Trade Studio smoke test passed: campaigns, currencies, merchants, supply routes, scarcity, NPC bindings, source parsing and complete validation are coherent.")
+		print("Trade Studio smoke test passed: campaigns, currencies, merchants, supply routes, primary-catalogue safety, scarcity, NPC bindings, source parsing and complete validation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

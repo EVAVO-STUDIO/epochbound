@@ -8,7 +8,7 @@ Every finding contains:
 
 - `severity`: `blocker`, `warning` or `info`;
 - `code`: a stable machine-readable identifier;
-- `context`: the relevant map, capability, item, quest, merchant or policy ID;
+- `context`: the relevant map, capability, item, quest, merchant, currency or policy ID;
 - `message`: a player- and author-facing explanation.
 
 Reports are sorted deterministically by severity, code, context and message. Identical campaign input must produce byte-equivalent JSON output.
@@ -82,7 +82,9 @@ Findings:
 
 ### 7. Progression-source and softlock safety
 
-The audit collects every explicit `has_item` and `remove_item` progression requirement from maps, story and economy data. When a required item has one unambiguous recipe, the audit also traces its ingredients. Sources are built from:
+The audit separates reusable possession requirements from consumptive item costs. It accumulates quantities only where campaign data proves sequence: multiple effects in one effect bundle or conversation nodes connected through explicit `next` links. Disconnected interactions, separate conversations, unrelated quests, maps and economy records retain the largest provable demand instead of being added as though every optional path were mandatory. Mutually exclusive dialogue choices use the largest one-branch requirement.
+
+When a required item has one unambiguous recipe, the audit traces only the residual quantity not already covered by usable non-recipe sources. Sources are built from:
 
 - starting inventory and starting equipment, with an equipped item already present in inventory counted only once;
 - story and map item grants;
@@ -110,11 +112,21 @@ Warnings:
 
 A blocker is reserved for evidence the static records can prove: no route, a circular recipe, a required recipe with no default, starting or authored unlock, an exact self-gate, an unbound merchant definition, or authored finite supply below an explicit required quantity. A source that is merely conditional remains a warning because executable play may prove a valid ordering.
 
-Recipe outputs are treated as repeatable for finite-supply accounting only after cycle detection and recipe-unlock verification. This prevents a legal crafting loop from being mistaken for a one-time pickup while rejecting recipes that require their own output directly or indirectly, or that can never become available through campaign data.
+Recipe outputs are treated as repeatable for finite-supply accounting only after cycle detection and recipe-unlock verification. Usable pickups, rewards and bound merchant stock satisfy required output quantities before ingredient expansion. Partial direct supply expands only the residual craft quantity, and surplus from multi-unit recipe batches remains available to later progression demand. This prevents a legal crafting loop from being mistaken for a one-time pickup while rejecting recipes that require their own output directly or indirectly, or that can never become available through campaign data.
 
 ### 8. Merchant-only progression affordability
 
-The audit identifies progression items and capability-granting equipment whose usable sources are all merchants. It uses the same authored price calculation as the runtime and compares the lowest complete purchase cost with the currency’s starting balance.
+The audit identifies progression items and capability-granting equipment whose usable sources are all merchants. It uses the same authored unit-price calculation as the runtime.
+
+A required quantity may be fulfilled by several bound merchants rather than one merchant carrying the complete stack. Stock is combined deterministically in ascending unit-price order. Unlimited entries remain bounded by the required quantity during planning, so cost calculations cannot overflow or fabricate extra demand.
+
+Currencies remain independent. The probe never compares the nominal number of one currency with another. For each currency it calculates:
+
+- total valid stock available for the requirement;
+- the cheapest complete same-currency purchase cost where one exists;
+- the exact number of units that currency’s starting wallet can fund.
+
+Those independently affordable quantities may then combine across currencies for the same item. This supports campaigns where, for example, one required unit is bought with Archive Chits and another with a separate authored currency.
 
 Blockers:
 
@@ -125,10 +137,22 @@ Warnings:
 
 - `economy.progression_purchase_unaffordable`
 - `economy.capability_purchase_unaffordable`
+- `economy.cumulative_progression_purchase_unaffordable`
 
-A price above the starting balance is a warning, not a blocker. Enemy rewards, quest rewards and player sales may provide an intentional earning route. Authors must prove that route occurs before the purchase becomes mandatory and cannot itself depend on the purchase.
+The first two warnings are emitted when valid merchant stock can provide the requirement but the starting wallets cannot fund the complete quantity. The message reports affordable unit capacity per currency instead of choosing a misleading numerically smallest currency.
 
-The probe does not assume all optional upgrades must be affordable at campaign start. It only evaluates items and capabilities already identified as progression requirements.
+The cumulative warning is a conservative lower-bound check. It considers progression-item purchases only when:
+
+- every usable source is a merchant;
+- all valid routes use one currency;
+- the item is individually affordable from that currency’s starting balance;
+- at least two such requirements share the currency.
+
+If their minimum complete costs together exceed the starting balance, the report requires evidence of cumulative earning and spending order. Multi-currency alternatives and capability-item overlaps are excluded from this total because the static records do not prove which option the player must choose.
+
+A price or cumulative total above the starting balance is a warning, not a blocker. Enemy rewards, quest rewards and player sales may provide an intentional earning route. Authors must prove that route occurs before the purchase becomes mandatory and cannot itself depend on the purchase.
+
+The probe does not assume all optional upgrades must be affordable at campaign start. It evaluates only items and capabilities already identified as progression requirements.
 
 ## Editor workflow
 
@@ -164,4 +188,4 @@ Campaign Audit Studio does not simulate every possible player action. It does no
 - long-form save/load soak tests;
 - human assessment of story quality and encounter fairness.
 
-The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, all recipe alternatives, player spending choices or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.
+The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, exchange rates, optional spending, all recipe alternatives, every capability-equipment choice or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.

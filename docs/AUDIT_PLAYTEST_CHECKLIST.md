@@ -59,9 +59,11 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Give the same required item valid stock in two independent currencies and confirm the audit evaluates each wallet separately rather than comparing nominal currency numbers.
 - Verify the reported affordable-unit capacity matches the cheapest valid stock order inside each currency.
 - Confirm a complete stock route that exceeds the starting wallets produces an affordability warning rather than a not-for-sale blocker.
-- Create two individually affordable, merchant-only progression purchases in the same currency whose combined minimum cost exceeds the starting balance.
+- Create two individually affordable, merchant-only progression requirements in the same currency whose aggregate review total exceeds the starting balance.
 - Confirm the report emits `economy.cumulative_progression_purchase_unaffordable` with that currency as context.
-- Confirm multi-currency alternatives and capability-equipment choices are not added to the cumulative total without proof that one exact route is mandatory.
+- Confirm the warning explicitly distinguishes its aggregate review envelope from proof that every requirement belongs to one mandatory route.
+- Document which requirements truly co-occur and which live on disconnected or optional branches.
+- Confirm multi-currency alternatives and capability-equipment choices are not added to the aggregate total without proof that one exact route is mandatory.
 - For every affordability warning, document the earliest guaranteed currency source and its minimum value.
 - Spend currency on optional goods before the required purchase and confirm the campaign still offers a recovery route.
 - Verify failed purchases and sales remain transactional.

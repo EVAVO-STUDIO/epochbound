@@ -1,7 +1,9 @@
 @tool
 extends RefCounted
 
-const CURRENT_SCHEMA := 1
+const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
+
+const CURRENT_SCHEMA := 2
 
 
 static func default_settings() -> Dictionary:
@@ -16,7 +18,8 @@ static func default_settings() -> Dictionary:
 		"environment_motion_intensity": 1.0,
 		"flash_intensity": 1.0,
 		"show_action_prompts": true,
-		"high_contrast_ui": false
+		"high_contrast_ui": false,
+		"input_bindings": PlayerInputBindings.default_profile()
 	}
 
 
@@ -32,7 +35,8 @@ static func entries() -> Array:
 		{"id": "flash_intensity", "label": "SCREEN FLASHES", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
 		{"id": "show_action_prompts", "label": "ACTION PROMPTS", "kind": "boolean"},
 		{"id": "high_contrast_ui", "label": "HIGH CONTRAST UI", "kind": "boolean"},
-		{"id": "reset_defaults", "label": "RESET DEFAULTS", "kind": "action"},
+		{"id": "controls", "label": "CONTROLS", "kind": "action"},
+		{"id": "reset_defaults", "label": "RESET ALL DEFAULTS", "kind": "action"},
 		{"id": "back", "label": "BACK", "kind": "action"}
 	]
 
@@ -48,23 +52,24 @@ static func sanitize(value: Variant) -> Dictionary:
 	var output := default_settings()
 	if typeof(value) != TYPE_DICTIONARY:
 		return output
-	var source: Dictionary = value as Dictionary
-	for value_entry in entries():
-		if typeof(value_entry) != TYPE_DICTIONARY:
+	var source: Dictionary = value
+	for raw_definition in entries():
+		if typeof(raw_definition) != TYPE_DICTIONARY:
 			continue
-		var definition: Dictionary = value_entry as Dictionary
-		var entry_id := str(definition.get("id", ""))
+		var definition: Dictionary = raw_definition
+		var setting_id := str(definition.get("id", ""))
 		var kind := str(definition.get("kind", ""))
-		if not source.has(entry_id):
+		if not source.has(setting_id):
 			continue
-		var raw: Variant = source.get(entry_id)
-		if kind == "range" and (typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT):
+		var raw: Variant = source.get(setting_id)
+		if kind == "range" and typeof(raw) in [TYPE_INT, TYPE_FLOAT]:
 			var minimum := float(definition.get("minimum", 0.0))
 			var maximum := float(definition.get("maximum", 1.0))
 			var step := maxf(0.001, float(definition.get("step", 0.1)))
-			output[entry_id] = clampf(snappedf(float(raw), step), minimum, maximum)
+			output[setting_id] = clampf(snappedf(float(raw), step), minimum, maximum)
 		elif kind == "boolean" and typeof(raw) == TYPE_BOOL:
-			output[entry_id] = bool(raw)
+			output[setting_id] = bool(raw)
+	output["input_bindings"] = PlayerInputBindings.sanitize_profile(source.get("input_bindings", PlayerInputBindings.default_profile()))
 	output["schema_version"] = CURRENT_SCHEMA
 	return output
 
@@ -72,35 +77,36 @@ static func sanitize(value: Variant) -> Dictionary:
 static func validate(value: Variant) -> Dictionary:
 	var errors := PackedStringArray()
 	if typeof(value) != TYPE_DICTIONARY:
-		errors.append("Player settings root must be an object.")
-		return {"ok": false, "errors": errors}
-	var source: Dictionary = value as Dictionary
+		return {"ok": false, "errors": ["Player settings root must be an object."]}
+	var source: Dictionary = value
 	var schema_value: Variant = source.get("schema_version", 0)
 	if typeof(schema_value) != TYPE_INT:
 		errors.append("Player settings schema_version must be an integer.")
-	else:
-		var schema := int(schema_value)
-		if schema < 0 or schema > CURRENT_SCHEMA:
-			errors.append("Player settings schema %d is unsupported." % schema)
-	for value_entry in entries():
-		if typeof(value_entry) != TYPE_DICTIONARY:
+	elif int(schema_value) < 0 or int(schema_value) > CURRENT_SCHEMA:
+		errors.append("Player settings schema %d is unsupported." % int(schema_value))
+	for raw_definition in entries():
+		if typeof(raw_definition) != TYPE_DICTIONARY:
 			continue
-		var definition: Dictionary = value_entry as Dictionary
-		var entry_id := str(definition.get("id", ""))
+		var definition: Dictionary = raw_definition
+		var setting_id := str(definition.get("id", ""))
 		var kind := str(definition.get("kind", ""))
-		if kind == "action" or not source.has(entry_id):
+		if kind == "action" or not source.has(setting_id):
 			continue
-		var raw: Variant = source.get(entry_id)
+		var raw: Variant = source.get(setting_id)
 		if kind == "range":
-			if typeof(raw) != TYPE_INT and typeof(raw) != TYPE_FLOAT:
-				errors.append("Player setting '%s' must be numeric." % entry_id)
+			if typeof(raw) not in [TYPE_INT, TYPE_FLOAT]:
+				errors.append("Player setting '%s' must be numeric." % setting_id)
 				continue
 			var minimum := float(definition.get("minimum", 0.0))
 			var maximum := float(definition.get("maximum", 1.0))
 			if float(raw) < minimum or float(raw) > maximum:
-				errors.append("Player setting '%s' must be between %.2f and %.2f." % [entry_id, minimum, maximum])
+				errors.append("Player setting '%s' must be between %.2f and %.2f." % [setting_id, minimum, maximum])
 		elif kind == "boolean" and typeof(raw) != TYPE_BOOL:
-			errors.append("Player setting '%s' must be boolean." % entry_id)
+			errors.append("Player setting '%s' must be boolean." % setting_id)
+	if source.has("input_bindings"):
+		var binding_validation := PlayerInputBindings.validate_profile(source.get("input_bindings"))
+		for message in binding_validation.get("errors", []):
+			errors.append(str(message))
 	return {"ok": errors.is_empty(), "errors": errors}
 
 
@@ -108,36 +114,35 @@ static func migrate(value: Variant) -> Dictionary:
 	var validation := validate(value)
 	if not bool(validation.get("ok", false)):
 		return {"ok": false, "settings": {}, "migrated": false, "from_version": -1, "errors": validation.get("errors", [])}
-	var source: Dictionary = value as Dictionary
+	var source: Dictionary = value
 	var from_version := int(source.get("schema_version", 0))
 	var migrated := from_version != CURRENT_SCHEMA
-	for value_entry in entries():
-		if typeof(value_entry) != TYPE_DICTIONARY:
+	for raw_definition in entries():
+		if typeof(raw_definition) != TYPE_DICTIONARY:
 			continue
-		var definition: Dictionary = value_entry as Dictionary
+		var definition: Dictionary = raw_definition
 		if str(definition.get("kind", "")) == "action":
 			continue
 		if not source.has(str(definition.get("id", ""))):
 			migrated = true
-	return {
-		"ok": true,
-		"settings": sanitize(source),
-		"migrated": migrated,
-		"from_version": from_version,
-		"errors": []
-	}
+	if not source.has("input_bindings"):
+		migrated = true
+	return {"ok": true, "settings": sanitize(source), "migrated": migrated, "from_version": from_version, "errors": []}
 
 
 static func number(settings: Dictionary, setting_id: String, fallback: float = 1.0) -> float:
-	var sanitized := sanitize(settings)
-	var value: Variant = sanitized.get(setting_id, fallback)
-	return float(value) if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT else fallback
+	var value: Variant = sanitize(settings).get(setting_id, fallback)
+	return float(value) if typeof(value) in [TYPE_INT, TYPE_FLOAT] else fallback
 
 
 static func boolean(settings: Dictionary, setting_id: String, fallback: bool = false) -> bool:
-	var sanitized := sanitize(settings)
-	var value: Variant = sanitized.get(setting_id, fallback)
+	var value: Variant = sanitize(settings).get(setting_id, fallback)
 	return bool(value) if typeof(value) == TYPE_BOOL else fallback
+
+
+static func input_bindings(settings: Dictionary) -> Dictionary:
+	var value: Variant = sanitize(settings).get("input_bindings", PlayerInputBindings.default_profile())
+	return (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else PlayerInputBindings.default_profile()
 
 
 static func adjusted(settings: Dictionary, setting_id: String, direction: int) -> Dictionary:
@@ -150,17 +155,15 @@ static func adjusted(settings: Dictionary, setting_id: String, direction: int) -
 		var minimum := float(definition.get("minimum", 0.0))
 		var maximum := float(definition.get("maximum", 1.0))
 		var step := maxf(0.001, float(definition.get("step", 0.1)))
-		var current := number(output, setting_id, minimum)
 		var resolved_direction := 1 if direction > 0 else -1
-		output[setting_id] = clampf(snappedf(current + step * resolved_direction, step), minimum, maximum)
+		output[setting_id] = clampf(snappedf(number(output, setting_id, minimum) + step * resolved_direction, step), minimum, maximum)
 	elif kind == "boolean":
 		output[setting_id] = not boolean(output, setting_id, false)
 	return output
 
 
 static func value_text(settings: Dictionary, setting_id: String) -> String:
-	var definition := entry(setting_id)
-	var kind := str(definition.get("kind", ""))
+	var kind := str(entry(setting_id).get("kind", ""))
 	if kind == "range":
 		return "%d%%" % int(round(number(settings, setting_id, 0.0) * 100.0))
 	if kind == "boolean":
@@ -170,10 +173,10 @@ static func value_text(settings: Dictionary, setting_id: String) -> String:
 
 static func rows(settings: Dictionary) -> Array:
 	var output: Array = []
-	for value_entry in entries():
-		if typeof(value_entry) != TYPE_DICTIONARY:
+	for raw_definition in entries():
+		if typeof(raw_definition) != TYPE_DICTIONARY:
 			continue
-		var definition: Dictionary = (value_entry as Dictionary).duplicate(true)
+		var definition: Dictionary = (raw_definition as Dictionary).duplicate(true)
 		definition["value"] = value_text(settings, str(definition.get("id", "")))
 		output.append(definition)
 	return output

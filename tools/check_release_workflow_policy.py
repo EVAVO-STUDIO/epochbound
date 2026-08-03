@@ -18,7 +18,7 @@ errors: list[str] = []
 
 def read(name: str, path: Path) -> str:
     if not path.is_file():
-        errors.append(f"{name}: workflow is missing: {path.relative_to(ROOT)}")
+        errors.append(f"{name}: required file is missing: {path.relative_to(ROOT)}")
         return ""
     return path.read_text(encoding="utf-8")
 
@@ -169,6 +169,26 @@ require(
     ],
 )
 
+local_gate = read("local_gate", ROOT / "scripts/validate.ps1")
+require(
+    "local_gate",
+    local_gate,
+    [
+        "smoke_progression_affordability.gd",
+        "Smoke test multi-source progression affordability planning",
+    ],
+)
+
+compile_probe = read("compile_probe", ROOT / "tools/compile_probe.gd")
+require(
+    "compile_probe",
+    compile_probe,
+    [
+        "progression_affordability_audit.gd",
+        "smoke_progression_affordability.gd",
+    ],
+)
+
 if errors:
     print("Epochbound release workflow policy failed:\n")
     for error in errors:
@@ -179,5 +199,5 @@ print("epochbound_release_workflow_policy_passed")
 print("- primary validation runs automatically for exact main-push SHAs and remains manually dispatchable")
 print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
-print("- runtime composition and player settings are checked before Godot execution")
+print("- runtime composition, player settings and progression affordability entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

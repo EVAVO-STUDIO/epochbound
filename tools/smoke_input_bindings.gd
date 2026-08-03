@@ -87,8 +87,18 @@ func test_runtime_controls() -> void:
 
 	runtime.set("player_settings", PlayerSettings.default_settings())
 	check(bool(runtime.call("apply_input_bindings")), "Runtime must apply the default binding profile.")
+	check(bool(runtime.call("input_binding_cache_contract_ok")), "Runtime must build complete validated binding, row and prompt caches.")
 	check(bool(runtime.call("control_bindings_contract_ok")), "Runtime control bindings must satisfy the complete InputMap contract.")
 	check(int(runtime.call("player_settings_entry_count")) == 13, "Options must expose ten adjustable values, Controls, Reset All Defaults and Back.")
+	var initial_cache_revision := int(runtime.get("input_binding_cache_revision"))
+	check(initial_cache_revision > 0, "Applying a profile must create a positive binding-cache revision.")
+	for _index in range(64):
+		runtime.call("input_action_hint", "interact")
+		runtime.call("input_action_hint", "attack")
+		runtime.call("input_action_device_hint", "reload_weapon", PlayerInputBindings.DEVICE_GAMEPAD)
+		runtime.call("control_binding_entries")
+	check(int(runtime.get("input_binding_cache_revision")) == initial_cache_revision, "Repeated draw-time hint and row reads must not rebuild the binding profile cache.")
+
 	var presentation_overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(presentation_overlay != null, "Playable scene must retain the combat readability presentation overlay.")
 	var controls_overlay: Node = runtime.get_node_or_null("PresentationLayer/PlayerControlsOverlay")
@@ -116,7 +126,14 @@ func test_runtime_controls() -> void:
 	check(bool(runtime.call("handle_control_capture_event", capture)), "A deliberate keyboard press must be consumed by capture mode.")
 	check(not bool(runtime.get("control_capture_active")), "Successful capture must end listening mode.")
 	check(str(runtime.call("input_action_device_hint", "attack", PlayerInputBindings.DEVICE_KEYBOARD)) == "T", "Runtime hints must update immediately after rebinding.")
+	check(binding_row_value(runtime.call("control_binding_entries"), "attack") == "T", "Cached Controls rows must update immediately after rebinding.")
 	check(PlayerInputBindings.input_map_matches(runtime.call("input_binding_profile")), "Runtime InputMap must remain synchronized after a capture.")
+	var rebound_cache_revision := int(runtime.get("input_binding_cache_revision"))
+	check(rebound_cache_revision > initial_cache_revision, "A successful capture must rebuild the binding caches exactly when the profile changes.")
+	for _index in range(64):
+		runtime.call("input_action_hint", "attack")
+		runtime.call("input_action_device_hint", "attack", PlayerInputBindings.DEVICE_KEYBOARD)
+	check(int(runtime.get("input_binding_cache_revision")) == rebound_cache_revision, "Cached post-rebind hints must remain stable across repeated draw reads.")
 
 	check(bool(runtime.call("begin_control_capture", "attack", PlayerInputBindings.DEVICE_KEYBOARD)), "Keyboard capture must be reusable.")
 	var reserved := InputEventKey.new()
@@ -125,16 +142,27 @@ func test_runtime_controls() -> void:
 	check(bool(runtime.call("handle_control_capture_event", reserved)), "Reserved recovery inputs must be consumed rather than leaking into gameplay.")
 	check(bool(runtime.get("control_capture_active")), "A reserved input must leave capture active for another valid choice.")
 	check("RESERVED" in str(runtime.get("player_settings_notice")), "Reserved-input feedback must explain the recovery rule.")
+	check(int(runtime.get("input_binding_cache_revision")) == rebound_cache_revision, "Rejected reserved input must not rebuild or mutate the active binding caches.")
 	runtime.call("cancel_control_capture", false)
 
 	check(bool(runtime.call("reset_control_bindings")), "Reset Controls must restore the authored default profile.")
 	check("SPACE" in str(runtime.call("input_action_device_hint", "attack", PlayerInputBindings.DEVICE_KEYBOARD)), "Reset Controls must restore the default attack keys.")
+	check(int(runtime.get("input_binding_cache_revision")) > rebound_cache_revision, "Reset Controls must invalidate and rebuild every cached hint and row.")
 	check(bool(runtime.call("close_control_bindings")), "Back must return from Controls to the parent Options screen.")
 	runtime.set("player_settings_dirty", false)
 	check(bool(runtime.call("close_player_settings")), "Options must close without writing to the developer's real settings path during the regression.")
 
 	root.remove_child(runtime)
 	runtime.free()
+
+
+func binding_row_value(value: Variant, action_id: String) -> String:
+	if typeof(value) != TYPE_ARRAY:
+		return ""
+	for row_value in value as Array:
+		if typeof(row_value) == TYPE_DICTIONARY and str((row_value as Dictionary).get("id", "")) == action_id:
+			return str((row_value as Dictionary).get("value", ""))
+	return ""
 
 
 func check(condition: bool, message: String) -> void:
@@ -144,7 +172,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Input binding smoke test passed: schema migration, atomic persistence, reserved recovery inputs, conflict-safe swaps, analogue capture, dynamic hints and runtime InputMap application are coherent.")
+		print("Input binding smoke test passed: schema migration, atomic persistence, reserved recovery inputs, conflict-safe swaps, analogue capture, cached dynamic hints and runtime InputMap application are coherent.")
 		quit(0)
 		return
 	for failure in failures:

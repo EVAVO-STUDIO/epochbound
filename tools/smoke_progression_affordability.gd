@@ -38,6 +38,9 @@ func run_test() -> void:
 		merchant_source("first_vendor", "tokens", 2, 4, "expensive_split"),
 		merchant_source("second_vendor", "tokens", 1, 4, "expensive_split")
 	]
+	var unlimited_sources := [
+		merchant_source("unlimited_vendor", "tokens", -1, 3, "unlimited_pass")
+	]
 
 	var split_analysis := ProgressionAffordabilityAudit.purchase_analysis(2, split_sources, currencies)
 	check(bool(split_analysis.get("has_sale", false)), "Two merchants must be able to combine finite stock for one progression requirement.")
@@ -57,6 +60,12 @@ func run_test() -> void:
 	check(bool(expensive_analysis.get("has_sale", false)), "Three valid stock units must remain a complete sale route.")
 	check(not bool(expensive_analysis.get("affordable", true)), "TK 10 must not be reported as able to fund a TK 12 purchase.")
 	check(int(expensive_analysis.get("affordable_quantity", 0)) == 2, "The planner must report the exact number of units the starting wallet can fund.")
+
+	var unlimited_analysis := ProgressionAffordabilityAudit.purchase_analysis(3, unlimited_sources, currencies)
+	check(bool(unlimited_analysis.get("has_sale", false)), "Unlimited stock must satisfy the requested quantity.")
+	check(bool(unlimited_analysis.get("affordable", false)), "TK 10 must fund three units priced at TK 3.")
+	check(int(unlimited_analysis.get("stock_quantity", 0)) == 3, "Unlimited stock accounting must stop at the required quantity.")
+	check(int(unlimited_analysis.get("minimum_cost", -1)) == 9, "Unlimited stock cost must remain bounded by required quantity rather than sentinel size.")
 
 	var progression: Dictionary = {
 		"requirements": {
@@ -136,7 +145,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Progression affordability smoke test passed: split stock, independent currencies, exact wallet capacity, cumulative mandatory spend and capability alternatives are coherent.")
+		print("Progression affordability smoke test passed: split stock, independent currencies, unlimited stock bounds, exact wallet capacity, aggregate review spend and capability alternatives are coherent.")
 		quit(0)
 		return
 	for failure in failures:

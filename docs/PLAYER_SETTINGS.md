@@ -122,13 +122,16 @@ Player settings use schema `2`. The nested control profile uses its own schema s
 
 The guarded write sequence is:
 
-1. Sanitize every recognised setting and binding descriptor.
-2. Validate schemas, value ranges, required actions, device coverage, physical-key policy, reserved inputs and duplicate signatures.
-3. Write the complete settings object to a temporary file.
-4. Flush and close it.
-5. Rotate the previous valid primary file into a backup.
-6. Promote the temporary file atomically.
-7. Restore the previous valid file if promotion fails.
+1. Validate the raw nested binding profile before sanitization, temporary-file creation or backup rotation.
+2. Sanitize scalar preferences and canonicalize the already-valid binding descriptors.
+3. Validate the complete current settings schema and bounded values.
+4. Write the complete settings object to a temporary file.
+5. Flush and close it.
+6. Rotate the previous valid primary file into a backup.
+7. Promote the temporary file atomically.
+8. Restore the previous valid file if promotion fails.
+
+A malformed control profile exits before any file mutation. It leaves the valid primary file at the primary path, creates no temporary file, rotates no backup, and cannot make the next load appear to be a recovery.
 
 An invalid primary file is never rotated over a known-good backup. On startup, the store tries the primary file, then the backup, then safe defaults.
 
@@ -166,6 +169,9 @@ The regression suite verifies:
 - conflict-safe binding swaps;
 - exact runtime `InputMap` replacement;
 - atomic custom-binding persistence;
+- rejected malformed control writes leaving the primary file in place;
+- rejected malformed control writes creating no backup or temporary file;
+- a clean primary load, rather than backup recovery, after a rejected write;
 - bounded Controls pagination at 640 by 360;
 - immediate dynamic prompt updates;
 - binding-cache rebuilds only at profile mutation boundaries;
@@ -191,6 +197,7 @@ The regression suite verifies:
 - Store controller axes with explicit direction and ignore small capture noise.
 - Apply the complete binding profile through `InputMap`; do not maintain a parallel gameplay-input system.
 - Use conflict-safe swaps instead of duplicate managed bindings.
+- Validate raw controls before sanitization or any atomic-writer file mutation.
 - Rebuild control rows and prompt-label caches only when the validated profile changes.
 - Keep draw-time hint reads allocation-bounded and free of full-profile sanitization.
 - Keep scalar Audio and presentation reads independent from nested control descriptors.

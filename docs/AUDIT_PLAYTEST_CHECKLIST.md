@@ -55,6 +55,13 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Exhaust ranged ammunition and verify melee or merchant recovery remains viable.
 - Confirm conditional merchants are not the only solution to the condition that unlocks them.
 - Test starting balances against essential purchases.
+- Split a required quantity across two bound merchants and confirm their finite stock combines instead of producing `economy.progression_item_not_for_sale`.
+- Give the same required item valid stock in two independent currencies and confirm the audit evaluates each wallet separately rather than comparing nominal currency numbers.
+- Verify the reported affordable-unit capacity matches the cheapest valid stock order inside each currency.
+- Confirm a complete stock route that exceeds the starting wallets produces an affordability warning rather than a not-for-sale blocker.
+- Create two individually affordable, merchant-only progression purchases in the same currency whose combined minimum cost exceeds the starting balance.
+- Confirm the report emits `economy.cumulative_progression_purchase_unaffordable` with that currency as context.
+- Confirm multi-currency alternatives and capability-equipment choices are not added to the cumulative total without proof that one exact route is mandatory.
 - For every affordability warning, document the earliest guaranteed currency source and its minimum value.
 - Spend currency on optional goods before the required purchase and confirm the campaign still offers a recovery route.
 - Verify failed purchases and sales remain transactional.

@@ -141,16 +141,16 @@ Warnings:
 
 The first two warnings are emitted when valid merchant stock can provide the requirement but the starting wallets cannot fund the complete quantity. The message reports affordable unit capacity per currency instead of choosing a misleading numerically smallest currency.
 
-The cumulative warning is a conservative lower-bound check. It considers progression-item purchases only when:
+The cumulative warning is an aggregate review envelope, not proof of one mandatory route or a minimum journey cost. It considers progression-item purchases only when:
 
 - every usable source is a merchant;
 - all valid routes use one currency;
 - the item is individually affordable from that currency’s starting balance;
-- at least two such requirements share the currency.
+- at least two such statically identified requirements share the currency.
 
-If their minimum complete costs together exceed the starting balance, the report requires evidence of cumulative earning and spending order. Multi-currency alternatives and capability-item overlaps are excluded from this total because the static records do not prove which option the player must choose.
+If their minimum complete costs together exceed the starting balance, the report asks authors to document which requirements actually co-occur and where cumulative earnings are available. Disconnected or optional campaign branches may legitimately explain the total. Multi-currency alternatives and capability-item overlaps are excluded because the static records do not prove which option the player must choose.
 
-A price or cumulative total above the starting balance is a warning, not a blocker. Enemy rewards, quest rewards and player sales may provide an intentional earning route. Authors must prove that route occurs before the purchase becomes mandatory and cannot itself depend on the purchase.
+A price or aggregate review total above the starting balance is a warning, not a blocker. Enemy rewards, quest rewards and player sales may provide an intentional earning route. Authors must prove that route occurs before the relevant purchase becomes mandatory and cannot itself depend on that purchase.
 
 The probe does not assume all optional upgrades must be affordable at campaign start. It evaluates only items and capabilities already identified as progression requirements.
 

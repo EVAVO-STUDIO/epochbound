@@ -49,6 +49,26 @@ func test_region_validation() -> void:
 	check(contains_fragment(errors, "max_catchup_cycles"), "Out-of-range catch-up limits must be rejected.")
 	check(contains_fragment(errors, "repeated"), "Duplicate supply routes must be rejected.")
 
+	var type_errors: Array[String] = []
+	var type_warnings: Array[String] = []
+	var type_sources: Dictionary = {}
+	SupplyValidator.validate_region_records(
+		[{
+			"id": 7,
+			"display_name": true,
+			"restock_interval_seconds": "300",
+			"max_catchup_cycles": 2.0
+		}],
+		"test/type-errors.json",
+		type_sources,
+		type_errors,
+		type_warnings
+	)
+	check(contains_fragment(type_errors, "id must be a string"), "Supply route IDs must reject numeric coercion.")
+	check(contains_fragment(type_errors, "display_name must be a string"), "Supply route names must reject boolean coercion.")
+	check(contains_fragment(type_errors, "restock_interval_seconds must be numeric"), "Supply intervals must reject numeric strings.")
+	check(contains_fragment(type_errors, "max_catchup_cycles must be an integer"), "Supply catch-up limits must reject floating-point values.")
+
 
 func test_merchant_and_stock_validation() -> void:
 	var regions: Dictionary = {
@@ -69,6 +89,17 @@ func test_merchant_and_stock_validation() -> void:
 				{"item_id": "tool", "quantity": 1, "unlimited": false, "restock_quantity": 1, "restock_target": 1},
 				{"item_id": "bolts", "quantity": 20, "unlimited": false, "restock_quantity": 5, "restock_target": 10}
 			]
+		},
+		"typed_stock_merchant": {
+			"id": "typed_stock_merchant",
+			"supply_region_id": 9,
+			"stock": [{
+				"item_id": "tonic",
+				"quantity": 1,
+				"unlimited": false,
+				"restock_quantity": "1",
+				"restock_target": 3.0
+			}]
 		}
 	}
 	var catalog: Dictionary = {"supply_regions": [], "merchants": merchants.values()}
@@ -89,6 +120,9 @@ func test_merchant_and_stock_validation() -> void:
 	check(contains_fragment(errors, "unlimited stock cannot define"), "Unlimited stock must reject replenishment fields.")
 	check(contains_fragment(errors, "only consumable, material or ammunition"), "Equipment must remain outside automatic restocking.")
 	check(contains_fragment(errors, "cannot be lower than the initial quantity"), "Restock targets below initial stock must be rejected.")
+	check(contains_fragment(errors, "supply_region_id must be a string"), "Merchant routes must reject numeric coercion.")
+	check(contains_fragment(errors, "restock_quantity must be an integer"), "Restock quantities must reject numeric strings.")
+	check(contains_fragment(errors, "restock_target must be an integer"), "Restock targets must reject floating-point values.")
 
 	var no_route_errors: Array[String] = []
 	var no_route_warnings: Array[String] = []
@@ -157,6 +191,21 @@ func test_profile_validation() -> void:
 	check(errors.is_empty(), "A pre-supply compatibility payload must not be rejected solely for pending initialisation.")
 	check(contains_fragment(warnings, "will replace them"), "Pending initialisation with stale cycle data must be explained.")
 
+	errors.clear()
+	warnings.clear()
+	SupplyValidator.validate_profile_supply(
+		{
+			"supply_regions_initialized": "true",
+			"supply_region_cycles": {"known_route": 1.0}
+		},
+		regions,
+		360.0,
+		errors,
+		warnings
+	)
+	check(contains_fragment(errors, "supply_regions_initialized must be boolean"), "Supply initialisation state must reject string coercion.")
+	check(contains_fragment(errors, "must be an integer"), "Saved supply cycles must reject floating-point coercion.")
+
 
 func contains_fragment(messages: Variant, fragment: String) -> bool:
 	if typeof(messages) != TYPE_ARRAY:
@@ -174,7 +223,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Regional supply validation-edge smoke test passed: route IDs, intervals, catch-up limits, scarcity kinds, targets, bindings and saved cycles fail closed.")
+		print("Regional supply validation-edge smoke test passed: route IDs, field types, intervals, catch-up limits, scarcity kinds, targets, bindings and saved cycles fail closed.")
 		quit(0)
 		return
 	for failure in failures:

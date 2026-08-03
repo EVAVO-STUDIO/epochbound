@@ -22,6 +22,15 @@ var control_return_index := 0
 var control_window_start := 0
 var control_capture_event_consumed := false
 
+# Binding profiles are sanitised and validated only when settings actually
+# change. Drawing and prompt code consume these bounded caches instead of
+# rebuilding the full fourteen-action profile every frame.
+var input_binding_profile_cache: Dictionary = {}
+var input_action_hint_cache: Dictionary = {}
+var input_device_hint_cache: Dictionary = {}
+var control_binding_row_cache: Dictionary = {}
+var input_binding_cache_revision := 0
+
 var supply_region_definitions: Dictionary = {}
 var supply_region_cycles: Dictionary = {}
 var supply_regions_initialized := false
@@ -30,7 +39,10 @@ var last_supply_delivery: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
-	apply_input_bindings()
+	# The virtual settings-load hook normally builds this during super._ready().
+	# Keep a guarded fallback for stripped-down tests or custom runtime entry.
+	if input_binding_profile_cache.is_empty():
+		apply_input_bindings()
 
 
 func _input(event: InputEvent) -> void:
@@ -51,8 +63,37 @@ func apply_input_bindings() -> bool:
 		player_settings_notice = "CONTROLS FAILED: %s" % format_errors(result.get("errors", []))
 		player_settings_notice_timer = 3.0
 		return false
-	player_settings["input_bindings"] = result.get("profile", profile)
+	var applied_value: Variant = result.get("profile", profile)
+	var applied: Dictionary = applied_value if typeof(applied_value) == TYPE_DICTIONARY else profile
+	player_settings["input_bindings"] = applied.duplicate(true)
+	rebuild_input_binding_cache(applied)
 	return true
+
+
+func rebuild_input_binding_cache(profile_value: Variant) -> void:
+	var profile := PlayerInputBindings.sanitize_profile(profile_value)
+	input_binding_profile_cache = profile.duplicate(true)
+	input_action_hint_cache = {}
+	input_device_hint_cache = {
+		PlayerInputBindings.DEVICE_KEYBOARD: {},
+		PlayerInputBindings.DEVICE_GAMEPAD: {}
+	}
+	control_binding_row_cache = {}
+	for action_id in PlayerInputBindings.managed_action_ids():
+		input_action_hint_cache[action_id] = PlayerInputBindings.action_hint(profile, action_id)
+		for device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
+			var device_cache: Dictionary = input_device_hint_cache.get(device, {})
+			device_cache[action_id] = PlayerInputBindings.device_binding_text(profile, action_id, device)
+			input_device_hint_cache[device] = device_cache
+	control_binding_row_cache[PlayerInputBindings.DEVICE_KEYBOARD] = PlayerInputBindings.rows(
+		profile,
+		PlayerInputBindings.DEVICE_KEYBOARD
+	)
+	control_binding_row_cache[PlayerInputBindings.DEVICE_GAMEPAD] = PlayerInputBindings.rows(
+		profile,
+		PlayerInputBindings.DEVICE_GAMEPAD
+	)
+	input_binding_cache_revision += 1
 
 
 func update_player_settings_menu() -> void:
@@ -100,7 +141,7 @@ func close_control_bindings() -> bool:
 	cancel_control_capture(false)
 	control_bindings_open = false
 	player_settings_index = clampi(control_return_index, 0, maxi(0, PlayerSettings.entries().size() - 1))
-	player_settings_notice = "CONTROL CHANGES ARE PENDING SAVE"
+	player_settings_notice = "CONTROL CHANGES ARE PENDING SAVE" if player_settings_dirty else "CONTROLS UNCHANGED"
 	player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 	return true
 
@@ -138,8 +179,15 @@ func update_control_bindings_menu() -> void:
 		activate_selected_control_binding()
 
 
+func cached_control_binding_rows(device: String) -> Array:
+	if input_binding_profile_cache.is_empty():
+		input_binding_profile()
+	var rows_value: Variant = control_binding_row_cache.get(device, [])
+	return (rows_value as Array).duplicate(true) if typeof(rows_value) == TYPE_ARRAY else []
+
+
 func control_binding_entries() -> Array:
-	var rows := PlayerInputBindings.rows(input_binding_profile(), control_binding_device)
+	var rows := cached_control_binding_rows(control_binding_device)
 	rows.append({"id": "reset_controls", "label": "RESET CONTROLS", "kind": "action", "value": ""})
 	rows.append({"id": "back", "label": "BACK TO OPTIONS", "kind": "action", "value": ""})
 	return rows
@@ -273,12 +321,16 @@ func reset_control_bindings() -> bool:
 
 
 func input_binding_profile() -> Dictionary:
-	return PlayerSettings.input_bindings(player_settings)
+	if input_binding_profile_cache.is_empty():
+		rebuild_input_binding_cache(PlayerSettings.input_bindings(player_settings))
+	return input_binding_profile_cache.duplicate(true)
 
 
 func input_action_hint(action_id: String) -> String:
 	if PlayerInputBindings.managed_action_ids().has(action_id):
-		return PlayerInputBindings.action_hint(input_binding_profile(), action_id)
+		if input_binding_profile_cache.is_empty():
+			input_binding_profile()
+		return str(input_action_hint_cache.get(action_id, action_id.replace("_", " ").to_upper()))
 	match action_id:
 		"options_menu":
 			return "O"
@@ -290,16 +342,50 @@ func input_action_hint(action_id: String) -> String:
 
 
 func input_action_device_hint(action_id: String, device: String) -> String:
-	return PlayerInputBindings.device_binding_text(input_binding_profile(), action_id, device) if PlayerInputBindings.managed_action_ids().has(action_id) else input_action_hint(action_id)
+	if not PlayerInputBindings.managed_action_ids().has(action_id):
+		return input_action_hint(action_id)
+	if input_binding_profile_cache.is_empty():
+		input_binding_profile()
+	var device_value: Variant = input_device_hint_cache.get(device, {})
+	var device_cache: Dictionary = device_value if typeof(device_value) == TYPE_DICTIONARY else {}
+	return str(device_cache.get(action_id, input_action_hint(action_id)))
 
 
 func control_binding_device_label() -> String:
 	return "KEYBOARD" if control_binding_device == PlayerInputBindings.DEVICE_KEYBOARD else "CONTROLLER"
 
 
+func input_binding_cache_contract_ok() -> bool:
+	if input_binding_cache_revision <= 0 or input_binding_profile_cache.is_empty():
+		return false
+	if not bool(PlayerInputBindings.validate_profile(input_binding_profile_cache).get("ok", false)):
+		return false
+	var actions := PlayerInputBindings.managed_action_ids()
+	for action_id in actions:
+		if str(input_action_hint_cache.get(action_id, "")).is_empty():
+			return false
+		for device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
+			var device_value: Variant = input_device_hint_cache.get(device, {})
+			if typeof(device_value) != TYPE_DICTIONARY or str((device_value as Dictionary).get(action_id, "")).is_empty():
+				return false
+	for device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]:
+		var rows_value: Variant = control_binding_row_cache.get(device, [])
+		if typeof(rows_value) != TYPE_ARRAY or (rows_value as Array).size() != actions.size():
+			return false
+	return true
+
+
 func control_bindings_contract_ok() -> bool:
 	var profile := input_binding_profile()
-	return bool(PlayerInputBindings.validate_profile(profile).get("ok", false)) and PlayerInputBindings.managed_action_ids().size() >= 14 and PlayerInputBindings.input_map_matches(profile) and control_binding_device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD] and control_binding_index >= 0 and control_binding_index < control_binding_entries().size()
+	return (
+		input_binding_cache_contract_ok()
+		and bool(PlayerInputBindings.validate_profile(profile).get("ok", false))
+		and PlayerInputBindings.managed_action_ids().size() >= 14
+		and PlayerInputBindings.input_map_matches(profile)
+		and control_binding_device in [PlayerInputBindings.DEVICE_KEYBOARD, PlayerInputBindings.DEVICE_GAMEPAD]
+		and control_binding_index >= 0
+		and control_binding_index < control_binding_entries().size()
+	)
 
 
 func player_settings_contract_ok() -> bool:

@@ -3,6 +3,7 @@ extends RefCounted
 
 const CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
+const CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"
 const CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"
 const CURRENT_CAMERA_SCRIPT := "res://src/presentation_camera.gd"
 
@@ -27,6 +28,10 @@ const REQUIRED_RUNTIME_METHODS := [
 	"player_setting_bool",
 	"player_settings_rows",
 	"player_settings_contract_ok",
+	"apply_input_bindings",
+	"input_action_hint",
+	"open_control_bindings",
+	"control_bindings_contract_ok",
 	"presentation_overlay_handles_combat_readability",
 	"root_presentation_suppression_contract_ok"
 ]
@@ -58,9 +63,7 @@ static func script_path(object: Object) -> String:
 	if object == null:
 		return ""
 	var script_value: Variant = object.get_script()
-	if script_value is Script:
-		return str((script_value as Script).resource_path)
-	return ""
+	return str((script_value as Script).resource_path) if script_value is Script else ""
 
 
 static func missing_methods(object: Object, required: Array) -> PackedStringArray:
@@ -80,7 +83,6 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 	if runtime == null:
 		errors.append("Runtime scene did not instantiate.")
 		return errors
-
 	var runtime_path := script_path(runtime)
 	if runtime_path != CURRENT_RUNTIME_SCRIPT:
 		errors.append("Runtime root must use %s, found %s." % [CURRENT_RUNTIME_SCRIPT, runtime_path])
@@ -91,9 +93,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 	if audio == null:
 		errors.append("Runtime scene is missing AudioMood.")
 	else:
-		var audio_path := script_path(audio)
-		if audio_path != CURRENT_AUDIO_SCRIPT:
-			errors.append("AudioMood must use %s, found %s." % [CURRENT_AUDIO_SCRIPT, audio_path])
+		if script_path(audio) != CURRENT_AUDIO_SCRIPT:
+			errors.append("AudioMood must use %s, found %s." % [CURRENT_AUDIO_SCRIPT, script_path(audio)])
 		for method_name in missing_methods(audio, REQUIRED_AUDIO_METHODS):
 			errors.append("AudioMood is missing method '%s'." % method_name)
 		if audio.has_method("player_settings_audio_contract_ok") and not bool(audio.call("player_settings_audio_contract_ok")):
@@ -103,9 +104,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 	if not camera is Camera2D:
 		errors.append("Runtime scene is missing PresentationCamera as Camera2D.")
 	else:
-		var camera_path := script_path(camera)
-		if camera_path != CURRENT_CAMERA_SCRIPT:
-			errors.append("PresentationCamera must use %s, found %s." % [CURRENT_CAMERA_SCRIPT, camera_path])
+		if script_path(camera) != CURRENT_CAMERA_SCRIPT:
+			errors.append("PresentationCamera must use %s, found %s." % [CURRENT_CAMERA_SCRIPT, script_path(camera)])
 		if not camera.has_method("desired_camera_offset"):
 			errors.append("PresentationCamera is missing desired_camera_offset().")
 
@@ -119,24 +119,34 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 	if overlay == null:
 		errors.append("Runtime scene is missing PresentationOverlay.")
 	else:
-		var overlay_path := script_path(overlay)
-		if overlay_path != CURRENT_OVERLAY_SCRIPT:
-			errors.append("PresentationOverlay must use %s, found %s." % [CURRENT_OVERLAY_SCRIPT, overlay_path])
+		if script_path(overlay) != CURRENT_OVERLAY_SCRIPT:
+			errors.append("PresentationOverlay must use %s, found %s." % [CURRENT_OVERLAY_SCRIPT, script_path(overlay)])
 		for method_name in missing_methods(overlay, REQUIRED_OVERLAY_METHODS):
 			errors.append("PresentationOverlay is missing method '%s'." % method_name)
 		if overlay.has_method("player_settings_overlay_contract_ok") and not bool(overlay.call("player_settings_overlay_contract_ok")):
 			errors.append("PresentationOverlay did not preserve the player-settings presentation contract.")
 
+	var controls_overlay := runtime.get_node_or_null("PresentationLayer/PlayerControlsOverlay")
+	if controls_overlay == null:
+		errors.append("Runtime scene is missing PlayerControlsOverlay.")
+	else:
+		if script_path(controls_overlay) != CURRENT_CONTROLS_OVERLAY_SCRIPT:
+			errors.append("PlayerControlsOverlay must use %s, found %s." % [CURRENT_CONTROLS_OVERLAY_SCRIPT, script_path(controls_overlay)])
+		if not controls_overlay.has_method("control_remapping_overlay_contract_ok"):
+			errors.append("PlayerControlsOverlay is missing control_remapping_overlay_contract_ok().")
+		elif not bool(controls_overlay.call("control_remapping_overlay_contract_ok")):
+			errors.append("PlayerControlsOverlay did not preserve the control-remapping presentation contract.")
+
 	if runtime.has_method("supply_runtime_contract_ok") and not bool(runtime.call("supply_runtime_contract_ok")):
 		errors.append("Runtime root did not initialise every regional supply cycle.")
 	if runtime.has_method("player_settings_contract_ok") and not bool(runtime.call("player_settings_contract_ok")):
 		errors.append("Runtime root did not confirm valid player-local settings.")
-	if runtime.has_method("presentation_overlay_handles_combat_readability"):
-		if not bool(runtime.call("presentation_overlay_handles_combat_readability")):
-			errors.append("Runtime root did not recognise presentation-owned combat rendering.")
-	if runtime.has_method("root_presentation_suppression_contract_ok"):
-		if not bool(runtime.call("root_presentation_suppression_contract_ok")):
-			errors.append("Runtime root did not confirm selective combat presentation suppression.")
+	if runtime.has_method("control_bindings_contract_ok") and not bool(runtime.call("control_bindings_contract_ok")):
+		errors.append("Runtime root did not apply a valid complete control-binding profile.")
+	if runtime.has_method("presentation_overlay_handles_combat_readability") and not bool(runtime.call("presentation_overlay_handles_combat_readability")):
+		errors.append("Runtime root did not recognise presentation-owned combat rendering.")
+	if runtime.has_method("root_presentation_suppression_contract_ok") and not bool(runtime.call("root_presentation_suppression_contract_ok")):
+		errors.append("Runtime root did not confirm selective combat presentation suppression.")
 	return errors
 
 

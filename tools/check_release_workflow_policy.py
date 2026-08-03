@@ -55,9 +55,7 @@ for name, source in sources.items():
     workflow_events = events(source)
     allowed_events = {"push", "workflow_dispatch"} if name == "validate" else {"workflow_dispatch"}
     if workflow_events != allowed_events:
-        errors.append(
-            f"{name}: expected events {sorted(allowed_events)}, found {sorted(workflow_events)}"
-        )
+        errors.append(f"{name}: expected events {sorted(allowed_events)}, found {sorted(workflow_events)}")
     require(
         name,
         source,
@@ -135,6 +133,7 @@ require(
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_input_bindings.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_audio_mood_runtime.gd",
@@ -165,6 +164,7 @@ require(
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
+        "smoke_input_bindings.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_sprite_animation_runtime.gd",
@@ -184,7 +184,12 @@ require(
     "local_gate",
     local_gate,
     [
+        "compile_player_settings_probe.gd",
         "compile_supply_region_probe.gd",
+        "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
+        "smoke_input_bindings.gd",
+        "Smoke test persistent keyboard and controller remapping",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
@@ -192,13 +197,18 @@ require(
     ],
 )
 
-compile_probe = read("compile_probe", ROOT / "tools/compile_probe.gd")
+settings_compile = read("settings_compile", ROOT / "tools/compile_player_settings_probe.gd")
 require(
-    "compile_probe",
-    compile_probe,
+    "settings_compile",
+    settings_compile,
     [
-        "progression_affordability_audit.gd",
-        "smoke_progression_affordability.gd",
+        "player_input_bindings.gd",
+        "player_settings.gd",
+        "player_settings_store.gd",
+        "player_controls_overlay.gd",
+        "smoke_player_settings.gd",
+        "smoke_player_settings_recovery_edges.gd",
+        "smoke_input_bindings.gd",
     ],
 )
 
@@ -213,6 +223,81 @@ require(
         "supply_region_model.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
+    ],
+)
+
+bindings = read("input_bindings", ROOT / "src/game/player_input_bindings.gd")
+require(
+    "input_bindings",
+    bindings,
+    [
+        "RESERVED_ESCAPE_PHYSICAL",
+        "RESERVED_OPTIONS_PHYSICAL",
+        "RESERVED_START_BUTTON",
+        "apply_profile",
+        "input_map_matches",
+        "swapped_with",
+    ],
+)
+forbid(
+    "input_bindings",
+    bindings,
+    [
+        '"options_menu",',
+        '"pause_game",',
+        "Time.get_unix_time",
+        "OS.get_unix_time",
+    ],
+)
+
+settings_model = read("player_settings", ROOT / "src/game/player_settings.gd")
+require(
+    "player_settings",
+    settings_model,
+    [
+        "CURRENT_SCHEMA := 2",
+        '"input_bindings"',
+        '"controls"',
+        "PlayerInputBindings.validate_profile",
+    ],
+)
+
+runtime = read("runtime_controls", ROOT / "src/presentation_runtime_current.gd")
+require(
+    "runtime_controls",
+    runtime,
+    [
+        "control_capture_event_consumed",
+        "apply_input_bindings",
+        "open_control_bindings",
+        "handle_control_capture_event",
+        "input_action_hint",
+        "control_bindings_contract_ok",
+    ],
+)
+
+controls_overlay = read("controls_overlay", ROOT / "src/player_controls_overlay.gd")
+require(
+    "controls_overlay",
+    controls_overlay,
+    [
+        "draw_dynamic_context_prompt",
+        "draw_dynamic_reload_hint",
+        "draw_control_settings_panel",
+        "control_remapping_overlay_contract_ok",
+    ],
+)
+
+control_smoke = read("control_smoke", ROOT / "tools/smoke_input_bindings.gd")
+require(
+    "control_smoke",
+    control_smoke,
+    [
+        "all fourteen gameplay actions",
+        "Small analogue noise must not become a binding",
+        "Binding a used key must swap",
+        "Reserved recovery inputs must be consumed",
+        "Atomic persistence must retain the custom keyboard binding exactly",
     ],
 )
 
@@ -273,5 +358,5 @@ print("epochbound_release_workflow_policy_passed")
 print("- primary validation runs automatically for exact main-push SHAs and remains manually dispatchable")
 print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
-print("- runtime composition, player settings, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

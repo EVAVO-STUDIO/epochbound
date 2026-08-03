@@ -217,7 +217,9 @@ static func validate_region_records(
 		else:
 			region_id = str(id_value)
 		var prefix := "%s/supply_region/%s" % [path, region_id if not region_id.is_empty() else "region"]
-		if not region_id.is_empty():
+		if typeof(id_value) == TYPE_STRING and region_id.is_empty():
+			errors.append("%s: id is required." % prefix)
+		elif not region_id.is_empty():
 			if Repository.normalise_id(region_id) != region_id or region_id.length() > SupplyCatalog.MAX_REGION_ID_LENGTH:
 				errors.append("%s: id must be a normalised lowercase identifier no longer than %d characters." % [prefix, SupplyCatalog.MAX_REGION_ID_LENGTH])
 			elif local_ids.has(region_id):
@@ -238,10 +240,12 @@ static func validate_region_records(
 			elif display_name.length() > SupplyCatalog.MAX_DISPLAY_NAME_LENGTH:
 				errors.append("%s: display_name is too long." % prefix)
 		var interval_value: Variant = data.get("restock_interval_seconds", null)
-		if typeof(interval_value) not in [TYPE_INT, TYPE_FLOAT]:
+		var interval := 0.0
+		var interval_valid := typeof(interval_value) in [TYPE_INT, TYPE_FLOAT]
+		if not interval_valid:
 			errors.append("%s: restock_interval_seconds must be numeric." % prefix)
 		else:
-			var interval := float(interval_value)
+			interval = float(interval_value)
 			if interval < SupplyCatalog.MIN_INTERVAL_SECONDS or interval > SupplyCatalog.MAX_INTERVAL_SECONDS:
 				errors.append("%s: restock_interval_seconds must be between %.0f and %.0f." % [prefix, SupplyCatalog.MIN_INTERVAL_SECONDS, SupplyCatalog.MAX_INTERVAL_SECONDS])
 		var catchup_value: Variant = data.get("max_catchup_cycles", null)
@@ -251,7 +255,7 @@ static func validate_region_records(
 			var catchup := int(catchup_value)
 			if catchup < 1 or catchup > SupplyCatalog.MAX_CATCHUP_CYCLES:
 				errors.append("%s: max_catchup_cycles must be between 1 and %d." % [prefix, SupplyCatalog.MAX_CATCHUP_CYCLES])
-			elif float(interval_value) >= 21600.0 and catchup == 1:
+			elif interval_valid and interval >= 21600.0 and catchup == 1:
 				warnings.append("%s: a long route with one catch-up cycle may recover stock very slowly after extended play." % prefix)
 
 

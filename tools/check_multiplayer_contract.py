@@ -75,7 +75,7 @@ require(
     [
         "validate_multiplayer_only",
         "validate_profile_multiplayer",
-        "default_port must be an integer",
+        'validate_optional_int_range(policy, "default_port"',
         "max_allies",
         "max_invaders",
         "only PvP areas may allow invaders",
@@ -134,6 +134,7 @@ require(
     session_path,
     session,
     [
+        'MENU_ENTRIES := ["HOST CO-OP", "JOIN CO-OP", "INVADE", "BACK"]',
         "ENetMultiplayerPeer.new()",
         "create_server(resolved_port",
         "create_client(connect_address",
@@ -220,10 +221,8 @@ require(
     overlay,
     [
         "HOST-AUTHORITATIVE",
-        "HOST CO-OP",
-        "JOIN CO-OP",
-        "INVADE",
         "PVP REWARDS SESSION-ONLY",
+        "draw_online_lobby",
         "draw_area_boundary",
         "draw_remote_peers",
         "multiplayer_overlay_contract_ok",

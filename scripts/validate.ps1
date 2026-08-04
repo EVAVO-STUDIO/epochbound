@@ -7,8 +7,8 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 function Invoke-GodotStep {
     param(
-        [Parameter(Mandatory = $true)] [string[]]$Arguments,
-        [Parameter(Mandatory = $true)] [string]$Description
+        [Parameter(Mandatory = $true)] [string]$Description,
+        [Parameter(Mandatory = $true)] [string[]]$Arguments
     )
     Write-Host "`n==> $Description"
     $output = & $GodotExecutable @Arguments 2>&1

@@ -85,7 +85,7 @@ func rewrite_with_invalid_content(source_path: String, destination_path: String,
 		record["size"] = data.size()
 		record["sha256"] = CampaignPackage.sha256_bytes(data)
 		rewritten_records.append(record)
-		if writer.start_file(archive_path, 420, CampaignPackage.FIXED_ZIP_TIME) != OK:
+		if writer.start_file(archive_path) != OK:
 			writer.close()
 			reader.close()
 			return false
@@ -95,7 +95,7 @@ func rewrite_with_invalid_content(source_path: String, destination_path: String,
 			return false
 	manifest["files"] = rewritten_records
 	var manifest_bytes := (JSON.stringify(manifest, "\t", true) + "\n").to_utf8_buffer()
-	if writer.start_file(CampaignPackage.MANIFEST_PATH, 420, CampaignPackage.FIXED_ZIP_TIME) != OK:
+	if writer.start_file(CampaignPackage.MANIFEST_PATH) != OK:
 		writer.close()
 		reader.close()
 		return false

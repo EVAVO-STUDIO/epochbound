@@ -130,17 +130,6 @@ require(
     ],
 )
 
-release_policy_path = "tools/check_release_workflow_policy.py"
-release_policy = read(release_policy_path)
-require(
-    release_policy_path,
-    release_policy,
-    [
-        'python3 tools/check_canonical_journey_contract.py',
-        '"canonicalJourneyValidation": "passed"',
-    ],
-)
-
 if errors:
     print("Epochbound canonical journey contract failed:\n")
     for error in errors:

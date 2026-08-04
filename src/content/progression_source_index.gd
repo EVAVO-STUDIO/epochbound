@@ -174,7 +174,7 @@ static func collect_item_grant_sources(
 		var gate_items := inherited_items.duplicate()
 		var gate_capabilities := inherited_capabilities.duplicate()
 		collect_gate_requirements(data, gate_items, gate_capabilities)
-		var gated := inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
+		var gated: bool = inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
 		if str(data.get("type", "")) == "grant_item":
 			add_item_source(output, str(data.get("item_id", "")), {
 				"kind": "authored_effect",
@@ -185,7 +185,7 @@ static func collect_item_grant_sources(
 				"gate_capabilities": gate_capabilities.duplicate()
 			})
 		for grant_field in ["item_grants", "reward_items"]:
-			var grant_is_gated := gated or grant_field == "reward_items"
+			var grant_is_gated: bool = gated or grant_field == "reward_items"
 			for grant_value in data.get(grant_field, []):
 				if typeof(grant_value) != TYPE_DICTIONARY:
 					continue
@@ -200,7 +200,7 @@ static func collect_item_grant_sources(
 				})
 		for key_value in data.keys():
 			var key := str(key_value)
-			var child_gated := gated or ["rewards", "defeat_effects"].has(key)
+			var child_gated: bool = gated or ["rewards", "defeat_effects"].has(key)
 			collect_item_grant_sources(data.get(key_value), context, output, gate_items, gate_capabilities, child_gated)
 	elif typeof(value) == TYPE_ARRAY:
 		for child_value in value:
@@ -220,7 +220,7 @@ static func collect_recipe_unlock_sources(
 		var gate_items := inherited_items.duplicate()
 		var gate_capabilities := inherited_capabilities.duplicate()
 		collect_gate_requirements(data, gate_items, gate_capabilities)
-		var gated := inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
+		var gated: bool = inherited_gated or not gate_items.is_empty() or not gate_capabilities.is_empty() or source_record_is_gated(data)
 		if str(data.get("type", "")) == "unlock_recipe":
 			add_recipe_unlock_source(output, str(data.get("recipe_id", "")), {
 				"context": context,
@@ -239,7 +239,7 @@ static func collect_recipe_unlock_sources(
 				})
 		for key_value in data.keys():
 			var key := str(key_value)
-			var child_gated := gated or ["rewards", "defeat_effects"].has(key)
+			var child_gated: bool = gated or ["rewards", "defeat_effects"].has(key)
 			collect_recipe_unlock_sources(data.get(key_value), context, output, gate_items, gate_capabilities, child_gated)
 	elif typeof(value) == TYPE_ARRAY:
 		for child_value in value:

@@ -5,6 +5,7 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const BaseValidator = preload("res://src/content/sprite_animation_strict_validator.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const SupplyValidator = preload("res://src/content/supply_region_validator.gd")
+const MultiplayerValidator = preload("res://src/content/multiplayer_area_validator.gd")
 
 
 static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
@@ -15,38 +16,57 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	append_messages(warnings, base_report.get("warnings", []))
 	var region_count := 0
 	var renewable_count := 0
+	var multiplayer_campaign_count := 0
+	var multiplayer_area_count := 0
+	var pvp_area_count := 0
 	for value in Repository.scan_campaigns(root):
 		if typeof(value) != TYPE_DICTIONARY:
 			continue
-		var report := SupplyValidator.validate_supply_only(str((value as Dictionary).get("path", "")))
-		append_messages(errors, report.get("errors", []))
-		append_messages(warnings, report.get("warnings", []))
-		region_count += int(report.get("supply_region_count", 0))
-		renewable_count += int(report.get("renewable_stock_count", 0))
+		var path := str((value as Dictionary).get("path", ""))
+		var supply_report := SupplyValidator.validate_supply_only(path)
+		append_messages(errors, supply_report.get("errors", []))
+		append_messages(warnings, supply_report.get("warnings", []))
+		region_count += int(supply_report.get("supply_region_count", 0))
+		renewable_count += int(supply_report.get("renewable_stock_count", 0))
+		var multiplayer_report := MultiplayerValidator.validate_multiplayer_only(path)
+		append_messages(errors, multiplayer_report.get("errors", []))
+		append_messages(warnings, multiplayer_report.get("warnings", []))
+		multiplayer_campaign_count += int(multiplayer_report.get("multiplayer_campaign_count", 0))
+		multiplayer_area_count += int(multiplayer_report.get("multiplayer_area_count", 0))
+		pvp_area_count += int(multiplayer_report.get("pvp_area_count", 0))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
 	output["warnings"] = warnings
 	output["supply_region_count"] = region_count
 	output["renewable_stock_count"] = renewable_count
+	output["multiplayer_campaign_count"] = multiplayer_campaign_count
+	output["multiplayer_area_count"] = multiplayer_area_count
+	output["pvp_area_count"] = pvp_area_count
 	return output
 
 
 static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var base_report := BaseValidator.validate_campaign_path(campaign_path)
 	var supply_report := SupplyValidator.validate_supply_only(campaign_path)
+	var multiplayer_report := MultiplayerValidator.validate_multiplayer_only(campaign_path)
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
 	append_messages(errors, supply_report.get("errors", []))
+	append_messages(errors, multiplayer_report.get("errors", []))
 	append_messages(warnings, base_report.get("warnings", []))
 	append_messages(warnings, supply_report.get("warnings", []))
+	append_messages(warnings, multiplayer_report.get("warnings", []))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
 	output["warnings"] = warnings
 	output["supply_region_count"] = supply_report.get("supply_region_count", 0)
 	output["renewable_stock_count"] = supply_report.get("renewable_stock_count", 0)
+	output["multiplayer_campaign_count"] = multiplayer_report.get("multiplayer_campaign_count", 0)
+	output["multiplayer_area_count"] = multiplayer_report.get("multiplayer_area_count", 0)
+	output["pvp_area_count"] = multiplayer_report.get("pvp_area_count", 0)
 	return output
 
 
@@ -67,13 +87,15 @@ static func validate_profile(profile: Dictionary, campaign_path: String) -> Dict
 	var metadata: Dictionary = metadata_value if typeof(metadata_value) == TYPE_DICTIONARY else {}
 	var payload_value: Variant = profile.get("payload", {})
 	if typeof(payload_value) == TYPE_DICTIONARY:
+		var payload: Dictionary = payload_value
 		SupplyValidator.validate_profile_supply(
-			payload_value as Dictionary,
+			payload,
 			supply_result.get("definitions", {}),
 			maxf(0.0, float(metadata.get("play_time_seconds", 0.0))),
 			errors,
 			warnings
 		)
+		MultiplayerValidator.validate_profile_multiplayer(payload, errors)
 	return {"ok": errors.is_empty(), "errors": errors, "warnings": warnings}
 
 

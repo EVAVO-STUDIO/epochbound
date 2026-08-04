@@ -86,6 +86,9 @@ jobs:
       - name: Validate regional supply integration contract
         run: python3 tools/check_supply_region_contract.py
 
+      - name: Validate canonical journey integration contract
+        run: python3 tools/check_canonical_journey_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -139,7 +142,7 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.5",
+              "schemaVersion": "1.6",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -147,6 +150,7 @@ jobs:
               "runtimeCompositionValidation": "passed",
               "playerSettingsValidation": "passed",
               "supplyRegionValidation": "passed",
+              "canonicalJourneyValidation": "passed",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",

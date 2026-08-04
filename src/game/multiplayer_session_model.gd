@@ -23,10 +23,10 @@ const MAX_NAME_LENGTH := 18
 
 
 static func sanitize_name(value: Variant, fallback: String = "WANDERER") -> String:
-	var text := str(value).strip_edges()
-	var output := ""
+	var text: String = str(value).strip_edges()
+	var output: String = ""
 	for index in range(text.length()):
-		var character := text.substr(index, 1)
+		var character: String = text.substr(index, 1)
 		if character.to_ascii_buffer().size() == 1 and (
 			character >= "A" and character <= "Z"
 			or character >= "a" and character <= "z"
@@ -41,7 +41,7 @@ static func sanitize_name(value: Variant, fallback: String = "WANDERER") -> Stri
 
 
 static func role_count(peers: Dictionary, role: String) -> int:
-	var count := 0
+	var count: int = 0
 	for value in peers.values():
 		if typeof(value) == TYPE_DICTIONARY and str((value as Dictionary).get("role", "")) == role:
 			count += 1
@@ -62,17 +62,17 @@ static func register_peer(
 		return {"ok": false, "reason": "invalid_peer_id", "peer": {}}
 	if peers.has(peer_id):
 		return {"ok": false, "reason": "duplicate_peer", "peer": {}}
-	var role := requested_role
+	var role: String = requested_role
 	if role not in [ROLE_ALLY, ROLE_INVADER]:
 		role = ROLE_ALLY
-	var capacity := int(policy.get("max_invaders", 0)) if role == ROLE_INVADER else int(policy.get("max_allies", 0))
+	var capacity: int = int(policy.get("max_invaders", 0)) if role == ROLE_INVADER else int(policy.get("max_allies", 0))
 	if role_count(peers, role) >= capacity:
 		return {
 			"ok": false,
 			"reason": "invader_capacity" if role == ROLE_INVADER else "ally_capacity",
 			"peer": {}
 		}
-	var peer := {
+	var peer: Dictionary = {
 		"peer_id": peer_id,
 		"role": role,
 		"display_name": sanitize_name(display_name, "INVADER" if role == ROLE_INVADER else "ALLY"),
@@ -106,7 +106,7 @@ static func sanitize_input(value: Variant) -> Dictionary:
 	if typeof(value) != TYPE_DICTIONARY:
 		return {"direction": Vector2.ZERO, "attack": false}
 	var source: Dictionary = value
-	var direction := Vector2.ZERO
+	var direction: Vector2 = Vector2.ZERO
 	var direction_value: Variant = source.get("direction", Vector2.ZERO)
 	if direction_value is Vector2:
 		direction = direction_value
@@ -118,7 +118,7 @@ static func sanitize_input(value: Variant) -> Dictionary:
 		direction = Vector2.ZERO
 	if direction.length() > 1.0:
 		direction = direction.normalized()
-	var attack := bool(source.get("attack", false)) if typeof(source.get("attack", false)) == TYPE_BOOL else false
+	var attack: bool = bool(source.get("attack", false)) if typeof(source.get("attack", false)) == TYPE_BOOL else false
 	return {"direction": direction, "attack": attack}
 
 
@@ -133,7 +133,7 @@ static func accept_input(
 	var peer: Dictionary = peers.get(peer_id)
 	if sequence <= int(peer.get("last_sequence", -1)):
 		return {"ok": false, "reason": "stale_sequence"}
-	var input := sanitize_input(payload)
+	var input: Dictionary = sanitize_input(payload)
 	peer["last_sequence"] = sequence
 	peer["direction"] = input.get("direction", Vector2.ZERO)
 	peer["attack_requested"] = bool(input.get("attack", false))
@@ -142,7 +142,7 @@ static func accept_input(
 
 
 static func tick_peer(peer: Dictionary, delta: float) -> Dictionary:
-	var output := peer.duplicate(true)
+	var output: Dictionary = peer.duplicate(true)
 	output["attack_cooldown"] = maxf(0.0, float(output.get("attack_cooldown", 0.0)) - delta)
 	output["hurt_lock"] = maxf(0.0, float(output.get("hurt_lock", 0.0)) - delta)
 	output["pvp_grace"] = maxf(0.0, float(output.get("pvp_grace", 0.0)) - delta)
@@ -162,7 +162,7 @@ static func proposed_position(peer: Dictionary, delta: float) -> Vector2:
 
 
 static func update_facing(peer: Dictionary) -> Dictionary:
-	var output := peer.duplicate(true)
+	var output: Dictionary = peer.duplicate(true)
 	var direction_value: Variant = output.get("direction", Vector2.ZERO)
 	var direction: Vector2 = direction_value if direction_value is Vector2 else Vector2.ZERO
 	if direction.length_squared() > 0.001:
@@ -179,14 +179,14 @@ static func shared_pvp_area(
 		return {}
 	if str(attacker.get("era_id", "")) != str(target.get("era_id", "")):
 		return {}
-	var map_id := str(attacker.get("map_id", ""))
-	var era_id := str(attacker.get("era_id", ""))
+	var map_id: String = str(attacker.get("map_id", ""))
+	var era_id: String = str(attacker.get("era_id", ""))
 	var attacker_position_value: Variant = attacker.get("position", Vector2.ZERO)
 	var target_position_value: Variant = target.get("position", Vector2.ZERO)
 	var attacker_position: Vector2 = attacker_position_value if attacker_position_value is Vector2 else Vector2.ZERO
 	var target_position: Vector2 = target_position_value if target_position_value is Vector2 else Vector2.ZERO
-	var attacker_area := MultiplayerCatalog.active_area(definitions, map_id, era_id, attacker_position)
-	var target_area := MultiplayerCatalog.active_area(definitions, map_id, era_id, target_position)
+	var attacker_area: Dictionary = MultiplayerCatalog.active_area(definitions, map_id, era_id, attacker_position)
+	var target_area: Dictionary = MultiplayerCatalog.active_area(definitions, map_id, era_id, target_position)
 	if (
 		attacker_area.is_empty()
 		or target_area.is_empty()
@@ -211,13 +211,13 @@ static func can_damage_actor(
 		return false
 	if float(attacker.get("pvp_grace", 0.0)) > 0.0 or float(target.get("pvp_grace", 0.0)) > 0.0:
 		return false
-	var attacker_role := str(attacker.get("role", ROLE_ALLY))
-	var target_role := str(target.get("role", ROLE_ALLY))
+	var attacker_role: String = str(attacker.get("role", ROLE_ALLY))
+	var target_role: String = str(target.get("role", ROLE_ALLY))
 	if attacker_role == target_role:
 		return false
-	var invader_involved := attacker_role == ROLE_INVADER or target_role == ROLE_INVADER
+	var invader_involved: bool = attacker_role == ROLE_INVADER or target_role == ROLE_INVADER
 	if not invader_involved:
-		var area := shared_pvp_area(attacker, target, definitions)
+		var area: Dictionary = shared_pvp_area(attacker, target, definitions)
 		return not area.is_empty() and MultiplayerCatalog.friendly_fire_allowed(area, policy)
 	return not shared_pvp_area(attacker, target, definitions).is_empty()
 
@@ -238,15 +238,15 @@ static func peer_facing(peer: Dictionary) -> Vector2:
 
 
 static func in_attack_arc(attacker: Dictionary, target_position: Vector2) -> bool:
-	var origin := peer_attack_origin(attacker)
-	var offset := target_position - origin
+	var origin: Vector2 = peer_attack_origin(attacker)
+	var offset: Vector2 = target_position - origin
 	if offset.length() > ATTACK_RANGE or offset.length_squared() <= 0.001:
 		return offset.length() <= ATTACK_RANGE
 	return peer_facing(attacker).dot(offset.normalized()) >= 0.18
 
 
 static func apply_actor_damage(target: Dictionary, amount: int) -> Dictionary:
-	var output := target.duplicate(true)
+	var output: Dictionary = target.duplicate(true)
 	if float(output.get("hurt_lock", 0.0)) > 0.0:
 		return output
 	output["hurt_lock"] = HURT_LOCK
@@ -270,7 +270,7 @@ static func respawn_peer(
 	map_id: String,
 	era_id: String
 ) -> Dictionary:
-	var output := peer.duplicate(true)
+	var output: Dictionary = peer.duplicate(true)
 	output["position"] = position
 	output["map_id"] = map_id
 	output["era_id"] = era_id
@@ -328,11 +328,11 @@ static func peer_from_snapshot(value: Variant) -> Dictionary:
 	var peer_id_value: Variant = source.get("peer_id", 0)
 	if typeof(peer_id_value) != TYPE_INT or int(peer_id_value) <= 0:
 		return {}
-	var role := str(source.get("role", ""))
+	var role: String = str(source.get("role", ""))
 	if role not in ROLES:
 		return {}
-	var position := vector_from_data(source.get("position"), Vector2.ZERO)
-	var facing := vector_from_data(source.get("facing"), Vector2.DOWN)
+	var position: Vector2 = vector_from_data(source.get("position"), Vector2.ZERO)
+	var facing: Vector2 = vector_from_data(source.get("facing"), Vector2.DOWN)
 	return {
 		"peer_id": int(peer_id_value),
 		"role": role,
@@ -363,7 +363,7 @@ static func vector_from_data(value: Variant, fallback: Vector2) -> Vector2:
 	var data: Dictionary = value
 	if typeof(data.get("x")) not in [TYPE_INT, TYPE_FLOAT] or typeof(data.get("y")) not in [TYPE_INT, TYPE_FLOAT]:
 		return fallback
-	var output := Vector2(float(data.get("x")), float(data.get("y")))
+	var output: Vector2 = Vector2(float(data.get("x")), float(data.get("y")))
 	return output if output.is_finite() else fallback
 
 

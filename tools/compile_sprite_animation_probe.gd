@@ -36,8 +36,11 @@ func _initialize() -> void:
 		if resource == null:
 			failures.append("Could not load or compile %s." % path)
 			continue
-		if path.ends_with(".gd") and not resource is GDScript:
-			failures.append("Expected a GDScript resource at %s." % path)
+		if path.ends_with(".gd"):
+			if not resource is GDScript:
+				failures.append("Expected a GDScript resource at %s." % path)
+			elif not (resource as GDScript).can_instantiate():
+				failures.append("GDScript could not instantiate after compilation: %s." % path)
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():

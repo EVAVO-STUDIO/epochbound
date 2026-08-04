@@ -89,6 +89,9 @@ jobs:
       - name: Validate canonical journey integration contract
         run: python3 tools/check_canonical_journey_contract.py
 
+      - name: Validate co-op and PvP integration contract
+        run: python3 tools/check_multiplayer_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -142,7 +145,7 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.6",
+              "schemaVersion": "1.7",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -151,6 +154,7 @@ jobs:
               "playerSettingsValidation": "passed",
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
+              "multiplayerValidation": "passed",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",

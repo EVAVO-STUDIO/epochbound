@@ -188,7 +188,10 @@ func run_test() -> void:
 	check(has_code(report, "economy.progression_purchase_unaffordable"), "Unaffordable merchant-only progression items must be reported.")
 	check(has_code(report, "economy.capability_purchase_unaffordable"), "Unaffordable merchant-only capability items must be reported.")
 	var metrics: Dictionary = report.get("metrics", {})
-	check(int(metrics.get("progression_item_count", 0)) == 10, "Synthetic audit must trace nine explicit progression items plus the locked recipe ingredient.")
+	check(
+		int(metrics.get("progression_item_count", 0)) == 9,
+		"Synthetic audit must trace the nine explicit mandatory item gates without inflating demand through a never-unlocked recipe."
+	)
 	check(int(metrics.get("progression_capability_count", 0)) == 2, "Synthetic audit must trace both required capabilities.")
 	check(int(metrics.get("merchant_only_progression_count", 0)) >= 3, "Synthetic audit must identify merchant-only item and capability routes.")
 	check(int(metrics.get("affordability_risk_count", 0)) >= 3, "Synthetic audit must count item and capability affordability findings.")

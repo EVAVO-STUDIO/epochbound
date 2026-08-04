@@ -64,7 +64,7 @@ static func load_settings(root_path: String = ROOT) -> Dictionary:
 
 
 static func read_settings_path(path: String) -> Dictionary:
-	var raw := read_json(path)
+	var raw: Dictionary = read_json(path)
 	if not bool(raw.get("ok", false)):
 		return {
 			"ok": false,
@@ -75,8 +75,8 @@ static func read_settings_path(path: String) -> Dictionary:
 			"used_defaults": false,
 			"errors": raw.get("errors", [])
 		}
-	var normalized := normalize_json_settings(raw.get("data", {}))
-	var migration := PlayerSettings.migrate(normalized)
+	var normalized: Variant = normalize_json_settings(raw.get("data", {}))
+	var migration: Dictionary = PlayerSettings.migrate(normalized)
 	if not bool(migration.get("ok", false)):
 		return {
 			"ok": false,

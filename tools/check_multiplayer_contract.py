@@ -2,6 +2,8 @@
 """Fail closed when Epochbound's host-authoritative multiplayer contract drifts.
 
 host-only progression and session-only PvP remain the durable trust boundary.
+The legacy spelling ENetMultiplayerPeer.new() is retained only as a migration
+sentinel; the executable contract below requires guarded ClassDB construction.
 """
 
 from __future__ import annotations

@@ -31,6 +31,13 @@ func run_test() -> void:
 
 	write_valid_fixture()
 	campaign = read_data(CAMPAIGN_PATH)
+	(campaign.get("multiplayer", {}) as Dictionary)["default_port"] = 27491.5
+	Repository.save_json(CAMPAIGN_PATH, campaign)
+	var fractional_port := MultiplayerValidator.validate_multiplayer_only(CAMPAIGN_PATH)
+	check(has_error(fractional_port, "default_port must be an integer"), "Multiplayer ports must reject fractional values.")
+
+	write_valid_fixture()
+	campaign = read_data(CAMPAIGN_PATH)
 	(campaign.get("multiplayer", {}) as Dictionary)["shared_progression"] = "all_peers"
 	Repository.save_json(CAMPAIGN_PATH, campaign)
 	var invalid_progression := MultiplayerValidator.validate_multiplayer_only(CAMPAIGN_PATH)
@@ -39,6 +46,15 @@ func run_test() -> void:
 	write_valid_fixture()
 	var catalog := read_data(CATALOG_PATH)
 	var areas: Array = catalog.get("areas", [])
+	(areas[0] as Dictionary)["priority"] = 10.5
+	catalog["areas"] = areas
+	Repository.save_json(CATALOG_PATH, catalog)
+	var fractional_priority := MultiplayerValidator.validate_multiplayer_only(CAMPAIGN_PATH)
+	check(has_error(fractional_priority, "priority must be an integer"), "Multiplayer area priority must reject fractional values.")
+
+	write_valid_fixture()
+	catalog = read_data(CATALOG_PATH)
+	areas = catalog.get("areas", [])
 	(areas[0] as Dictionary)["kind"] = "co_op"
 	(areas[0] as Dictionary)["allow_invaders"] = true
 	catalog["areas"] = areas

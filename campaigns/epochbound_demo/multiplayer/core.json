@@ -1,0 +1,58 @@
+{
+	"schema_version": 1,
+	"areas": [
+		{
+			"id": "bellweather_sanctuary",
+			"display_name": "Bellweather Sanctuary",
+			"map_id": "bellweather_crossing",
+			"kind": "sanctuary",
+			"priority": 0,
+			"bounds": {"left": 32, "right": 608, "top": 96, "bottom": 328},
+			"available_eras": [],
+			"allow_allies": true,
+			"allow_invaders": false,
+			"friendly_fire": false,
+			"ally_spawn": {"x": 344, "y": 220}
+		},
+		{
+			"id": "clockwood_fellowship",
+			"display_name": "Clockwood Fellowship",
+			"map_id": "clockwood_edge",
+			"kind": "co_op",
+			"priority": 0,
+			"bounds": {"left": 32, "right": 768, "top": 96, "bottom": 448},
+			"available_eras": [],
+			"allow_allies": true,
+			"allow_invaders": false,
+			"friendly_fire": false,
+			"ally_spawn": {"x": 112, "y": 248}
+		},
+		{
+			"id": "clockwood_ashen_hunt",
+			"display_name": "Clockwood Ashen Hunt",
+			"map_id": "clockwood_edge",
+			"kind": "pvp",
+			"priority": 20,
+			"bounds": {"left": 288, "right": 528, "top": 176, "bottom": 320},
+			"available_eras": ["ashen"],
+			"allow_allies": true,
+			"allow_invaders": true,
+			"friendly_fire": false,
+			"ally_spawn": {"x": 328, "y": 272},
+			"invader_spawn": {"x": 488, "y": 272}
+		},
+		{
+			"id": "underworks_fellowship",
+			"display_name": "Underworks Fellowship",
+			"map_id": "museum_underworks",
+			"kind": "co_op",
+			"priority": 0,
+			"bounds": {"left": 32, "right": 608, "top": 96, "bottom": 328},
+			"available_eras": [],
+			"allow_allies": true,
+			"allow_invaders": false,
+			"friendly_fire": false,
+			"ally_spawn": {"x": 136, "y": 238}
+		}
+	]
+}

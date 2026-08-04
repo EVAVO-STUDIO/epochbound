@@ -68,6 +68,30 @@ jobs:
           .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
             --script res://tools/compile_sprite_animation_probe.gd
 
+      - name: Probe malformed package validation edges
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_package_validation_edges.gd
+
+      - name: Probe current package validation
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_package_current_validation.gd
+
+      - name: Probe deterministic campaign audit
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_campaign_audit.gd
+
+      - name: Probe Campaign Audit Studio
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_campaign_audit_studio.gd
+
+      - name: Probe campaign audit edge detection
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_campaign_audit_edges.gd
+
+      - name: Probe progression affordability
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_progression_affordability.gd
+
       - name: Run complete Godot gate
         shell: pwsh
         run: |

@@ -110,9 +110,13 @@ require(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
+        "python3 tools/check_canonical_journey_contract.py",
+        "python3 tools/check_multiplayer_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         '"supplyRegionValidation": "passed"',
+        '"canonicalJourneyValidation": "passed"',
+        '"multiplayerValidation": "passed"',
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],
@@ -200,6 +204,7 @@ require(
     [
         "compile_player_settings_probe.gd",
         "compile_supply_region_probe.gd",
+        "compile_multiplayer_probe.gd",
         "smoke_player_settings.gd",
         "smoke_player_settings_recovery_edges.gd",
         "smoke_input_bindings.gd",
@@ -208,6 +213,12 @@ require(
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
         "Smoke test multi-source progression affordability planning",
+        "smoke_multiplayer_session_model.gd",
+        "smoke_multiplayer_runtime.gd",
+        "smoke_multiplayer_validation_edges.gd",
+        "host-authoritative co-op",
+        "authored PvP invasions",
+        "smoke_canonical_journey.gd",
     ],
 )
 
@@ -237,6 +248,25 @@ require(
         "supply_region_model.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
+    ],
+)
+
+multiplayer_compile = read("multiplayer_compile", ROOT / "tools/compile_multiplayer_probe.gd")
+require(
+    "multiplayer_compile",
+    multiplayer_compile,
+    [
+        "multiplayer_catalog.gd",
+        "multiplayer_area_validator.gd",
+        "multiplayer_session_model.gd",
+        "multiplayer_session.gd",
+        "multiplayer_save_guard.gd",
+        "multiplayer_post_tick.gd",
+        "multiplayer_overlay.gd",
+        "smoke_multiplayer_session_model.gd",
+        "smoke_multiplayer_runtime.gd",
+        "smoke_multiplayer_validation_edges.gd",
+        "app.tscn",
     ],
 )
 
@@ -443,6 +473,47 @@ require(
     ],
 )
 
+multiplayer_contract = read("multiplayer_contract", ROOT / "tools/check_multiplayer_contract.py")
+require(
+    "multiplayer_contract",
+    multiplayer_contract,
+    [
+        "ENetMultiplayerPeer.new()",
+        "multiplayer.get_remote_sender_id()",
+        "host-only progression",
+        "session-only PvP",
+        "sanctuary safety",
+        "bounded snapshots",
+        "matchmaking, relay, identity and anti-cheat remain explicit future production boundaries",
+    ],
+)
+
+multiplayer_session = read("multiplayer_session", ROOT / "src/multiplayer_session.gd")
+require(
+    "multiplayer_session",
+    multiplayer_session,
+    [
+        "create_server(resolved_port",
+        "create_client(connect_address",
+        '@rpc("any_peer", "call_remote", "unreliable_ordered", INPUT_CHANNEL)',
+        '@rpc("authority", "call_remote", "unreliable_ordered", SNAPSHOT_CHANNEL)',
+        "PROTOCOL VERSION MISMATCH",
+        "CAMPAIGN VERSION MISMATCH",
+        "blocks_manual_save",
+        "blocks_autosave",
+    ],
+)
+forbid(
+    "multiplayer_session",
+    multiplayer_session,
+    [
+        "allow_object_decoding = true",
+        "SaveProfileStore",
+        "write_profile(",
+        "read_profile(",
+    ],
+)
+
 if errors:
     print("Epochbound release workflow policy failed:\n")
     for error in errors:
@@ -454,5 +525,6 @@ print("- primary validation runs automatically for exact main-push SHAs and rema
 print("- focused Audio, Sprite and Linux Agent workflows remain governed manual exact-SHA gates")
 print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
+print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- runtime composition, player settings, persistent controls, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

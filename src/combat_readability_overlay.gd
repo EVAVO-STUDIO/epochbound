@@ -188,7 +188,7 @@ func draw_player_settings_panel() -> void:
 		var active := index == selected
 		if active:
 			draw_rect(Rect2(PLAYER_SETTINGS_PANEL.position.x + 12.0, y - 13.0, PLAYER_SETTINGS_PANEL.size.x - 24.0, 18.0), Color(frame, 0.16))
-			draw_rect(Rect2(PLAYER_SETTINGS_PANEL.position.x + 17.0, y - 8.0, Vector2(4, 4)), accent)
+			draw_rect(Rect2(Vector2(PLAYER_SETTINGS_PANEL.position.x + 17.0, y - 8.0), Vector2(4, 4)), accent)
 		var label := str(row.get("label", row.get("id", "SETTING"))).to_upper()
 		var value_text := str(row.get("value", ""))
 		if str(row.get("kind", "")) == "action":

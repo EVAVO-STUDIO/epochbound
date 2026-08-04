@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Fail closed when Epochbound's host-authoritative multiplayer contract drifts."""
+"""Fail closed when Epochbound's host-authoritative multiplayer contract drifts.
+
+Host-only progression and session-only PvP remain the durable trust boundary.
+"""
 
 from __future__ import annotations
 

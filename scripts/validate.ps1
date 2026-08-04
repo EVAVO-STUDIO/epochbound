@@ -28,12 +28,16 @@ try {
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Compile player settings controls storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
+        @("Compile host-authoritative co-op PvP runtime validators and tests", "res://tools/compile_multiplayer_probe.gd"),
         @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
         @("Smoke test persistent player settings and accessibility", "res://tools/smoke_player_settings.gd"),
         @("Smoke test player settings crash recovery and modal freeze edges", "res://tools/smoke_player_settings_recovery_edges.gd"),
         @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
+        @("Smoke test deterministic co-op and invasion session model", "res://tools/smoke_multiplayer_session_model.gd"),
+        @("Smoke test host-authoritative co-op PvP runtime and snapshots", "res://tools/smoke_multiplayer_runtime.gd"),
+        @("Smoke test malformed online policies areas and save isolation", "res://tools/smoke_multiplayer_validation_edges.gd"),
         @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
         @("Smoke test Encounter Studio and base combat", "res://tools/smoke_encounters.gd"),
@@ -93,7 +97,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

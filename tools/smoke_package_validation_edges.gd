@@ -63,7 +63,7 @@ func write_zip(path: String, entries: Dictionary) -> void:
 	for name in names:
 		var data_value: Variant = entries.get(name, PackedByteArray())
 		var data: PackedByteArray = data_value as PackedByteArray if data_value is PackedByteArray else PackedByteArray()
-		check(writer.start_file(name, 420, CampaignPackage.FIXED_ZIP_TIME) == OK, "Fixture entry must start.")
+		check(writer.start_file(name) == OK, "Fixture entry must start.")
 		check(writer.write_file(data) == OK, "Fixture entry must write.")
 		check(writer.close_file() == OK, "Fixture entry must close.")
 	check(writer.close() == OK, "Fixture package must close.")

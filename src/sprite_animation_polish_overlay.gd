@@ -2,7 +2,6 @@ extends "res://src/sprite_animation_overlay_current.gd"
 
 const AnimationRepository = preload("res://src/content/campaign_repository.gd")
 
-const FLOW_PAUSED := 5
 const MOTION_DISTANCE_RESET := 48.0
 const WALK_FRAME_DISTANCE_MIN := 3.0
 const WALK_FRAME_DISTANCE_MAX := 8.0

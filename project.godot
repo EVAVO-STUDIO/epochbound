@@ -105,3 +105,7 @@ pause_game={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":4194305), Object(InputEventJoypadButton,"button_index":6)]
 }
+network_menu={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":78), Object(InputEventJoypadButton,"button_index":5)]
+}

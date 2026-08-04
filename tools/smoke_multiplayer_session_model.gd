@@ -31,7 +31,8 @@ func run_test() -> void:
 	check(not bool(invader_overflow.get("ok", true)) and str(invader_overflow.get("reason", "")) == "invader_capacity", "A second invader must be rejected deterministically.")
 
 	check(bool(MultiplayerSessionModel.accept_input(peers, 2, 1, {"direction": {"x": 4.0, "y": 0.0}, "attack": true}).get("ok", false)), "Fresh ally input must be accepted.")
-	check(not bool(MultiplayerSessionModel.accept_input(peers, 2, 1, {"direction": Vector2.LEFT}).get("ok", true)), "Repeated input sequence numbers must be rejected.")
+	var stale_input := MultiplayerSessionModel.accept_input(peers, 2, 1, {"direction": Vector2.LEFT})
+	check(not bool(stale_input.get("ok", true)) and str(stale_input.get("reason", "")) == "stale_sequence", "Repeated input sequence numbers must be rejected as stale_sequence.")
 	var ally: Dictionary = peers.get(2, {})
 	check(is_equal_approx((ally.get("direction", Vector2.ZERO) as Vector2).length(), 1.0), "Remote directions must be clamped to unit length.")
 	check(bool(ally.get("attack_requested", false)), "The host input model must retain only the requested attack intent.")

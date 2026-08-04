@@ -75,7 +75,8 @@ static func read_settings_path(path: String) -> Dictionary:
 			"used_defaults": false,
 			"errors": raw.get("errors", [])
 		}
-	var migration := PlayerSettings.migrate(raw.get("data", {}))
+	var normalized := normalize_json_settings(raw.get("data", {}))
+	var migration := PlayerSettings.migrate(normalized)
 	if not bool(migration.get("ok", false)):
 		return {
 			"ok": false,
@@ -191,6 +192,55 @@ static func delete_settings(root_path: String = ROOT) -> Dictionary:
 	if DirAccess.dir_exists_absolute(absolute_root):
 		DirAccess.remove_absolute(absolute_root)
 	return {"ok": true, "removed": removed, "errors": []}
+
+
+static func normalize_json_settings(value: Variant) -> Variant:
+	if typeof(value) != TYPE_DICTIONARY:
+		return value
+	var output: Dictionary = (value as Dictionary).duplicate(true)
+	normalize_integer_field(output, "schema_version")
+	var bindings_value: Variant = output.get("input_bindings", {})
+	if typeof(bindings_value) != TYPE_DICTIONARY:
+		return output
+	var bindings: Dictionary = (bindings_value as Dictionary).duplicate(true)
+	normalize_integer_field(bindings, "schema_version")
+	var actions_value: Variant = bindings.get("actions", {})
+	if typeof(actions_value) != TYPE_DICTIONARY:
+		output["input_bindings"] = bindings
+		return output
+	var actions: Dictionary = (actions_value as Dictionary).duplicate(true)
+	for action_id in actions.keys():
+		var events_value: Variant = actions.get(action_id, [])
+		if typeof(events_value) != TYPE_ARRAY:
+			continue
+		var events: Array = (events_value as Array).duplicate(true)
+		for index in range(events.size()):
+			if typeof(events[index]) != TYPE_DICTIONARY:
+				continue
+			var descriptor: Dictionary = (events[index] as Dictionary).duplicate(true)
+			match str(descriptor.get("type", "")):
+				"key":
+					normalize_integer_field(descriptor, "physical_keycode")
+				"joy_button":
+					normalize_integer_field(descriptor, "button_index")
+				"joy_axis":
+					normalize_integer_field(descriptor, "axis")
+			events[index] = descriptor
+		actions[action_id] = events
+	bindings["actions"] = actions
+	output["input_bindings"] = bindings
+	return output
+
+
+static func normalize_integer_field(source: Dictionary, key: String) -> void:
+	if not source.has(key):
+		return
+	var value: Variant = source.get(key)
+	if typeof(value) != TYPE_FLOAT:
+		return
+	var number := float(value)
+	if not is_nan(number) and not is_inf(number) and floor(number) == number:
+		source[key] = int(number)
 
 
 static func read_json(path: String) -> Dictionary:

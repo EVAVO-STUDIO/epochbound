@@ -151,7 +151,7 @@ static func validate_area(
 	var kind := str(area.get("kind", ""))
 	if not MultiplayerCatalog.AREA_KINDS.has(kind):
 		errors.append("%s/kind must be sanctuary, co_op or pvp." % prefix)
-	if area.has("priority") and typeof(area.get("priority")) != TYPE_INT:
+	if area.has("priority") and not json_integer(area.get("priority")):
 		errors.append("%s/priority must be an integer." % prefix)
 	elif int(area.get("priority", 0)) < -100 or int(area.get("priority", 0)) > 100:
 		errors.append("%s/priority must be between -100 and 100." % prefix)
@@ -324,12 +324,21 @@ static func validate_optional_int_range(
 ) -> void:
 	if not source.has(key):
 		return
-	if typeof(source.get(key)) != TYPE_INT:
+	if not json_integer(source.get(key)):
 		errors.append("%s/%s must be an integer." % [prefix, key])
 		return
 	var value := int(source.get(key))
 	if value < minimum or value > maximum:
 		errors.append("%s/%s must be between %d and %d." % [prefix, key, minimum, maximum])
+
+
+static func json_integer(value: Variant) -> bool:
+	if typeof(value) == TYPE_INT:
+		return true
+	if typeof(value) != TYPE_FLOAT:
+		return false
+	var number := float(value)
+	return not is_nan(number) and not is_inf(number) and floor(number) == number
 
 
 static func base_report(

@@ -7,8 +7,8 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 function Invoke-GodotStep {
     param(
-        [Parameter(Mandatory = $true)] [string]$Description,
-        [Parameter(Mandatory = $true)] [string[]]$Arguments
+        [Parameter(Mandatory = $true)] [string[]]$Arguments,
+        [Parameter(Mandatory = $true)] [string]$Description
     )
     Write-Host "`n==> $Description"
     $output = & $GodotExecutable @Arguments 2>&1
@@ -34,6 +34,7 @@ try {
         @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
+        @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
         @("Smoke test Encounter Studio and base combat", "res://tools/smoke_encounters.gd"),
         @("Smoke test Combat Director zones and behaviour", "res://tools/smoke_combat_director.gd"),
@@ -92,7 +93,7 @@ try {
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
 }
 finally {
     Pop-Location

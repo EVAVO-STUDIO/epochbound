@@ -6,7 +6,7 @@ const BaseValidator = preload("res://src/content/audio_mood_strict_validator.gd"
 const SpriteAnimationCatalog = preload("res://src/content/sprite_animation_catalog.gd")
 
 const PROFILE_ID_PATTERN := "^[a-z0-9][a-z0-9_-]*$"
-const TARGET_PREFIXES := PackedStringArray(["player", "companion", "placement:", "object:", "shape:", "kind:", "*"])
+const TARGET_PREFIXES := ["player", "companion", "placement:", "object:", "shape:", "kind:", "*"]
 const MAX_ATLAS_DIMENSION := 8192
 
 

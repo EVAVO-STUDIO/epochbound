@@ -153,11 +153,11 @@ static func validate_catalog_file(
 			var restock_target_value: Variant = entry.get("restock_target", initial_quantity)
 			var restock_quantity := 0
 			var restock_target := initial_quantity
-			if typeof(restock_quantity_value) != TYPE_INT:
+			if not json_integer(restock_quantity_value):
 				errors.append("%s: restock_quantity must be an integer." % stock_prefix)
 			else:
 				restock_quantity = int(restock_quantity_value)
-			if typeof(restock_target_value) != TYPE_INT:
+			if not json_integer(restock_target_value):
 				errors.append("%s: restock_target must be an integer." % stock_prefix)
 			else:
 				restock_target = int(restock_target_value)
@@ -249,7 +249,7 @@ static func validate_region_records(
 			if interval < SupplyCatalog.MIN_INTERVAL_SECONDS or interval > SupplyCatalog.MAX_INTERVAL_SECONDS:
 				errors.append("%s: restock_interval_seconds must be between %.0f and %.0f." % [prefix, SupplyCatalog.MIN_INTERVAL_SECONDS, SupplyCatalog.MAX_INTERVAL_SECONDS])
 		var catchup_value: Variant = data.get("max_catchup_cycles", null)
-		if typeof(catchup_value) != TYPE_INT:
+		if not json_integer(catchup_value):
 			errors.append("%s: max_catchup_cycles must be an integer." % prefix)
 		else:
 			var catchup := int(catchup_value)
@@ -286,7 +286,7 @@ static func validate_profile_supply(
 			errors.append("Save supply_region_cycles references unknown region '%s'." % region_id)
 			continue
 		var saved_value: Variant = cycles.get(region_key, -1)
-		if typeof(saved_value) != TYPE_INT:
+		if not json_integer(saved_value):
 			errors.append("Save supply cycle for '%s' must be an integer." % region_id)
 			continue
 		var current_cycle := SupplyModel.cycle_at(SupplyCatalog.region(region_definitions, region_id), play_time_seconds)
@@ -299,6 +299,15 @@ static func validate_profile_supply(
 				errors.append("Save supply_region_cycles is missing '%s'." % region_id_value)
 	elif not cycles.is_empty():
 		warnings.append("Save payload contains supply cycles while supply_regions_initialized is false; current play-time cycles will replace them.")
+
+
+static func json_integer(value: Variant) -> bool:
+	if typeof(value) == TYPE_INT:
+		return true
+	if typeof(value) != TYPE_FLOAT:
+		return false
+	var number := float(value)
+	return not is_nan(number) and not is_inf(number) and floor(number) == number
 
 
 static func make_report(errors: Array[String], warnings: Array[String], region_count: int, renewable_count: int) -> Dictionary:

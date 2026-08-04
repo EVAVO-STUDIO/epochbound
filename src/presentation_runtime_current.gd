@@ -2,7 +2,6 @@ extends "res://src/presentation_runtime_base.gd"
 
 const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const ControlsPlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
-const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const CompleteValidator = preload("res://src/content/complete_content_validator.gd")
 const SupplyModel = preload("res://src/game/supply_region_model.gd")

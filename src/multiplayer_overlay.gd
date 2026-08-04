@@ -148,7 +148,10 @@ func draw_area_boundary() -> void:
 		color = profile_color("ui_text", "eee3c6").darkened(0.25)
 	var pulse := 0.42 + sin(Time.get_ticks_msec() * 0.004) * 0.12
 	draw_rect(screen_rect, Color(color, pulse), false, 1.0)
-	var label_rect := Rect2(screen_rect.position + Vector2(4, 4), minf(260.0, screen_rect.size.x - 8.0), 16)
+	var label_rect := Rect2(
+		screen_rect.position + Vector2(4, 4),
+		Vector2(minf(260.0, screen_rect.size.x - 8.0), 16.0)
+	)
 	if label_rect.size.x > 32.0:
 		draw_rect(label_rect, Color(profile_color("ui_fill", "15191b"), 0.82))
 		draw_string(ThemeDB.fallback_font, label_rect.position + Vector2(5, 11), MultiplayerCatalog.area_summary(area), HORIZONTAL_ALIGNMENT_LEFT, int(label_rect.size.x - 10.0), 7, color)
@@ -193,7 +196,7 @@ func draw_remote_peer(peer: Dictionary) -> void:
 	draw_polyline(PackedVector2Array([nose, left, right_point, nose]), color.lightened(0.28), 1.0)
 	var maximum := maxi(1, int(peer.get("max_health", 32)))
 	var health := clampi(int(peer.get("health", maximum)), 0, maximum)
-	var bar := Rect2(screen + Vector2(-18, -17), 36, 4)
+	var bar := Rect2(screen + Vector2(-18, -17), Vector2(36, 4))
 	draw_rect(bar, Color("090b0d"))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(health) / float(maximum), bar.size.y)), color)
 	var label := "%s  %s" % [str(peer.get("display_name", "WANDERER")).to_upper(), role.to_upper()]

@@ -61,6 +61,13 @@ jobs:
           .godot-bin/godot --version | grep -E '^4\.6\.2'
           rm -rf .godot-download
 
+      - name: Probe presentation inheritance before editor import
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/compile_sprite_animation_probe.gd
+
       - name: Run complete Godot gate
         shell: pwsh
         run: |

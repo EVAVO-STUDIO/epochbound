@@ -124,7 +124,7 @@ Late movement or snapshot packets can be discarded rather than stalling newer st
 
 ## Durable progression
 
-The host's existing campaign remains authoritative.
+**Host saves only.** The host's existing campaign remains authoritative.
 
 Allies can damage enemies and participate in boss arenas, but enemy rewards, pickups, quests, recipes, merchants, equipment, currency and durable outcomes are applied to the host runtime only. Guest profiles do not receive copied host progression.
 

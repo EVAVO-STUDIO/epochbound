@@ -10,6 +10,7 @@ const SaveProfile = preload("res://src/content/save_profile.gd")
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const RUNTIME_SCENE := "res://src/app.tscn"
+const RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 
 var failures: Array[String] = []
 
@@ -95,6 +96,8 @@ func test_runtime_persistence() -> void:
 	if not packed is PackedScene:
 		return
 	var runtime: Node = (packed as PackedScene).instantiate()
+	var script_value: Variant = runtime.get_script()
+	check(script_value is GDScript and str((script_value as GDScript).resource_path) == RUNTIME_SCRIPT, "Regional supply persistence must execute through the canonical presentation runtime.")
 	root.add_child(runtime)
 	await process_frame
 	check(bool(runtime.call("supply_runtime_contract_ok")), "Canonical runtime must initialise every supply route.")

@@ -1,0 +1,74 @@
+name: Temporary Multiplayer Branch Validation
+
+on:
+  push:
+    branches:
+      - codex/online-coop-pvp
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-multiplayer-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+      GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+      GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run fail-closed source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/check_release_workflow_policy.py
+          python3 tools/check_runtime_scene_contract.py
+          python3 tools/check_player_settings_contract.py
+          python3 tools/check_supply_region_contract.py
+          python3 tools/check_canonical_journey_contract.py
+          python3 tools/check_multiplayer_contract.py
+          python3 tools/check_sprite_animation_contract.py
+
+      - name: Download and verify Godot 4.6.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
+          chmod +x .godot-bin/godot
+          .godot-bin/godot --version | grep -E '^4\.6\.2'
+          rm -rf .godot-download
+
+      - name: Run complete Godot gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot"
+
+      - name: Confirm source stayed clean
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]

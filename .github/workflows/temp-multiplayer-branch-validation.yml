@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - codex/online-coop-pvp
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 concurrency:
-  group: epochbound-temp-multiplayer-${{ github.sha }}
+  group: epochbound-temp-multiplayer-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: false
 
 jobs:

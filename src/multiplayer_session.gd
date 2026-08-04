@@ -72,19 +72,31 @@ func default_local_name() -> String:
 
 
 func parse_command_line() -> void:
+	var should_host := false
+	var should_join := false
+	var parsed_address := connect_address
+	var parsed_port := connect_port
+	var parsed_role := requested_role
 	for argument_value in OS.get_cmdline_user_args():
 		var argument := str(argument_value)
 		if argument == "--host":
-			call_deferred("host_session")
+			should_host = true
 		elif argument == "--invade":
-			requested_role = MultiplayerSessionModel.ROLE_INVADER
+			parsed_role = MultiplayerSessionModel.ROLE_INVADER
 		elif argument.begins_with("--join="):
-			connect_address = argument.trim_prefix("--join=").strip_edges()
-			call_deferred("join_session", connect_address, requested_role)
+			parsed_address = argument.trim_prefix("--join=").strip_edges()
+			should_join = true
 		elif argument.begins_with("--port="):
-			connect_port = clampi(int(argument.trim_prefix("--port=")), 1024, 65535)
+			parsed_port = clampi(int(argument.trim_prefix("--port=")), 1024, 65535)
 		elif argument.begins_with("--name="):
 			local_name = MultiplayerSessionModel.sanitize_name(argument.trim_prefix("--name="), "WANDERER")
+	connect_address = parsed_address if not parsed_address.is_empty() else DEFAULT_ADDRESS
+	connect_port = parsed_port
+	requested_role = parsed_role
+	if should_host:
+		call_deferred("host_session", connect_port)
+	elif should_join:
+		call_deferred("join_session", connect_address, requested_role, connect_port)
 
 
 func _process(delta: float) -> void:
@@ -180,6 +192,19 @@ func restore_runtime_processing() -> void:
 		runtime.set_process(mode != MultiplayerSessionModel.MODE_CLIENT and not connection_pending)
 
 
+func ensure_host_gameplay_ready() -> bool:
+	var runtime := runtime_root()
+	if runtime == null:
+		return false
+	if int(runtime.get("flow")) == 4:
+		return true
+	if runtime.has_method("begin_game"):
+		runtime.call("begin_game")
+	if int(runtime.get("flow")) != 4:
+		runtime.call("change_flow", 4)
+	return int(runtime.get("flow")) == 4
+
+
 func load_campaign_multiplayer_contract() -> bool:
 	var runtime := runtime_root()
 	if runtime == null:
@@ -207,9 +232,12 @@ func host_session(port: int = -1) -> bool:
 	if not load_campaign_multiplayer_contract() or not bool(policy.get("enabled", false)):
 		set_notice("THIS CAMPAIGN DOES NOT ENABLE ONLINE PLAY")
 		return false
+	if not ensure_host_gameplay_ready():
+		set_notice("HOST COULD NOT START A VALID JOURNEY")
+		return false
 	var resolved_port := int(policy.get("default_port", 27491)) if port < 0 else clampi(port, 1024, 65535)
 	var peer := ENetMultiplayerPeer.new()
-	var max_clients := 1 + int(policy.get("max_allies", 0)) + int(policy.get("max_invaders", 0))
+	var max_clients := int(policy.get("max_allies", 0)) + int(policy.get("max_invaders", 0))
 	var error := peer.create_server(resolved_port, maxi(1, max_clients), 3)
 	if error != OK:
 		set_notice("HOST FAILED ON UDP PORT %d (ERROR %d)" % [resolved_port, error])
@@ -278,9 +306,8 @@ func leave_session(reason: String = "ONLINE SESSION CLOSED") -> void:
 
 func register_host_peer() -> void:
 	var runtime := runtime_root()
-	if runtime == null:
-		return
-	peers[1] = host_peer_state(runtime)
+	if runtime != null:
+		peers[1] = host_peer_state(runtime)
 
 
 func host_peer_state(runtime: Node) -> Dictionary:
@@ -290,10 +317,13 @@ func host_peer_state(runtime: Node) -> Dictionary:
 	var facing_value: Variant = runtime.get("facing")
 	var position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO
 	var facing: Vector2 = facing_value if facing_value is Vector2 else Vector2.DOWN
+	var display_name := "HOST"
+	if runtime.has_method("player_name"):
+		display_name = str(runtime.call("player_name"))
 	return {
 		"peer_id": 1,
 		"role": MultiplayerSessionModel.ROLE_HOST,
-		"display_name": MultiplayerSessionModel.sanitize_name(runtime.call("player_name") if runtime.has_method("player_name") else "HOST", "HOST"),
+		"display_name": MultiplayerSessionModel.sanitize_name(display_name, "HOST"),
 		"position": position,
 		"facing": facing,
 		"health": int(runtime.get("player_health")),
@@ -328,12 +358,7 @@ func current_host_area() -> Dictionary:
 	var map_data: Dictionary = map_value if typeof(map_value) == TYPE_DICTIONARY else {}
 	var position_value: Variant = runtime.get("player")
 	var position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO
-	return MultiplayerCatalog.active_area(
-		area_definitions,
-		str(map_data.get("id", "")),
-		str(runtime.get("current_era_id")),
-		position
-	)
+	return MultiplayerCatalog.active_area(area_definitions, str(map_data.get("id", "")), str(runtime.get("current_era_id")), position)
 
 
 func join_area_for_role(role: String) -> Dictionary:
@@ -390,13 +415,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable", 0)
-func _request_join(
-	role: String,
-	display_name: String,
-	remote_campaign_id: String,
-	remote_version: String,
-	protocol_version: int
-) -> void:
+func _request_join(role: String, display_name: String, remote_campaign_id: String, remote_version: String, protocol_version: int) -> void:
 	if mode != MultiplayerSessionModel.MODE_HOST or not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
@@ -417,16 +436,7 @@ func _request_join(
 	var host_position_value: Variant = runtime.get("player") if runtime != null else Vector2.ZERO
 	var host_position: Vector2 = host_position_value if host_position_value is Vector2 else Vector2.ZERO
 	var spawn := MultiplayerCatalog.spawn_position(area, resolved_role, host_position + Vector2(24, 0))
-	var result := MultiplayerSessionModel.register_peer(
-		peers,
-		sender_id,
-		resolved_role,
-		policy,
-		spawn,
-		str(map_data.get("id", "")),
-		str(runtime.get("current_era_id")) if runtime != null else "",
-		display_name
-	)
+	var result := MultiplayerSessionModel.register_peer(peers, sender_id, resolved_role, policy, spawn, str(map_data.get("id", "")), str(runtime.get("current_era_id")) if runtime != null else "", display_name)
 	if not bool(result.get("ok", false)):
 		_join_rejected.rpc_id(sender_id, str(result.get("reason", "SESSION FULL")).replace("_", " ").to_upper())
 		return
@@ -455,15 +465,13 @@ func _join_rejected(reason: String) -> void:
 func _submit_input(sequence: int, payload: Dictionary) -> void:
 	if mode != MultiplayerSessionModel.MODE_HOST or not multiplayer.is_server():
 		return
-	var sender_id := multiplayer.get_remote_sender_id()
-	MultiplayerSessionModel.accept_input(peers, sender_id, sequence, payload)
+	MultiplayerSessionModel.accept_input(peers, multiplayer.get_remote_sender_id(), sequence, payload)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered", SNAPSHOT_CHANNEL)
 func _receive_snapshot(snapshot: Dictionary) -> void:
-	if mode != MultiplayerSessionModel.MODE_CLIENT:
-		return
-	apply_world_snapshot(snapshot)
+	if mode == MultiplayerSessionModel.MODE_CLIENT:
+		apply_world_snapshot(snapshot)
 
 
 func update_client_prediction_and_input(delta: float) -> void:
@@ -484,15 +492,14 @@ func update_client_prediction_and_input(delta: float) -> void:
 			runtime.call("move_actor", "player", desired)
 			peer["position"] = runtime.get("player")
 		peers[local_peer_id] = peer
+	if attack:
+		runtime.set("player_attack_timer", 0.17)
 	input_accumulator += delta
 	var input_interval := 1.0 / maxf(10.0, float(policy.get("input_rate_hz", 30)))
 	if input_accumulator >= input_interval or attack:
 		input_accumulator = fmod(input_accumulator, input_interval)
 		input_sequence += 1
-		_submit_input.rpc_id(1, input_sequence, {
-			"direction": {"x": snappedf(direction.x, 0.001), "y": snappedf(direction.y, 0.001)},
-			"attack": attack
-		})
+		_submit_input.rpc_id(1, input_sequence, {"direction": {"x": snappedf(direction.x, 0.001), "y": snappedf(direction.y, 0.001)}, "attack": attack})
 
 
 func pre_host_runtime_process() -> void:
@@ -500,11 +507,7 @@ func pre_host_runtime_process() -> void:
 	if runtime == null or int(runtime.get("flow")) != 4:
 		return
 	sync_host_peer()
-	if (
-		Input.is_action_just_pressed("attack")
-		and float(runtime.get("player_attack_lock")) <= 0.0
-		and try_host_attack_invader()
-	):
+	if Input.is_action_just_pressed("attack") and float(runtime.get("player_attack_lock")) <= 0.0 and try_host_attack_invader():
 		runtime.set("player_attack_lock", MultiplayerSessionModel.ATTACK_COOLDOWN)
 		runtime.set("player_attack_timer", 0.17)
 
@@ -513,11 +516,8 @@ func try_host_attack_invader() -> bool:
 	var host_value: Variant = peers.get(1, {})
 	if typeof(host_value) != TYPE_DICTIONARY:
 		return false
-	var host: Dictionary = host_value
-	var target_id := nearest_actor_target(host, [MultiplayerSessionModel.ROLE_INVADER])
-	if target_id <= 1:
-		return false
-	return apply_peer_damage(1, target_id, MultiplayerSessionModel.ATTACK_DAMAGE)
+	var target_id := nearest_actor_target(host_value as Dictionary, [MultiplayerSessionModel.ROLE_INVADER])
+	return target_id > 1 and apply_peer_damage(1, target_id, MultiplayerSessionModel.ATTACK_DAMAGE)
 
 
 func update_remote_peers(delta: float) -> void:
@@ -612,9 +612,7 @@ func nearest_actor_target(attacker: Dictionary, roles: Array) -> int:
 		if typeof(value) != TYPE_DICTIONARY:
 			continue
 		var target: Dictionary = value
-		if not roles.has(str(target.get("role", ""))):
-			continue
-		if not MultiplayerSessionModel.can_damage_actor(attacker, target, area_definitions, policy):
+		if not roles.has(str(target.get("role", ""))) or not MultiplayerSessionModel.can_damage_actor(attacker, target, area_definitions, policy):
 			continue
 		var position_value: Variant = target.get("position", Vector2.ZERO)
 		var position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO
@@ -651,16 +649,13 @@ func apply_peer_damage(attacker_id: int, target_id: int, amount: int) -> bool:
 
 func damage_host_from_peer(attacker: Dictionary, amount: int) -> bool:
 	var runtime := runtime_root()
-	if runtime == null:
+	if runtime == null or float(runtime.get("player_hurt_lock")) > 0.0:
 		return false
 	var before := int(runtime.get("player_health"))
 	var defense := int(runtime.call("player_defense_value")) if runtime.has_method("player_defense_value") else 0
 	var resolved := maxi(1, amount - defense)
 	var host_will_fall := before <= resolved
-	runtime.call("damage_actor", "player", amount, {
-		"display_name": str(attacker.get("display_name", "INVADER")),
-		"attack_damage": amount
-	})
+	runtime.call("damage_actor", "player", amount, {"display_name": str(attacker.get("display_name", "INVADER")), "attack_damage": amount})
 	if host_will_fall:
 		session_score["host_defeats"] = int(session_score.get("host_defeats", 0)) + 1
 		banish_all_invaders("HOST FELL — INVASION ENDED")
@@ -673,12 +668,7 @@ func attack_nearest_enemy(peer: Dictionary) -> bool:
 		return false
 	var entities_value: Variant = runtime.get("runtime_entities")
 	var entities: Array = entities_value if typeof(entities_value) == TYPE_ARRAY else []
-	var target_index := EncounterModel.nearest_facing_enemy_index(
-		entities,
-		MultiplayerSessionModel.peer_attack_origin(peer),
-		MultiplayerSessionModel.peer_facing(peer),
-		MultiplayerSessionModel.ATTACK_RANGE
-	)
+	var target_index := EncounterModel.nearest_facing_enemy_index(entities, MultiplayerSessionModel.peer_attack_origin(peer), MultiplayerSessionModel.peer_facing(peer), MultiplayerSessionModel.ATTACK_RANGE)
 	if target_index < 0:
 		return false
 	runtime.call("damage_entity", target_index, MultiplayerSessionModel.ATTACK_DAMAGE, str(peer.get("display_name", "ALLY")))
@@ -693,12 +683,7 @@ func respawn_remote_peer(peer: Dictionary) -> Dictionary:
 	var spawn := MultiplayerCatalog.spawn_position(area, MultiplayerSessionModel.ROLE_ALLY, fallback + Vector2(24, 0))
 	var map_value: Variant = runtime.get("map_data") if runtime != null else {}
 	var map_data: Dictionary = map_value if typeof(map_value) == TYPE_DICTIONARY else {}
-	return MultiplayerSessionModel.respawn_peer(
-		peer,
-		spawn,
-		str(map_data.get("id", "")),
-		str(runtime.get("current_era_id")) if runtime != null else ""
-	)
+	return MultiplayerSessionModel.respawn_peer(peer, spawn, str(map_data.get("id", "")), str(runtime.get("current_era_id")) if runtime != null else "")
 
 
 func sync_remote_peers_to_host_world() -> void:
@@ -710,8 +695,7 @@ func sync_remote_peers_to_host_world() -> void:
 	var map_id := str(map_data.get("id", ""))
 	var era_id := str(runtime.get("current_era_id"))
 	var host_area := current_host_area()
-	var ids := peers.keys().duplicate()
-	for key in ids:
+	for key in peers.keys().duplicate():
 		if typeof(key) != TYPE_INT or int(key) <= 1:
 			continue
 		var peer_id := int(key)
@@ -729,14 +713,12 @@ func sync_remote_peers_to_host_world() -> void:
 		if str(peer.get("map_id", "")) != map_id or str(peer.get("era_id", "")) != era_id:
 			var fallback_value: Variant = runtime.get("player")
 			var fallback: Vector2 = fallback_value if fallback_value is Vector2 else Vector2.ZERO
-			var spawn := MultiplayerCatalog.spawn_position(host_area, role, fallback + Vector2(24, 0))
-			peer = MultiplayerSessionModel.respawn_peer(peer, spawn, map_id, era_id)
+			peer = MultiplayerSessionModel.respawn_peer(peer, MultiplayerCatalog.spawn_position(host_area, role, fallback + Vector2(24, 0)), map_id, era_id)
 			peers[peer_id] = peer
 
 
 func banish_all_invaders(reason: String) -> void:
-	var ids := peers.keys().duplicate()
-	for key in ids:
+	for key in peers.keys().duplicate():
 		if typeof(key) == TYPE_INT and int(key) > 1:
 			var value: Variant = peers.get(key, {})
 			if typeof(value) == TYPE_DICTIONARY and str((value as Dictionary).get("role", "")) == MultiplayerSessionModel.ROLE_INVADER:
@@ -760,9 +742,8 @@ func broadcast_world_snapshot() -> void:
 	if mode != MultiplayerSessionModel.MODE_HOST:
 		return
 	var snapshot := build_world_snapshot()
-	if test_mode:
-		return
-	_receive_snapshot.rpc(snapshot)
+	if not test_mode:
+		_receive_snapshot.rpc(snapshot)
 
 
 func build_world_snapshot() -> Dictionary:
@@ -783,10 +764,7 @@ func build_world_snapshot() -> Dictionary:
 		"map_id": str(map_data.get("id", "")),
 		"era_id": str(runtime.get("current_era_id")),
 		"peers": MultiplayerSessionModel.snapshot_peers(peers),
-		"companion": {
-			"position": {"x": snappedf(companion_position.x, 0.01), "y": snappedf(companion_position.y, 0.01)},
-			"health": int(runtime.get("companion_health"))
-		},
+		"companion": {"position": {"x": snappedf(companion_position.x, 0.01), "y": snappedf(companion_position.y, 0.01)}, "health": int(runtime.get("companion_health"))},
 		"clock_shards": int(runtime.get("clock_shards")),
 		"runtime_entities": snapshot_runtime_entities(),
 		"session_score": session_score.duplicate(true),
@@ -835,9 +813,8 @@ func apply_world_snapshot(snapshot: Dictionary) -> bool:
 	var era_id := str(snapshot.get("era_id", ""))
 	var map_value: Variant = runtime.get("map_data")
 	var map_data: Dictionary = map_value if typeof(map_value) == TYPE_DICTIONARY else {}
-	if str(map_data.get("id", "")) != map_id:
-		if not bool(runtime.call("activate_map", map_id, "", era_id, false)):
-			return false
+	if str(map_data.get("id", "")) != map_id and not bool(runtime.call("activate_map", map_id, "", era_id, false)):
+		return false
 	runtime.set("current_era_id", era_id)
 	runtime.call("sync_runtime_entities", false)
 	apply_entity_snapshots(snapshot.get("runtime_entities", []))
@@ -857,13 +834,16 @@ func apply_world_snapshot(snapshot: Dictionary) -> bool:
 	var companion_value: Variant = snapshot.get("companion", {})
 	if typeof(companion_value) == TYPE_DICTIONARY:
 		var companion_data: Dictionary = companion_value
-		runtime.set("companion", MultiplayerSessionModel.vector_from_data(companion_data.get("position"), runtime.get("companion")))
+		var current_companion_value: Variant = runtime.get("companion")
+		var current_companion: Vector2 = current_companion_value if current_companion_value is Vector2 else Vector2.ZERO
+		runtime.set("companion", MultiplayerSessionModel.vector_from_data(companion_data.get("position"), current_companion))
 		runtime.set("companion_health", int(companion_data.get("health", runtime.get("companion_health"))))
 	runtime.set("clock_shards", int(snapshot.get("clock_shards", runtime.get("clock_shards"))))
 	if typeof(snapshot.get("session_score")) == TYPE_DICTIONARY:
 		session_score = (snapshot.get("session_score") as Dictionary).duplicate(true)
 	if int(runtime.get("flow")) != 4:
 		runtime.call("change_flow", 4)
+	runtime.queue_redraw()
 	return true
 
 
@@ -888,8 +868,12 @@ func apply_entity_snapshots(value: Variant) -> void:
 			continue
 		var index := int(by_id.get(placement_id))
 		var entity: Dictionary = entities[index]
-		entity["position"] = MultiplayerSessionModel.vector_from_data(snapshot.get("position"), entity.get("position", Vector2.ZERO))
-		entity["facing"] = MultiplayerSessionModel.vector_from_data(snapshot.get("facing"), entity.get("facing", Vector2.DOWN))
+		var current_position_value: Variant = entity.get("position", Vector2.ZERO)
+		var current_facing_value: Variant = entity.get("facing", Vector2.DOWN)
+		var current_position: Vector2 = current_position_value if current_position_value is Vector2 else Vector2.ZERO
+		var current_facing: Vector2 = current_facing_value if current_facing_value is Vector2 else Vector2.DOWN
+		entity["position"] = MultiplayerSessionModel.vector_from_data(snapshot.get("position"), current_position)
+		entity["facing"] = MultiplayerSessionModel.vector_from_data(snapshot.get("facing"), current_facing)
 		entity["health"] = int(snapshot.get("health", entity.get("health", 0)))
 		entity["active"] = bool(snapshot.get("active", entity.get("active", true)))
 		entity["hit_flash"] = clampf(float(snapshot.get("hit_flash", 0.0)), 0.0, 0.2)
@@ -939,10 +923,7 @@ func online_status_text() -> String:
 	if connection_pending:
 		return "CONNECTING %s:%d" % [connect_address, connect_port]
 	if mode == MultiplayerSessionModel.MODE_HOST:
-		return "HOST  •  %d ALLY  •  %d INVADER" % [
-			MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_ALLY),
-			MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_INVADER)
-		]
+		return "HOST  •  %d ALLY  •  %d INVADER" % [MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_ALLY), MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_INVADER)]
 	if mode == MultiplayerSessionModel.MODE_CLIENT:
 		return "%s  •  HOST-AUTHORITATIVE" % local_role.to_upper()
 	return "OFFLINE"
@@ -992,15 +973,7 @@ func set_test_peer_grace(peer_id: int, seconds: float) -> void:
 
 
 func multiplayer_runtime_contract_ok() -> bool:
-	return (
-		MultiplayerSessionModel.contract_ok(policy)
-		and str(policy.get("transport", "")) == MultiplayerCatalog.TRANSPORT_ENET
-		and str(policy.get("shared_progression", "")) == MultiplayerCatalog.PROGRESSION_HOST_ONLY
-		and str(policy.get("pvp_rewards", "")) == MultiplayerCatalog.REWARD_SESSION_ONLY
-		and input_accumulator >= 0.0
-		and snapshot_accumulator >= 0.0
-		and PROTOCOL_VERSION == 1
-	)
+	return MultiplayerSessionModel.contract_ok(policy) and str(policy.get("transport", "")) == MultiplayerCatalog.TRANSPORT_ENET and str(policy.get("shared_progression", "")) == MultiplayerCatalog.PROGRESSION_HOST_ONLY and str(policy.get("pvp_rewards", "")) == MultiplayerCatalog.REWARD_SESSION_ONLY and input_accumulator >= 0.0 and snapshot_accumulator >= 0.0 and PROTOCOL_VERSION == 1
 
 
 func set_notice(message: String, duration: float = NOTICE_DURATION) -> void:

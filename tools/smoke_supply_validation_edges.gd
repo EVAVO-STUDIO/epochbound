@@ -57,7 +57,7 @@ func test_region_validation() -> void:
 			"id": 7,
 			"display_name": true,
 			"restock_interval_seconds": "300",
-			"max_catchup_cycles": 2.0
+			"max_catchup_cycles": 2.5
 		}],
 		"test/type-errors.json",
 		type_sources,
@@ -67,7 +67,24 @@ func test_region_validation() -> void:
 	check(contains_fragment(type_errors, "id must be a string"), "Supply route IDs must reject numeric coercion.")
 	check(contains_fragment(type_errors, "display_name must be a string"), "Supply route names must reject boolean coercion.")
 	check(contains_fragment(type_errors, "restock_interval_seconds must be numeric"), "Supply intervals must reject numeric strings.")
-	check(contains_fragment(type_errors, "max_catchup_cycles must be an integer"), "Supply catch-up limits must reject floating-point values.")
+	check(contains_fragment(type_errors, "max_catchup_cycles must be an integer"), "Supply catch-up limits must reject fractional values.")
+
+	var whole_number_errors: Array[String] = []
+	var whole_number_warnings: Array[String] = []
+	var whole_number_sources: Dictionary = {}
+	SupplyValidator.validate_region_records(
+		[{
+			"id": "json_route",
+			"display_name": "JSON Route",
+			"restock_interval_seconds": 300.0,
+			"max_catchup_cycles": 2.0
+		}],
+		"test/json-numbers.json",
+		whole_number_sources,
+		whole_number_errors,
+		whole_number_warnings
+	)
+	check(whole_number_errors.is_empty(), "Whole-number JSON floats must validate as integer supply fields.")
 
 
 func test_merchant_and_stock_validation() -> void:
@@ -98,7 +115,7 @@ func test_merchant_and_stock_validation() -> void:
 				"quantity": 1,
 				"unlimited": false,
 				"restock_quantity": "1",
-				"restock_target": 3.0
+				"restock_target": 3.5
 			}]
 		}
 	}
@@ -122,7 +139,35 @@ func test_merchant_and_stock_validation() -> void:
 	check(contains_fragment(errors, "cannot be lower than the initial quantity"), "Restock targets below initial stock must be rejected.")
 	check(contains_fragment(errors, "supply_region_id must be a string"), "Merchant routes must reject numeric coercion.")
 	check(contains_fragment(errors, "restock_quantity must be an integer"), "Restock quantities must reject numeric strings.")
-	check(contains_fragment(errors, "restock_target must be an integer"), "Restock targets must reject floating-point values.")
+	check(contains_fragment(errors, "restock_target must be an integer"), "Restock targets must reject fractional values.")
+
+	var json_number_errors: Array[String] = []
+	var json_number_warnings: Array[String] = []
+	var json_number_sources: Dictionary = {}
+	var json_merchants: Dictionary = {
+		"json_stock": {
+			"id": "json_stock",
+			"supply_region_id": "known_route",
+			"stock": [{
+				"item_id": "tonic",
+				"quantity": 1,
+				"unlimited": false,
+				"restock_quantity": 1.0,
+				"restock_target": 3.0
+			}]
+		}
+	}
+	SupplyValidator.validate_catalog_file(
+		{"supply_regions": [], "merchants": json_merchants.values()},
+		"test/json-stock.json",
+		regions,
+		json_merchants,
+		items,
+		json_number_sources,
+		json_number_errors,
+		json_number_warnings
+	)
+	check(json_number_errors.is_empty(), "Whole-number JSON floats must validate as restock quantities and targets.")
 
 	var no_route_errors: Array[String] = []
 	var no_route_warnings: Array[String] = []
@@ -196,7 +241,7 @@ func test_profile_validation() -> void:
 	SupplyValidator.validate_profile_supply(
 		{
 			"supply_regions_initialized": "true",
-			"supply_region_cycles": {"known_route": 1.0}
+			"supply_region_cycles": {"known_route": 1.5}
 		},
 		regions,
 		360.0,
@@ -204,7 +249,21 @@ func test_profile_validation() -> void:
 		warnings
 	)
 	check(contains_fragment(errors, "supply_regions_initialized must be boolean"), "Supply initialisation state must reject string coercion.")
-	check(contains_fragment(errors, "must be an integer"), "Saved supply cycles must reject floating-point coercion.")
+	check(contains_fragment(errors, "must be an integer"), "Saved supply cycles must reject fractional values.")
+
+	errors.clear()
+	warnings.clear()
+	SupplyValidator.validate_profile_supply(
+		{
+			"supply_regions_initialized": true,
+			"supply_region_cycles": {"known_route": 1.0}
+		},
+		regions,
+		360.0,
+		errors,
+		warnings
+	)
+	check(errors.is_empty(), "Whole-number JSON floats must validate as saved supply cycles.")
 
 
 func contains_fragment(messages: Variant, fragment: String) -> bool:

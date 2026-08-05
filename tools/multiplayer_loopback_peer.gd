@@ -331,16 +331,15 @@ func write_json(path: String, payload: Dictionary) -> bool:
 
 
 func settle_network_shutdown() -> void:
+	# The exchange receipts are already complete. Disable gameplay and network
+	# polling, then let SceneTree own peer and node destruction during quit; a
+	# second scripted peer transition here races Godot's headless teardown.
 	if runtime != null:
 		runtime.set_process(false)
 	if session != null:
 		session.set_process(false)
-		if session.has_method("leave_session"):
-			session.call("leave_session", "LOOPBACK VALIDATION COMPLETE")
-		session.set_process(false)
 	await process_frame
 	await process_frame
-	await create_timer(0.1).timeout
 
 
 func finish_success() -> void:

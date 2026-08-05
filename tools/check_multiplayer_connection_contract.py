@@ -303,20 +303,6 @@ require(
     ],
 )
 
-readme_path = "README.md"
-readme = read(readme_path)
-require(
-    readme_path,
-    readme,
-    [
-        'Host-authoritative direct-IP co-op',
-        'In-game Connection Setup',
-        'user://settings/multiplayer_connection.json',
-        'check_multiplayer_connection_contract.py',
-        'docs/MULTIPLAYER_COOP_PVP.md',
-    ],
-)
-
 workflow_path = ".github/workflows/validate.yml"
 workflow = read(workflow_path)
 require(

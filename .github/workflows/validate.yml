@@ -158,6 +158,7 @@ jobs:
           import os
           from pathlib import Path
 
+          # Receipt schema migrated from: "schemaVersion": "1.8"
           payload = {
               "schemaVersion": "1.9",
               "repository": "EVAVO-STUDIO/epochbound",

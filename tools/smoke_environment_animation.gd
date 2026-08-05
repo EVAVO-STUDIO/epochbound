@@ -25,7 +25,11 @@ func run_test() -> void:
 		runtime.free()
 		finish()
 		return
-	check(str(overlay.get_script().resource_path) == "res://src/environment_animation_overlay.gd", "Playable scene must bind the environment animation overlay.")
+	var overlay_script: Script = overlay.get_script() as Script
+	check(
+		script_chain_contains(overlay_script, "res://src/environment_animation_overlay.gd"),
+		"Playable scene must inherit the environment animation overlay."
+	)
 	check(bool(overlay.call("environment_animation_contract_ok")), "Environment animation must preserve inherited adventure feedback and bounded effect contracts.")
 
 	var synthetic_map := environment_test_map()
@@ -151,6 +155,15 @@ func environment_test_map() -> Dictionary:
 		"encounter_zones": [],
 		"companion_cues": []
 	}
+
+
+func script_chain_contains(script: Script, expected_path: String) -> bool:
+	var current := script
+	while current != null:
+		if str(current.resource_path) == expected_path:
+			return true
+		current = current.get_base_script()
+	return false
 
 
 func check(condition: bool, message: String) -> void:

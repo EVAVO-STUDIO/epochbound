@@ -68,6 +68,7 @@ try {
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test deterministic co-op and invasion session model", "res://tools/smoke_multiplayer_session_model.gd"),
         @("Smoke test player-local multiplayer connection setup and recovery", "res://tools/smoke_multiplayer_connection_profile.gd"),
+        @("Smoke test bounded multiplayer snapshot transport across every map and era", "res://tools/smoke_multiplayer_snapshot_transport.gd"),
         @("Smoke test host-authoritative co-op PvP runtime and snapshots", "res://tools/smoke_multiplayer_runtime.gd"),
         @("Smoke test malformed online policies areas and save isolation", "res://tools/smoke_multiplayer_validation_edges.gd"),
         @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
@@ -132,7 +133,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

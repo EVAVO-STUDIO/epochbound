@@ -16,14 +16,14 @@ var ambience_sample_clock := 0
 
 func _ready() -> void:
 	super._ready()
-	# Do not let the audio thread consume empty generator buffers while campaign
-	# validation and catalogue loading are still running. Start each playback in
-	# a paused state, fill the complete buffers, then release all buses together.
+	# Child ready callbacks run before the root runtime has finished campaign,
+	# map and authoring-system startup. Keep every generator paused through that
+	# heavier parent work, then refresh and release them together afterwards.
 	start_generator_players_paused()
 	update_mix(RUNTIME_BUFFER_LENGTH)
 	prime_generator_buffers()
-	resume_generator_players()
 	apply_player_volume_settings()
+	call_deferred("complete_generator_startup")
 
 
 func _process(delta: float) -> void:
@@ -50,6 +50,18 @@ func start_generator_players_paused() -> void:
 			continue
 		player.play()
 		player.stream_paused = true
+
+
+func complete_generator_startup() -> void:
+	if not is_inside_tree():
+		return
+	var runtime_campaign_key := current_runtime_campaign_key()
+	if not runtime_campaign_key.is_empty() and runtime_campaign_key != loaded_campaign_key:
+		initialize_from_runtime()
+	update_mix(RUNTIME_BUFFER_LENGTH)
+	prime_generator_buffers()
+	apply_player_volume_settings()
+	resume_generator_players()
 
 
 func resume_generator_players() -> void:

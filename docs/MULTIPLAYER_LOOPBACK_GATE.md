@@ -18,6 +18,16 @@ The host enters the authored `clockwood_ashen_hunt` region in Clockwood Edge’s
 
 The ally and invader then connect to `127.0.0.1` through the production `join_session` path. They use the same campaign-version negotiation, role-capacity checks and reliable join RPCs as a normal game session.
 
+## Bounded snapshot transport
+
+The canonical `MultiplayerSession` uses `res://src/multiplayer_transport_session.gd`, which extends the host-authoritative base session without changing progression or save ownership.
+
+Authoritative world snapshots use object-free Variant serialisation, Deflate compression and a hard **1,200-byte** compressed wire budget. Decoding is capped at 65,536 bytes and does not enable object construction from network data.
+
+The host sends the compressed payload separately to each currently connected, registered peer. Snapshot requests in the same frame are coalesced and deferred so reliable role acceptance is queued before the first world snapshot.
+
+Runtime entity facing remains a bounded cardinal name on the wire. This preserves the inherited renderer’s authored `up`, `left`, `right` and `down` contract instead of introducing incompatible vector values on clients.
+
 ## What must be proven
 
 The host receipt must prove:
@@ -26,6 +36,8 @@ The host receipt must prove:
 - both remote peers sent monotonic input through the production unreliable-ordered input channel;
 - remote input reaches host authority;
 - the host built a protocol-versioned authoritative snapshot;
+- the compressed snapshot is greater than zero and no larger than 1,200 bytes;
+- the uncompressed snapshot is larger than the compressed payload;
 - the active map, era and PvP area are the expected authored records.
 
 Each client receipt must prove:
@@ -45,9 +57,11 @@ The harness is:
 scripts/validate_multiplayer_loopback.ps1
 ```
 
-It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, applies hard timeouts, validates every child exit code and log, terminates remaining process trees on failure and removes all temporary files in `finally` cleanup.
+It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, applies hard timeouts and rejects any child that exits or logs a parser, runtime or native crash before producing evidence.
 
-Tracked repository source is never used for receipts or coordination.
+After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
+
+This division is deliberate: the gate validates the live transport exchange and does **not validate graceful disconnect** or Godot’s independent headless process-exit lifecycle. Those require a separate test boundary rather than being inferred from successful UDP communication.
 
 ## Permanent source contract
 
@@ -57,11 +71,12 @@ Before Godot starts, the exact-main workflow runs:
 python3 tools/check_multiplayer_loopback_contract.py
 ```
 
-The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking remote input, stop checking authoritative snapshots, remove bounded cleanup or detach the gate from the production workflow.
+The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking remote input, stop checking authoritative snapshots, remove the 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
 
 The multiplayer compile probe also loads:
 
 ```text
+res://src/multiplayer_transport_session.gd
 res://tools/multiplayer_loopback_peer.gd
 ```
 
@@ -77,10 +92,10 @@ The governed exact-main receipt records:
 }
 ```
 
-A release is not considered multiplayer-transport validated if the static contract, real loopback process exchange, child-log review, clean-source verification or receipt field is absent.
+A release is not considered multiplayer-transport validated if the static contract, real loopback process exchange, bounded snapshot evidence, child-log review, clean-source verification or receipt field is absent.
 
 ## What this gate does not prove
 
-Loopback proves that the production ENet server, client, RPC, input-channel and snapshot-channel paths work between independent processes on one machine. It does not prove public Internet reachability, router configuration, relay behaviour, NAT traversal, platform invitations, mobile permissions, host migration, reconnect policy, latency tolerance, packet-loss tolerance, anti-cheat or moderation.
+Loopback proves that the production ENet server, client, RPC, input-channel and snapshot-channel paths work between independent processes on one machine. It does not prove public Internet reachability, router configuration, relay behaviour, NAT traversal, platform invitations, mobile permissions, graceful disconnect, host migration, reconnect policy, latency tolerance, packet-loss tolerance, anti-cheat or moderation.
 
 Those remain separate production boundaries and require real multi-machine and network-condition testing.

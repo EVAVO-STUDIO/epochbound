@@ -48,7 +48,6 @@ func run_test() -> void:
 	if audio != null and audio.has_method("generator_players_ready"):
 		check(bool(audio.call("generator_players_ready")), "Audio generators must be ready in the complete playable scene.")
 		var diagnostics := audio_generator_diagnostics(audio)
-		print("RUNTIME_AUDIO_GENERATOR_DIAGNOSTICS %s" % JSON.stringify(diagnostics))
 		check(
 			int(audio.call("generator_skip_count")) == 0,
 			"Complete-scene startup must not report Audio generator underruns. Diagnostics: %s" % JSON.stringify(diagnostics)

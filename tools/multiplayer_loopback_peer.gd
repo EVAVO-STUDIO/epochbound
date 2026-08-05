@@ -183,10 +183,8 @@ func run_host() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback host could not write its validation receipt.")
 				return
-			# The host closes first after both clients have proven receipt. Keeping
-			# clients alive avoids broadcasting into an ENet peer already tearing down.
 			await create_timer(0.75).timeout
-			finish_success()
+			await finish_success()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
@@ -248,10 +246,8 @@ func run_client() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback %s could not write its validation receipt." % peer_role)
 				return
-			# Remain connected until the host completes and closes the authoritative
-			# session, preventing a normal client exit from racing a snapshot send.
 			await create_timer(2.0).timeout
-			finish_success()
+			await finish_success()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
@@ -334,20 +330,21 @@ func write_json(path: String, payload: Dictionary) -> bool:
 	return true
 
 
-func cleanup_runtime() -> void:
-	if runtime == null:
-		return
-	if session != null and session.has_method("leave_session"):
-		session.call("leave_session", "LOOPBACK VALIDATION COMPLETE")
-	if runtime.get_parent() == root:
-		root.remove_child(runtime)
-	runtime.free()
-	runtime = null
-	session = null
+func settle_network_shutdown() -> void:
+	if runtime != null:
+		runtime.set_process(false)
+	if session != null:
+		session.set_process(false)
+		if session.has_method("leave_session"):
+			session.call("leave_session", "LOOPBACK VALIDATION COMPLETE")
+		session.set_process(false)
+	await process_frame
+	await process_frame
+	await create_timer(0.1).timeout
 
 
 func finish_success() -> void:
-	cleanup_runtime()
+	await settle_network_shutdown()
 	print(
 		"Real ENet loopback peer passed: %s completed host-authoritative negotiation, input and snapshot exchange." % peer_role
 	)
@@ -363,6 +360,5 @@ func finish_failure(message: String) -> void:
 	}
 	if not receipt_path.is_empty():
 		write_json(receipt_path, payload)
-	cleanup_runtime()
 	push_error(message)
 	quit(1)

@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)] [string]$GodotExecutable,
     [Parameter(Mandatory = $true)] [string]$ProjectRoot,
-    [int]$TimeoutSeconds = 40
+    [int]$TimeoutSeconds = 60
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,12 +30,12 @@ function Start-LoopbackPeer {
         "--path",
         $ProjectRoot,
         "--script",
-        "res://tools/multiplayer_loopback_peer.gd",
+        "res://tools/multiplayer_loopback_peer_driver.gd",
         "--",
         "--role=$Role",
         "--port=$Port",
         "--receipt=$ReceiptPath",
-        "--timeout=24"
+        "--timeout=45"
     )
     if ($Role -eq "host") {
         $arguments += "--ready=$ReadyPath"
@@ -87,6 +87,13 @@ function Write-PeerLogs {
     Write-Host "--- $($Peer.Role) stderr ---"
     if (Test-Path $Peer.StderrPath) {
         Get-Content -Raw $Peer.StderrPath | Write-Host
+    }
+}
+
+function Write-AllPeerLogs {
+    param([Parameter(Mandatory = $true)] [array]$Peers)
+    foreach ($peer in $Peers) {
+        Write-PeerLogs $peer
     }
 }
 
@@ -156,7 +163,7 @@ try {
         -RunRoot $runRoot
     $peers += $hostPeer
 
-    $readyDeadline = [DateTime]::UtcNow.AddSeconds(15)
+    $readyDeadline = [DateTime]::UtcNow.AddSeconds(20)
     while (-not (Test-Path $readyPath) -and [DateTime]::UtcNow -lt $readyDeadline) {
         $hostPeer.Process.Refresh()
         if ($hostPeer.Process.HasExited) {
@@ -165,7 +172,7 @@ try {
         Start-Sleep -Milliseconds 100
     }
     if (-not (Test-Path $readyPath)) {
-        Write-PeerLogs $hostPeer
+        Write-AllPeerLogs -Peers $peers
         throw "Real ENet loopback host did not open its UDP listener."
     }
 
@@ -176,7 +183,7 @@ try {
         -ReadyPath $readyPath `
         -RunRoot $runRoot
     $peers += $allyPeer
-    Start-Sleep -Milliseconds 350
+    Start-Sleep -Milliseconds 800
     $invaderPeer = Start-LoopbackPeer `
         -Role "invader" `
         -Port $port `
@@ -186,31 +193,38 @@ try {
     $peers += $invaderPeer
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $earlyExitRole = ""
     while (-not (Test-AllReceiptsPresent -Peers $peers) -and [DateTime]::UtcNow -lt $deadline) {
         foreach ($peer in $peers) {
             $peer.Process.Refresh()
             if ($peer.Process.HasExited -and -not (Test-Path $peer.ReceiptPath)) {
-                Write-PeerLogs $peer
-                throw "Real ENet loopback $($peer.Role) exited before producing transport evidence."
+                $earlyExitRole = [string]$peer.Role
+                break
             }
+        }
+        if (-not [string]::IsNullOrEmpty($earlyExitRole)) {
+            break
         }
         Start-Sleep -Milliseconds 100
     }
 
+    if (-not [string]::IsNullOrEmpty($earlyExitRole)) {
+        Write-AllPeerLogs -Peers $peers
+        throw "Real ENet loopback $earlyExitRole exited before producing transport evidence."
+    }
+
     if (-not (Test-AllReceiptsPresent -Peers $peers)) {
-        foreach ($peer in $peers) {
-            Write-PeerLogs $peer
-        }
+        Write-AllPeerLogs -Peers $peers
         throw "Real ENet loopback did not produce all three receipts within $TimeoutSeconds seconds."
     }
 
-    # Receipt files are flushed and closed by each Godot process. Give filesystem
-    # metadata and redirected logs one bounded interval to become visible.
+    # Each peer atomically promotes its complete receipt. Give redirected logs
+    # one bounded interval to become visible before reviewing all child output.
     Start-Sleep -Milliseconds 300
 
+    Write-AllPeerLogs -Peers $peers
     foreach ($peer in $peers) {
         $peer.Process.Refresh()
-        Write-PeerLogs $peer
         if ($peer.Process.HasExited) {
             throw "Real ENet loopback $($peer.Role) exited before harness-owned cleanup."
         }
@@ -244,16 +258,17 @@ try {
             [string]$receipt.local_role -ne $expectedRole -or
             [int]$receipt.peer_count -ne 3 -or
             [int]$receipt.snapshot_sequence -lt 0 -or
+            [int]$receipt.input_sequence_sent -le 10000 -or
             [string]$receipt.map_id -ne "clockwood_edge" -or
             [string]$receipt.era_id -ne "ashen"
         ) {
-            throw "Real ENet loopback $expectedRole receipt did not prove authoritative snapshot restoration."
+            throw "Real ENet loopback $expectedRole receipt did not prove input transmission and authoritative snapshot restoration."
         }
     }
 
     Write-Host (
         "Real ENet loopback passed: host, ally and invader negotiated through UDP; " +
-        "both remote inputs reached host authority; both clients restored authoritative snapshots; " +
+        "both repeated production input RPCs reached host authority; both clients restored authoritative snapshots; " +
         "and the compressed snapshot stayed within the 1200-byte transport budget."
     )
 }

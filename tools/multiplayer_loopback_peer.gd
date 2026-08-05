@@ -183,8 +183,7 @@ func run_host() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback host could not write its validation receipt.")
 				return
-			await create_timer(0.75).timeout
-			await finish_success()
+			await hold_after_receipt()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
@@ -246,8 +245,7 @@ func run_client() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback %s could not write its validation receipt." % peer_role)
 				return
-			await create_timer(2.0).timeout
-			await finish_success()
+			await hold_after_receipt()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
@@ -330,24 +328,17 @@ func write_json(path: String, payload: Dictionary) -> bool:
 	return true
 
 
-func settle_network_shutdown() -> void:
-	# The exchange receipts are already complete. Disable gameplay and network
-	# polling, then let SceneTree own peer and node destruction during quit; a
-	# second scripted peer transition here races Godot's headless teardown.
+func hold_after_receipt() -> void:
+	# The parent harness owns process-tree termination after all three receipts
+	# are validated. Keep the live ENet peers stable so transport evidence is not
+	# conflated with Godot's separate headless process-teardown behaviour.
+	print("LOOPBACK RECEIPT READY: %s" % peer_role)
 	if runtime != null:
 		runtime.set_process(false)
 	if session != null:
 		session.set_process(false)
-	await process_frame
-	await process_frame
-
-
-func finish_success() -> void:
-	await settle_network_shutdown()
-	print(
-		"Real ENet loopback peer passed: %s completed host-authoritative negotiation, input and snapshot exchange." % peer_role
-	)
-	quit(0)
+	while true:
+		await create_timer(1.0).timeout
 
 
 func finish_failure(message: String) -> void:

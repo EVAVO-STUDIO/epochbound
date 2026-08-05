@@ -92,6 +92,17 @@ jobs:
         shell: bash
         run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_progression_affordability.gd
 
+      - name: Probe Audio and Mood runtime before complete gate
+        shell: bash
+        run: .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" --script res://tools/smoke_audio_mood_runtime.gd
+
+      - name: Confirm focused probes did not mutate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]
+
       - name: Run complete Godot gate
         shell: pwsh
         run: |

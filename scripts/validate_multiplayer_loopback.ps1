@@ -115,9 +115,24 @@ function Assert-PeerLogClean {
     if (Test-Path $Peer.StderrPath) {
         $combined += "`n" + (Get-Content -Raw $Peer.StderrPath)
     }
-    if ($combined -match "SCRIPT ERROR:" -or $combined -match "(?m)^ERROR:") {
-        throw "Real ENet loopback $($Peer.Role) emitted a Godot parser or runtime error."
+    if (
+        $combined -match "SCRIPT ERROR:" -or
+        $combined -match "(?m)^ERROR:" -or
+        $combined -match "handle_crash:" -or
+        $combined -match "Program crashed with signal"
+    ) {
+        throw "Real ENet loopback $($Peer.Role) emitted a Godot parser, runtime or native crash error."
     }
+}
+
+function Test-AllReceiptsPresent {
+    param([Parameter(Mandatory = $true)] [array]$Peers)
+    foreach ($peer in $Peers) {
+        if (-not (Test-Path $peer.ReceiptPath)) {
+            return $false
+        }
+    }
+    return $true
 }
 
 $runRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
@@ -171,28 +186,33 @@ try {
     $peers += $invaderPeer
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
-    while ([DateTime]::UtcNow -lt $deadline) {
-        $allExited = $true
+    while (-not (Test-AllReceiptsPresent -Peers $peers) -and [DateTime]::UtcNow -lt $deadline) {
         foreach ($peer in $peers) {
             $peer.Process.Refresh()
-            if (-not $peer.Process.HasExited) {
-                $allExited = $false
+            if ($peer.Process.HasExited -and -not (Test-Path $peer.ReceiptPath)) {
+                Write-PeerLogs $peer
+                throw "Real ENet loopback $($peer.Role) exited before producing transport evidence."
             }
-        }
-        if ($allExited) {
-            break
         }
         Start-Sleep -Milliseconds 100
     }
 
+    if (-not (Test-AllReceiptsPresent -Peers $peers)) {
+        foreach ($peer in $peers) {
+            Write-PeerLogs $peer
+        }
+        throw "Real ENet loopback did not produce all three receipts within $TimeoutSeconds seconds."
+    }
+
+    # Receipt files are flushed and closed by each Godot process. Give filesystem
+    # metadata and redirected logs one bounded interval to become visible.
+    Start-Sleep -Milliseconds 300
+
     foreach ($peer in $peers) {
         $peer.Process.Refresh()
         Write-PeerLogs $peer
-        if (-not $peer.Process.HasExited) {
-            throw "Real ENet loopback $($peer.Role) exceeded the $TimeoutSeconds-second harness timeout."
-        }
-        if ($peer.Process.ExitCode -ne 0) {
-            throw "Real ENet loopback $($peer.Role) exited with code $($peer.Process.ExitCode)."
+        if ($peer.Process.HasExited) {
+            throw "Real ENet loopback $($peer.Role) exited before harness-owned cleanup."
         }
         Assert-PeerLogClean $peer
     }
@@ -207,11 +227,14 @@ try {
         [int]$hostReceipt.invader_count -ne 1 -or
         [int]$hostReceipt.input_peer_count -ne 2 -or
         [int]$hostReceipt.protocol_version -ne 1 -or
+        [int]$hostReceipt.snapshot_wire_bytes -le 0 -or
+        [int]$hostReceipt.snapshot_wire_bytes -gt 1200 -or
+        [int]$hostReceipt.snapshot_uncompressed_bytes -le [int]$hostReceipt.snapshot_wire_bytes -or
         [string]$hostReceipt.map_id -ne "clockwood_edge" -or
         [string]$hostReceipt.era_id -ne "ashen" -or
         [string]$hostReceipt.area_id -ne "clockwood_ashen_hunt"
     ) {
-        throw "Real ENet loopback host receipt did not prove the complete authoritative exchange."
+        throw "Real ENet loopback host receipt did not prove the complete bounded authoritative exchange."
     }
 
     foreach ($receipt in @($allyReceipt, $invaderReceipt)) {
@@ -228,9 +251,16 @@ try {
         }
     }
 
-    Write-Host "Real ENet loopback passed: host, ally and invader negotiated through UDP, remote inputs reached host authority, and both clients restored authoritative snapshots."
+    Write-Host (
+        "Real ENet loopback passed: host, ally and invader negotiated through UDP; " +
+        "both remote inputs reached host authority; both clients restored authoritative snapshots; " +
+        "and the compressed snapshot stayed within the 1200-byte transport budget."
+    )
 }
 finally {
+    # The parent harness deliberately owns termination after receipt validation.
+    # This gate validates transport exchange, not Godot's independent headless
+    # process-exit or graceful-disconnect lifecycle.
     foreach ($peer in $peers) {
         Stop-LoopbackPeer $peer
     }

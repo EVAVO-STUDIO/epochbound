@@ -4,6 +4,7 @@ const RuntimeSceneContract = preload("res://src/game/runtime_scene_contract.gd")
 const RUNTIME_SCENE := "res://src/app.tscn"
 const TEST_WEAPON_ID := "clockglass_dartcaster"
 const TEST_BOSS_PLACEMENT := "runtime_contract_boss"
+const AUDIO_STARTUP_FRAME_BUDGET := 10
 
 var failures: Array[String] = []
 
@@ -25,14 +26,25 @@ func run_test() -> void:
 		finish()
 		return
 	root.add_child(runtime)
-	await process_frame
+
+	var audio := runtime.get_node_or_null("AudioMood")
+	if audio != null and audio.has_method("generator_startup_complete"):
+		for _frame_index in range(AUDIO_STARTUP_FRAME_BUDGET):
+			if bool(audio.call("generator_startup_complete")):
+				break
+			await process_frame
+		check(
+			bool(audio.call("generator_startup_complete")),
+			"Complete-scene Audio startup must finish within the bounded frame budget. Diagnostics: %s" % JSON.stringify(audio_generator_diagnostics(audio))
+		)
+	else:
+		await process_frame
 
 	var contract_errors := RuntimeSceneContract.validate_runtime_scene(runtime)
 	for error in contract_errors:
 		failures.append(str(error))
 	check(RuntimeSceneContract.runtime_scene_is_valid(runtime), "Canonical runtime contract must pass after ready.")
 
-	var audio := runtime.get_node_or_null("AudioMood")
 	if audio != null and audio.has_method("generator_players_ready"):
 		check(bool(audio.call("generator_players_ready")), "Audio generators must be ready in the complete playable scene.")
 		var diagnostics := audio_generator_diagnostics(audio)
@@ -98,6 +110,8 @@ func run_test() -> void:
 
 func audio_generator_diagnostics(audio: Node) -> Dictionary:
 	var result := {
+		"startup_complete": bool(audio.call("generator_startup_complete")) if audio.has_method("generator_startup_complete") else false,
+		"startup_attempts": int(audio.call("generator_startup_attempt_count")) if audio.has_method("generator_startup_attempt_count") else -1,
 		"active_profile_id": str(audio.get("active_profile_id")),
 		"loaded_campaign_key": str(audio.get("loaded_campaign_key")),
 		"loaded_context_key": str(audio.get("loaded_context_key")),
@@ -130,7 +144,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, selective Arsenal and Boss HUD ownership, Audio readiness, CanvasLayer fallback and restoration are coherent.")
+		print("Runtime scene contract smoke test passed: canonical scripts, inherited systems, selective Arsenal and Boss HUD ownership, bounded Audio readiness, CanvasLayer fallback and restoration are coherent.")
 		quit(0)
 		return
 	for failure in failures:

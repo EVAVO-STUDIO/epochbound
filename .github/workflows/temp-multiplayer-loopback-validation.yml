@@ -71,7 +71,22 @@ jobs:
           .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
             --script res://tools/compile_multiplayer_probe.gd
 
-      - name: Run real ENet host ally and invader loopback
+      - name: Run all-map snapshot transport matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_multiplayer_snapshot_transport.gd
+
+      - name: Run real ENet host ally and invader loopback pass one
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_loopback.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE"
+
+      - name: Run real ENet host ally and invader loopback pass two
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"

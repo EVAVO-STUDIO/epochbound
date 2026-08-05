@@ -81,6 +81,43 @@ forbid(
     ],
 )
 
+driver_path = "tools/multiplayer_loopback_peer_driver.gd"
+driver = read(driver_path)
+require(
+    driver_path,
+    driver,
+    [
+        'extends "res://tools/multiplayer_loopback_peer.gd"',
+        'LOOPBACK_INPUT_RETRY_MSEC := 200',
+        'LOOPBACK_INPUT_SEQUENCE_START := 10000',
+        'session.call("join_session", HOST_ADDRESS, peer_role, port)',
+        'session.rpc_id(',
+        '"_submit_input"',
+        'explicit_input_sequence += 1',
+        'input_sequence_sent',
+        'LOOPBACK JOIN ACCEPTED',
+        'LOOPBACK INPUT SENT',
+        'LOOPBACK SNAPSHOT RECEIVED',
+        'temporary_path := path + ".tmp"',
+        'DirAccess.rename_absolute(temporary_path, path)',
+    ],
+)
+forbid(
+    driver_path,
+    driver,
+    [
+        'configure_test_host_session',
+        'register_test_peer',
+        'test_mode = true',
+        'allow_object_decoding = true',
+        'SaveProfileStore',
+        'write_profile(',
+        'read_profile(',
+        'randf(',
+        'randi(',
+    ],
+)
+
 transport_path = "src/multiplayer_transport_session.gd"
 transport = read(transport_path)
 require(
@@ -131,17 +168,22 @@ require(
     harness_path,
     harness,
     [
+        '[int]$TimeoutSeconds = 60',
         'Start-Process',
-        'multiplayer_loopback_peer.gd',
+        'multiplayer_loopback_peer_driver.gd',
+        '"--timeout=45"',
         '-Role "host"',
         '-Role "ally"',
         '-Role "invader"',
+        'Start-Sleep -Milliseconds 800',
         'host-ready.json',
         'Read-Receipt',
         'Assert-PeerLogClean',
         'Test-AllReceiptsPresent',
+        'Write-AllPeerLogs',
         'ConvertFrom-Json',
         'input_peer_count -ne 2',
+        'input_sequence_sent -le 10000',
         'protocol_version -ne 1',
         'snapshot_wire_bytes -gt 1200',
         'snapshot_uncompressed_bytes -le',
@@ -199,8 +241,9 @@ require(
         'multiplayer_session.gd',
         'multiplayer_transport_session.gd',
         'multiplayer_loopback_peer.gd',
+        'multiplayer_loopback_peer_driver.gd',
         'bounded ENet transport',
-        'real loopback peer',
+        'deterministic real loopback peers',
     ],
 )
 
@@ -230,6 +273,7 @@ require(
         'remote input reaches host authority',
         'authoritative snapshots reach both clients',
         '1,200-byte',
+        'bounded input retries',
         'parent harness owns process termination',
         'does not validate graceful disconnect',
         'does not prove public Internet reachability',
@@ -247,7 +291,7 @@ if errors:
 print("epochbound_multiplayer_loopback_contract_passed")
 print("- three independent Godot processes use real ENet UDP sockets")
 print("- an ally and invader negotiate through the production join RPC surface")
-print("- remote client input reaches host authority and authoritative snapshots return")
-print("- object-free Deflate snapshots remain under the 1,200-byte wire budget")
-print("- the parent harness validates live receipts and owns bounded process cleanup")
+print("- bounded repeated input RPCs make host-authority evidence deterministic")
+print("- authoritative snapshots return through an object-free 1,200-byte Deflate wire budget")
+print("- the parent harness validates atomic live receipts and owns bounded process cleanup")
 print("- graceful disconnect, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")

@@ -141,6 +141,12 @@ func load_saved_profile(
 		profile_default_name(),
 		root_path
 	)
+	var load_errors_value: Variant = result.get("errors", [])
+	var load_errors: Array = (
+		load_errors_value as Array
+		if typeof(load_errors_value) == TYPE_ARRAY
+		else []
+	)
 	if bool(result.get("ok", false)):
 		apply_profile_to_session(
 			result.get(
@@ -156,6 +162,9 @@ func load_saved_profile(
 			profile_notice_timer = PROFILE_NOTICE_DURATION
 		elif bool(result.get("migrated", false)):
 			profile_notice = "CONNECTION DETAILS UPDATED TO CURRENT VERSION"
+			profile_notice_timer = PROFILE_NOTICE_DURATION
+		elif bool(result.get("used_defaults", false)) and not load_errors.is_empty():
+			profile_notice = "INVALID CONNECTION DETAILS — USING LOCALHOST DEFAULTS"
 			profile_notice_timer = PROFILE_NOTICE_DURATION
 	return result
 

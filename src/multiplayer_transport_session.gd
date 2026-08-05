@@ -7,6 +7,7 @@ const MAX_DECOMPRESSED_SNAPSHOT_BYTES := 65536
 var snapshot_broadcast_pending := false
 var last_snapshot_wire_bytes := 0
 var last_snapshot_uncompressed_bytes := 0
+var session_closing := false
 
 
 # Join negotiation and the simulation tick both request snapshots through the
@@ -17,6 +18,7 @@ func broadcast_world_snapshot() -> void:
 		mode != MultiplayerSessionModel.MODE_HOST
 		or test_mode
 		or snapshot_broadcast_pending
+		or session_closing
 	):
 		return
 	snapshot_broadcast_pending = true
@@ -28,6 +30,7 @@ func broadcast_world_snapshot_wire() -> void:
 	if (
 		mode != MultiplayerSessionModel.MODE_HOST
 		or test_mode
+		or session_closing
 		or not multiplayer.is_server()
 	):
 		return
@@ -80,7 +83,7 @@ func decode_world_snapshot(payload: PackedByteArray) -> Dictionary:
 
 @rpc("authority", "call_remote", "unreliable_ordered", SNAPSHOT_CHANNEL)
 func _receive_snapshot_wire(payload: PackedByteArray) -> void:
-	if mode != MultiplayerSessionModel.MODE_CLIENT:
+	if mode != MultiplayerSessionModel.MODE_CLIENT or session_closing:
 		return
 	var snapshot: Dictionary = decode_world_snapshot(payload)
 	if not snapshot.is_empty():
@@ -185,6 +188,35 @@ func snapshot_facing_name(value: Variant) -> String:
 	return facing_name if facing_name in ["up", "left", "right", "down"] else "down"
 
 
+# Detach the high-level MultiplayerAPI before closing the old ENet peer. The
+# inherited order closes a peer that is still being polled, which can race a
+# client callback during shutdown. The guard also absorbs synchronous and
+# deferred disconnect signals caused by the replacement.
+func leave_session(reason: String = "ONLINE SESSION CLOSED") -> void:
+	if session_closing:
+		return
+	session_closing = true
+	snapshot_broadcast_pending = false
+	var closing_peer: MultiplayerPeer = network_peer
+	mode = MultiplayerSessionModel.MODE_OFFLINE
+	connection_pending = false
+	requested_role = MultiplayerSessionModel.ROLE_ALLY
+	local_role = MultiplayerSessionModel.ROLE_HOST
+	local_peer_id = 1
+	peers = {}
+	input_sequence = 0
+	snapshot_sequence = 0
+	last_snapshot_sequence = -1
+	lobby_open = false
+	network_peer = null
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	if closing_peer != null:
+		closing_peer.close()
+	restore_runtime_processing()
+	set_notice(reason)
+	session_closing = false
+
+
 func multiplayer_runtime_contract_ok() -> bool:
 	return (
 		super.multiplayer_runtime_contract_ok()
@@ -194,4 +226,5 @@ func multiplayer_runtime_contract_ok() -> bool:
 		and NETWORK_SNAPSHOT_COMPRESSION_MODE == FileAccess.COMPRESSION_DEFLATE
 		and last_snapshot_wire_bytes >= 0
 		and last_snapshot_uncompressed_bytes >= 0
+		and not session_closing
 	)

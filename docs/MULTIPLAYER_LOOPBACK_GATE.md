@@ -33,6 +33,7 @@ Each client receipt must prove:
 - the connection completed as the requested role;
 - the server assigned a real peer ID greater than one;
 - the client received a fresh authoritative snapshot;
+- authoritative snapshots reach both clients;
 - the snapshot restored all three transient actors;
 - the host map and era were applied through the production snapshot path.
 

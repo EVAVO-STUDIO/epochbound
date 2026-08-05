@@ -87,6 +87,104 @@ func _receive_snapshot_wire(payload: PackedByteArray) -> void:
 		apply_world_snapshot(snapshot)
 
 
+# Runtime entities store authored cardinal facing names. Keep that contract on
+# the wire instead of coercing them into Vector2 values that the inherited draw
+# path would later attempt to pass through a String constructor.
+func snapshot_runtime_entities() -> Array:
+	var runtime: Node = runtime_root()
+	var entities_value: Variant = (
+		runtime.get("runtime_entities") if runtime != null else []
+	)
+	var entities: Array = (
+		entities_value if typeof(entities_value) == TYPE_ARRAY else []
+	)
+	var output: Array = []
+	for value in entities:
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var entity: Dictionary = value
+		var position_value: Variant = entity.get("position", Vector2.ZERO)
+		var position: Vector2 = (
+			position_value if position_value is Vector2 else Vector2.ZERO
+		)
+		output.append({
+			"placement_id": str(entity.get("placement_id", "")),
+			"object_id": str(entity.get("object_id", "")),
+			"position": {
+				"x": snappedf(position.x, 0.01),
+				"y": snappedf(position.y, 0.01)
+			},
+			"facing": snapshot_facing_name(entity.get("facing", "down")),
+			"health": int(entity.get("health", 0)),
+			"active": bool(entity.get("active", true)),
+			"hit_flash": clampf(float(entity.get("hit_flash", 0.0)), 0.0, 0.2)
+		})
+	return output
+
+
+func apply_entity_snapshots(value: Variant) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		return
+	var runtime: Node = runtime_root()
+	if runtime == null:
+		return
+	var entities_value: Variant = runtime.get("runtime_entities")
+	var entities: Array = (
+		entities_value if typeof(entities_value) == TYPE_ARRAY else []
+	)
+	var by_id: Dictionary = {}
+	for index in range(entities.size()):
+		if typeof(entities[index]) == TYPE_DICTIONARY:
+			by_id[str((entities[index] as Dictionary).get("placement_id", ""))] = index
+	for snapshot_value in value as Array:
+		if typeof(snapshot_value) != TYPE_DICTIONARY:
+			continue
+		var entity_snapshot: Dictionary = snapshot_value
+		var placement_id: String = str(entity_snapshot.get("placement_id", ""))
+		if not by_id.has(placement_id):
+			continue
+		var index: int = int(by_id.get(placement_id))
+		var entity: Dictionary = entities[index]
+		var current_position_value: Variant = entity.get("position", Vector2.ZERO)
+		var current_position: Vector2 = (
+			current_position_value
+			if current_position_value is Vector2
+			else Vector2.ZERO
+		)
+		entity["position"] = MultiplayerSessionModel.vector_from_data(
+			entity_snapshot.get("position"),
+			current_position
+		)
+		entity["facing"] = snapshot_facing_name(
+			entity_snapshot.get("facing", entity.get("facing", "down"))
+		)
+		entity["health"] = int(
+			entity_snapshot.get("health", entity.get("health", 0))
+		)
+		entity["active"] = bool(
+			entity_snapshot.get("active", entity.get("active", true))
+		)
+		entity["hit_flash"] = clampf(
+			float(entity_snapshot.get("hit_flash", 0.0)),
+			0.0,
+			0.2
+		)
+		entities[index] = entity
+	runtime.set("runtime_entities", entities)
+
+
+func snapshot_facing_name(value: Variant) -> String:
+	if value is Vector2:
+		var direction: Vector2 = value
+		if absf(direction.x) > absf(direction.y):
+			return "right" if direction.x > 0.0 else "left"
+		if absf(direction.y) > 0.001:
+			return "down" if direction.y > 0.0 else "up"
+		return "down"
+	var facing_name: String = str(value).to_lower()
+	return facing_name if facing_name in ["up", "left", "right", "down"] else "down"
+
+
 func multiplayer_runtime_contract_ok() -> bool:
 	return (
 		super.multiplayer_runtime_contract_ok()

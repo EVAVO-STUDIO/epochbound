@@ -126,6 +126,10 @@ require(
     [
         'extends "res://src/multiplayer_session.gd"',
         'NETWORK_SNAPSHOT_COMPRESSION_MODE := FileAccess.COMPRESSION_DEFLATE',
+        'SNAPSHOT_WIRE_MAGIC_TEXT := "EPB1"',
+        'SNAPSHOT_WIRE_MAGIC_BYTES := 4',
+        'SNAPSHOT_WIRE_DIGEST_BYTES := 32',
+        'SNAPSHOT_WIRE_HEADER_BYTES := SNAPSHOT_WIRE_MAGIC_BYTES + SNAPSHOT_WIRE_DIGEST_BYTES',
         'MAX_NETWORK_SNAPSHOT_BYTES := 1200',
         'MAX_DECOMPRESSED_SNAPSHOT_BYTES := 65536',
         'broadcast_world_snapshot_wire',
@@ -133,6 +137,9 @@ require(
         '_receive_snapshot_wire.rpc_id',
         'var_to_bytes(snapshot)',
         'bytes_to_var(serialized)',
+        'snapshot_wire_digest',
+        'HashingContext.HASH_SHA256',
+        'actual_digest != expected_digest',
         'decompress_dynamic(',
         '@rpc("authority", "call_remote", "unreliable_ordered", SNAPSHOT_CHANNEL)',
         'snapshot_facing_name',
@@ -140,6 +147,15 @@ require(
         'multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()',
         'closing_peer.close()',
         'MAX_NETWORK_SNAPSHOT_BYTES < 1392',
+    ],
+)
+require_order(
+    transport_path,
+    transport,
+    [
+        'if magic != snapshot_wire_magic():',
+        'if (\n\t\tactual_digest.size() != SNAPSHOT_WIRE_DIGEST_BYTES',
+        'var serialized: PackedByteArray = compressed.decompress_dynamic(',
     ],
 )
 require_order(
@@ -159,6 +175,40 @@ forbid(
         'bytes_to_var_with_objects',
         'str_to_var',
         'SaveProfileStore',
+    ],
+)
+
+matrix_path = "tools/smoke_multiplayer_snapshot_transport.gd"
+matrix = read(matrix_path)
+require(
+    matrix_path,
+    matrix,
+    [
+        'MAX_WIRE_BYTES := 1200',
+        '"bellweather_crossing"',
+        '"clockwood_edge"',
+        '"museum_underworks"',
+        '"verdant"',
+        '"ashen"',
+        'register the second ally',
+        'register the invader',
+        'expected_peer_count := 4',
+        'Snapshot transport must reject payloads above 1,200 bytes before decompression',
+        'Snapshot transport must reject malformed wire headers before decompression',
+        'Snapshot transport must reject checksum mismatches before decompression',
+        'deterministic_noise(8192)',
+        'fail closed when compressed state exceeds its wire budget',
+        'all six reference map/era states',
+    ],
+)
+forbid(
+    matrix_path,
+    matrix,
+    [
+        'randf(',
+        'randi(',
+        'allow_object_decoding = true',
+        'bytes_to_var_with_objects',
     ],
 )
 
@@ -242,8 +292,10 @@ require(
         'multiplayer_transport_session.gd',
         'multiplayer_loopback_peer.gd',
         'multiplayer_loopback_peer_driver.gd',
+        'smoke_multiplayer_snapshot_transport.gd',
         'bounded ENet transport',
         'deterministic real loopback peers',
+        'all-map snapshot matrix',
     ],
 )
 
@@ -255,6 +307,8 @@ require(
     [
         'Validate real ENet loopback integration contract',
         'python3 tools/check_multiplayer_loopback_contract.py',
+        'Run all-map snapshot transport matrix',
+        'smoke_multiplayer_snapshot_transport.gd',
         'Run real ENet host ally and invader loopback',
         'scripts/validate_multiplayer_loopback.ps1',
         '"schemaVersion": "1.9"',
@@ -270,10 +324,12 @@ require(
     [
         'three independent Godot processes',
         'real ENet UDP sockets',
+        'bounded input retries',
+        'SHA-256 wire envelope',
+        'six reference map/era states',
         'remote input reaches host authority',
         'authoritative snapshots reach both clients',
         '1,200-byte',
-        'bounded input retries',
         'parent harness owns process termination',
         'does not validate graceful disconnect',
         'does not prove public Internet reachability',
@@ -290,8 +346,9 @@ if errors:
 
 print("epochbound_multiplayer_loopback_contract_passed")
 print("- three independent Godot processes use real ENet UDP sockets")
-print("- an ally and invader negotiate through the production join RPC surface")
 print("- bounded repeated input RPCs make host-authority evidence deterministic")
-print("- authoritative snapshots return through an object-free 1,200-byte Deflate wire budget")
+print("- SHA-256 envelopes reject malformed packets before object-free Deflate decompression")
+print("- all six reference map and era states fit the 1,200-byte wire budget at maximum authored party size")
+print("- authoritative snapshots reach both clients and preserve bounded cardinal entity state")
 print("- the parent harness validates atomic live receipts and owns bounded process cleanup")
 print("- graceful disconnect, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")

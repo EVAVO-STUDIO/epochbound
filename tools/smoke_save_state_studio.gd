@@ -15,7 +15,7 @@ func _initialize() -> void:
 
 
 func run_smoke_test() -> void:
-	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
+	clear_reference_slots()
 	var profile := test_profile()
 	var write_result: Dictionary = SaveProfileStore.write_profile(profile)
 	check(bool(write_result.get("ok", false)), "Editor smoke test profile must write successfully.")
@@ -48,7 +48,7 @@ func run_smoke_test() -> void:
 		check((campaign_selector_value as OptionButton).item_count >= 1, "Save State Studio must discover the reference campaign.")
 	if slot_list_value is ItemList:
 		check((slot_list_value as ItemList).item_count == 4, "Reference save policy must expose autosave plus three manual slots.")
-	check(str(studio.get("selected_slot_id")) == SLOT_ID, "The first occupied slot must be selected automatically.")
+	check(str(studio.get("selected_slot_id")) == SLOT_ID, "The isolated first occupied slot must be selected automatically.")
 	if overview_value is RichTextLabel:
 		check("Checksum" in (overview_value as RichTextLabel).text, "Overview must expose checksum status.")
 		check("REGIONAL SUPPLY" in (overview_value as RichTextLabel).text, "Overview must expose regional supply initialisation status.")
@@ -86,8 +86,14 @@ func run_smoke_test() -> void:
 
 	root.remove_child(studio)
 	studio.free()
-	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
+	clear_reference_slots()
 	finish()
+
+
+func clear_reference_slots() -> void:
+	for slot_id in ["autosave", "slot_1", "slot_2", "slot_3"]:
+		var result := SaveProfileStore.delete_profile(CAMPAIGN_ID, slot_id)
+		check(bool(result.get("ok", false)), "Save State Studio smoke isolation must clear %s." % slot_id)
 
 
 func test_profile() -> Dictionary:
@@ -142,7 +148,7 @@ func test_profile() -> Dictionary:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save State Studio smoke test passed: campaigns, slots, summaries, equipment, supply cycles, inspectors, validation and destructive-action confirmation are coherent.")
+		print("Save State Studio smoke test passed: isolated campaigns, deterministic slot selection, summaries, equipment, supply cycles, inspectors, validation and destructive-action confirmation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

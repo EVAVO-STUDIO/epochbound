@@ -145,7 +145,10 @@ static func list_campaign_profiles(campaign_id: String) -> Array:
 				var result: Dictionary = read_profile_path(directory_path.path_join(filename))
 				if bool(result.get("ok", false)):
 					var profile: Dictionary = result.get("profile", {})
-					if str(profile.get("slot_id", "")) == filename_slot:
+					if (
+						str(profile.get("campaign_id", "")) == campaign_id
+						and str(profile.get("slot_id", "")) == filename_slot
+					):
 						output.append({
 							"slot_id": filename_slot,
 							"path": str(result.get("path", "")),
@@ -200,7 +203,7 @@ static func read_json(path: String) -> Dictionary:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return {"ok": false, "data": {}, "errors": ["Could not open save file: %s" % path]}
-	var parser := JSON.new()
+	var parser: JSON = JSON.new()
 	var error: int = parser.parse(file.get_as_text())
 	file.close()
 	if error != OK:

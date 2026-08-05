@@ -5,7 +5,8 @@
 [ext_resource path="res://src/presentation_camera.gd" type="Script" id="3_camera"]
 [ext_resource path="res://src/audio_mood_runtime.gd" type="Script" id="4_audio"]
 [ext_resource path="res://src/player_controls_overlay.gd" type="Script" id="5_controls"]
-[ext_resource path="res://src/multiplayer_session.gd" type="Script" id="6_multiplayer"]
+; Transport session extends res://src/multiplayer_session.gd and preserves its host-authoritative runtime contract.
+[ext_resource path="res://src/multiplayer_transport_session.gd" type="Script" id="6_multiplayer"]
 [ext_resource path="res://src/multiplayer_post_tick.gd" type="Script" id="7_multiplayer_post"]
 [ext_resource path="res://src/multiplayer_overlay.gd" type="Script" id="8_multiplayer_overlay"]
 [ext_resource path="res://src/multiplayer_save_guard.gd" type="Script" id="9_multiplayer_save"]

@@ -187,11 +187,11 @@ try {
 
     foreach ($peer in $peers) {
         $peer.Process.Refresh()
+        Write-PeerLogs $peer
         if (-not $peer.Process.HasExited) {
             throw "Real ENet loopback $($peer.Role) exceeded the $TimeoutSeconds-second harness timeout."
         }
         if ($peer.Process.ExitCode -ne 0) {
-            Write-PeerLogs $peer
             throw "Real ENet loopback $($peer.Role) exited with code $($peer.Process.ExitCode)."
         }
         Assert-PeerLogClean $peer
@@ -228,9 +228,6 @@ try {
         }
     }
 
-    foreach ($peer in $peers) {
-        Write-PeerLogs $peer
-    }
     Write-Host "Real ENet loopback passed: host, ally and invader negotiated through UDP, remote inputs reached host authority, and both clients restored authoritative snapshots."
 }
 finally {

@@ -49,6 +49,8 @@ func run_smoke_test() -> void:
 	check(typeof(malformed) == TYPE_DICTIONARY and not bool((malformed as Dictionary).get("ok", true)), "Editor must reject malformed timeline source.")
 
 	var catalog_path := str(studio.get("active_catalog_path"))
+	var source_snapshot := read_source_text(catalog_path)
+	check(bool(source_snapshot.get("ok", false)), "Rollback test must snapshot the exact cinematic source bytes.")
 	var before_result := Repository.read_json(catalog_path)
 	check(bool(before_result.get("ok", false)), "Rollback test must read the valid cinematic catalog.")
 	var invalid_catalog: Dictionary = (studio.get("active_catalog") as Dictionary).duplicate(true)
@@ -66,6 +68,16 @@ func run_smoke_test() -> void:
 		if typeof(value) == TYPE_DICTIONARY and str((value as Dictionary).get("id", "")) == "storm_door_opening":
 			restored_map = str((value as Dictionary).get("map_id", ""))
 	check(restored_map == "bellweather_crossing", "Rollback must restore the prior cinematic map reference.")
+	check(
+		restore_source_text(catalog_path, str(source_snapshot.get("text", ""))),
+		"Cinematic rollback regression must restore the exact original source bytes."
+	)
+	var exact_restore := read_source_text(catalog_path)
+	check(
+		bool(exact_restore.get("ok", false))
+		and str(exact_restore.get("text", "")) == str(source_snapshot.get("text", "")),
+		"Cinematic rollback regression must leave the tracked catalogue byte-for-byte unchanged."
+	)
 
 	var validation := CinematicValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(bool(validation.get("ok", false)), "Reference campaign must remain valid after editor rollback.")
@@ -75,9 +87,29 @@ func run_smoke_test() -> void:
 	finish()
 
 
+func read_source_text(path: String) -> Dictionary:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return {"ok": false, "text": ""}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {"ok": false, "text": ""}
+	return {"ok": true, "text": file.get_as_text()}
+
+
+func restore_source_text(path: String, text: String) -> bool:
+	if path.is_empty():
+		return false
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(text)
+	file.flush()
+	return true
+
+
 func finish() -> void:
 	if failures.is_empty():
-		print("Cinematic Studio smoke test passed: campaigns, timelines, source parsing, preview and transactional rollback are coherent.")
+		print("Cinematic Studio smoke test passed: campaigns, timelines, source parsing, preview, transactional rollback and exact source isolation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

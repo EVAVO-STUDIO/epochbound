@@ -30,11 +30,28 @@ Client receipts are promoted atomically from temporary files, so the parent harn
 
 The canonical `MultiplayerSession` uses `res://src/multiplayer_transport_session.gd`, which extends the host-authoritative base session without changing progression or save ownership.
 
-Authoritative world snapshots use object-free Variant serialisation, Deflate compression and a hard **1,200-byte** compressed wire budget. Decoding is capped at 65,536 bytes and does not enable object construction from network data.
+Authoritative world snapshots use object-free Variant serialisation, Deflate compression and a hard **1,200-byte** compressed wire budget. Every payload has an `EPB1` magic prefix and a SHA-256 wire envelope over the compressed bytes. Clients reject the wrong magic, wrong length or checksum mismatch before decompression. Decoding is capped at 65,536 bytes and does not enable object construction from network data.
 
 The host sends the compressed payload separately to each currently connected, registered peer. Snapshot requests in the same frame are coalesced and deferred so reliable role acceptance is queued before the first world snapshot.
 
 Runtime entity facing remains a bounded cardinal name on the wire. This preserves the inherited renderer’s authored `up`, `left`, `right` and `down` contract instead of introducing incompatible vector values on clients.
+
+## All-map snapshot matrix
+
+A focused regression builds maximum authored parties across all six reference map/era states:
+
+```text
+Bellweather Crossing / Verdant
+Bellweather Crossing / Ashen
+Clockwood Edge / Verdant
+Clockwood Edge / Ashen
+Museum Underworks / Verdant
+Museum Underworks / Ashen
+```
+
+Co-op and sanctuary cases use the host plus two allies. Clockwood’s Ashen PvP case uses the host, two allies and one invader. Every state must encode, remain below 1,200 bytes, decode to the same map and era and preserve the complete allowed party.
+
+The matrix also rejects oversized payloads, bad wire magic, checksum mismatches and deterministic incompressible state that exceeds the transport budget. These failures must occur before unsafe decompression or runtime mutation.
 
 ## What must be proven
 
@@ -80,7 +97,7 @@ Before Godot starts, the exact-main workflow runs:
 python3 tools/check_multiplayer_loopback_contract.py
 ```
 
-The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking authoritative snapshots, remove the 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
+The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking authoritative snapshots, remove the SHA-256 envelope or 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
 
 The multiplayer compile probe also loads:
 
@@ -88,6 +105,7 @@ The multiplayer compile probe also loads:
 res://src/multiplayer_transport_session.gd
 res://tools/multiplayer_loopback_peer.gd
 res://tools/multiplayer_loopback_peer_driver.gd
+res://tools/smoke_multiplayer_snapshot_transport.gd
 ```
 
 so parser or inheritance drift fails before process orchestration begins.
@@ -102,7 +120,7 @@ The governed exact-main receipt records:
 }
 ```
 
-A release is not considered multiplayer-transport validated if the static contract, real loopback process exchange, bounded input and snapshot evidence, child-log review, clean-source verification or receipt field is absent.
+A release is not considered multiplayer-transport validated if the static contract, all-map matrix, real loopback process exchange, bounded input and snapshot evidence, child-log review, clean-source verification or receipt field is absent.
 
 ## What this gate does not prove
 

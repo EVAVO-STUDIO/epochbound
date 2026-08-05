@@ -6,7 +6,7 @@ const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"
 const CURRENT_MULTIPLAYER_OVERLAY_SCRIPT := "res://src/multiplayer_overlay.gd"
 const CURRENT_MULTIPLAYER_CONNECTION_PANEL_SCRIPT := "res://src/multiplayer_connection_panel.gd"
-const CURRENT_MULTIPLAYER_SESSION_SCRIPT := "res://src/multiplayer_session.gd"
+const CURRENT_MULTIPLAYER_SESSION_SCRIPT := "res://src/multiplayer_transport_session.gd"
 const CURRENT_MULTIPLAYER_POST_SCRIPT := "res://src/multiplayer_post_tick.gd"
 const CURRENT_MULTIPLAYER_SAVE_GUARD_SCRIPT := "res://src/multiplayer_save_guard.gd"
 const CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"
@@ -63,6 +63,9 @@ const REQUIRED_MULTIPLAYER_METHODS := [
 	"post_runtime_process",
 	"build_world_snapshot",
 	"apply_world_snapshot",
+	"encode_world_snapshot",
+	"decode_world_snapshot",
+	"broadcast_world_snapshot_wire",
 	"visible_peer_states",
 	"online_area",
 	"blocks_manual_save",
@@ -118,7 +121,7 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 		for method_name in missing_methods(multiplayer_session, REQUIRED_MULTIPLAYER_METHODS):
 			errors.append("MultiplayerSession is missing method '%s'." % method_name)
 		if multiplayer_session.has_method("multiplayer_runtime_contract_ok") and not bool(multiplayer_session.call("multiplayer_runtime_contract_ok")):
-			errors.append("MultiplayerSession did not preserve host-authoritative online policy.")
+			errors.append("MultiplayerSession did not preserve host-authoritative bounded online policy.")
 
 	var multiplayer_post := runtime.get_node_or_null("MultiplayerPostTick")
 	if multiplayer_post == null:

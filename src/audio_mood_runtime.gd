@@ -6,22 +6,23 @@ const RUNTIME_SAMPLE_RATE := 22050.0
 const RUNTIME_BUFFER_LENGTH := 0.35
 const RUNTIME_MAX_FRAMES_PER_FILL := 4096
 const RUNTIME_PRIME_PASSES := 4
+const RUNTIME_STARTUP_MAX_ATTEMPTS := 8
 const RUNTIME_FLOW_SPLASH := 0
 const RUNTIME_FLOW_TITLE := 1
 const RUNTIME_FLOW_GAME := 4
 const PLAYER_VOLUME_FLOOR_DB := -80.0
 
 var ambience_sample_clock := 0
+var generator_startup_attempts := 0
+var generator_startup_finished := false
 
 
 func _ready() -> void:
 	super._ready()
 	# Child ready callbacks run before the root runtime has finished campaign,
-	# map and authoring-system startup. Keep every generator paused through that
-	# heavier parent work, then refresh and release them together afterwards.
+	# map and authoring-system startup. Start every generator in a paused state
+	# and complete priming only once Godot exposes all playback objects.
 	start_generator_players_paused()
-	update_mix(RUNTIME_BUFFER_LENGTH)
-	prime_generator_buffers()
 	apply_player_volume_settings()
 	call_deferred("complete_generator_startup")
 
@@ -40,6 +41,7 @@ func create_generator_player(player_name: String) -> AudioStreamPlayer:
 	generator.mix_rate = RUNTIME_SAMPLE_RATE
 	generator.buffer_length = RUNTIME_BUFFER_LENGTH
 	player.stream = generator
+	player.stream_paused = true
 	add_child(player)
 	return player
 
@@ -48,12 +50,16 @@ func start_generator_players_paused() -> void:
 	for player in [music_player, ambience_player, sfx_player]:
 		if player == null:
 			continue
-		player.play()
 		player.stream_paused = true
+		player.play()
 
 
 func complete_generator_startup() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or generator_startup_finished:
+		return
+	generator_startup_attempts += 1
+	if not generator_players_ready():
+		schedule_generator_startup_retry()
 		return
 	var runtime_campaign_key := current_runtime_campaign_key()
 	if not runtime_campaign_key.is_empty() and runtime_campaign_key != loaded_campaign_key:
@@ -61,7 +67,17 @@ func complete_generator_startup() -> void:
 	update_mix(RUNTIME_BUFFER_LENGTH)
 	prime_generator_buffers()
 	apply_player_volume_settings()
+	if music_sample_clock <= 0 or ambience_sample_clock <= 0:
+		schedule_generator_startup_retry()
+		return
+	generator_startup_finished = true
 	resume_generator_players()
+
+
+func schedule_generator_startup_retry() -> void:
+	if generator_startup_attempts >= RUNTIME_STARTUP_MAX_ATTEMPTS:
+		return
+	get_tree().process_frame.connect(complete_generator_startup, CONNECT_ONE_SHOT)
 
 
 func resume_generator_players() -> void:
@@ -79,6 +95,14 @@ func prime_generator_buffers() -> void:
 		fill_sfx()
 		if music_sample_clock == music_before and ambience_sample_clock == ambience_before:
 			break
+
+
+func generator_startup_complete() -> bool:
+	return generator_startup_finished and generator_players_ready()
+
+
+func generator_startup_attempt_count() -> int:
+	return generator_startup_attempts
 
 
 func initialize_from_runtime() -> void:

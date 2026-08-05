@@ -35,7 +35,12 @@ func run_test() -> void:
 	var audio := runtime.get_node_or_null("AudioMood")
 	if audio != null and audio.has_method("generator_players_ready"):
 		check(bool(audio.call("generator_players_ready")), "Audio generators must be ready in the complete playable scene.")
-		check(int(audio.call("generator_skip_count")) == 0, "Complete-scene startup must not report Audio generator underruns.")
+		var diagnostics := audio_generator_diagnostics(audio)
+		print("RUNTIME_AUDIO_GENERATOR_DIAGNOSTICS %s" % JSON.stringify(diagnostics))
+		check(
+			int(audio.call("generator_skip_count")) == 0,
+			"Complete-scene startup must not report Audio generator underruns. Diagnostics: %s" % JSON.stringify(diagnostics)
+		)
 
 	var inventory_value: Variant = runtime.get("inventory")
 	var inventory: Dictionary = inventory_value as Dictionary if typeof(inventory_value) == TYPE_DICTIONARY else {}
@@ -89,6 +94,33 @@ func run_test() -> void:
 	root.remove_child(runtime)
 	runtime.free()
 	finish()
+
+
+func audio_generator_diagnostics(audio: Node) -> Dictionary:
+	var result := {
+		"active_profile_id": str(audio.get("active_profile_id")),
+		"loaded_campaign_key": str(audio.get("loaded_campaign_key")),
+		"loaded_context_key": str(audio.get("loaded_context_key")),
+		"total_skips": int(audio.call("generator_skip_count")),
+		"players": {}
+	}
+	var players: Dictionary = result["players"]
+	for player_name in ["Music", "Ambience", "SFX"]:
+		var player := audio.get_node_or_null(player_name) as AudioStreamPlayer
+		var entry := {
+			"exists": player != null,
+			"playing": player.playing if player != null else false,
+			"paused": player.stream_paused if player != null else false,
+			"skips": -1,
+			"frames_available": -1
+		}
+		if player != null and player.has_stream_playback():
+			var playback := player.get_stream_playback() as AudioStreamGeneratorPlayback
+			if playback != null:
+				entry["skips"] = playback.get_skips()
+				entry["frames_available"] = playback.get_frames_available()
+		players[player_name] = entry
+	return result
 
 
 func check(condition: bool, message: String) -> void:

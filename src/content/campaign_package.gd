@@ -14,13 +14,15 @@ const MAX_FILES := 2048
 const MAX_FILE_BYTES := 16 * 1024 * 1024
 const MAX_TOTAL_BYTES := 128 * 1024 * 1024
 const MAX_PATH_LENGTH := 240
+# Retained as package-format documentation for older fixtures. Godot 4.6
+# ZIPPacker.start_file() accepts only the archive path.
 const FIXED_ZIP_TIME := 315532800
-const ALLOWED_EXTENSIONS := PackedStringArray([
+const ALLOWED_EXTENSIONS := [
 	"json", "png", "jpg", "jpeg", "webp", "ogg", "wav", "mp3", "txt", "md"
-])
-const RELEASE_FIELDS := PackedStringArray([
+]
+const RELEASE_FIELDS := [
 	"version", "channel", "package_name", "minimum_runtime", "license"
-])
+]
 
 
 static func default_release(campaign_id: String) -> Dictionary:
@@ -76,7 +78,7 @@ static func export_campaign(campaign_path: String, output_path: String = "") -> 
 	for value in files:
 		var record: Dictionary = value
 		var archive_path := CAMPAIGN_PREFIX + str(record.get("relative_path", ""))
-		error = writer.start_file(archive_path, 420, FIXED_ZIP_TIME)
+		error = writer.start_file(archive_path)
 		if error == OK:
 			error = writer.write_file(FileAccess.get_file_as_bytes(str(record.get("source_path", ""))))
 		if error == OK:
@@ -86,7 +88,7 @@ static func export_campaign(campaign_path: String, output_path: String = "") -> 
 			DirAccess.remove_absolute(temporary)
 			return fail("Could not write package entry '%s'." % archive_path)
 	var manifest: Dictionary = build_manifest(campaign, files)
-	error = writer.start_file(MANIFEST_PATH, 420, FIXED_ZIP_TIME)
+	error = writer.start_file(MANIFEST_PATH)
 	if error == OK:
 		error = writer.write_file((JSON.stringify(manifest, "\t", true) + "\n").to_utf8_buffer())
 	if error == OK:

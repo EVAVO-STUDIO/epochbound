@@ -4,6 +4,10 @@ extends RefCounted
 const CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"
+const CURRENT_MULTIPLAYER_OVERLAY_SCRIPT := "res://src/multiplayer_overlay.gd"
+const CURRENT_MULTIPLAYER_SESSION_SCRIPT := "res://src/multiplayer_session.gd"
+const CURRENT_MULTIPLAYER_POST_SCRIPT := "res://src/multiplayer_post_tick.gd"
+const CURRENT_MULTIPLAYER_SAVE_GUARD_SCRIPT := "res://src/multiplayer_save_guard.gd"
 const CURRENT_AUDIO_SCRIPT := "res://src/audio_mood_runtime.gd"
 const CURRENT_CAMERA_SCRIPT := "res://src/presentation_camera.gd"
 
@@ -51,6 +55,20 @@ const REQUIRED_OVERLAY_METHODS := [
 	"draw_player_settings_panel"
 ]
 
+const REQUIRED_MULTIPLAYER_METHODS := [
+	"host_session",
+	"join_session",
+	"leave_session",
+	"post_runtime_process",
+	"build_world_snapshot",
+	"apply_world_snapshot",
+	"visible_peer_states",
+	"online_area",
+	"blocks_manual_save",
+	"blocks_autosave",
+	"multiplayer_runtime_contract_ok"
+]
+
 const REQUIRED_AUDIO_METHODS := [
 	"generator_players_ready",
 	"generator_skip_count",
@@ -89,6 +107,33 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 		errors.append("Runtime root must use %s, found %s." % [CURRENT_RUNTIME_SCRIPT, runtime_path])
 	for method_name in missing_methods(runtime, REQUIRED_RUNTIME_METHODS):
 		errors.append("Runtime root is missing method '%s'." % method_name)
+
+	var multiplayer_session := runtime.get_node_or_null("MultiplayerSession")
+	if multiplayer_session == null:
+		errors.append("Runtime scene is missing MultiplayerSession.")
+	else:
+		if script_path(multiplayer_session) != CURRENT_MULTIPLAYER_SESSION_SCRIPT:
+			errors.append("MultiplayerSession must use %s, found %s." % [CURRENT_MULTIPLAYER_SESSION_SCRIPT, script_path(multiplayer_session)])
+		for method_name in missing_methods(multiplayer_session, REQUIRED_MULTIPLAYER_METHODS):
+			errors.append("MultiplayerSession is missing method '%s'." % method_name)
+		if multiplayer_session.has_method("multiplayer_runtime_contract_ok") and not bool(multiplayer_session.call("multiplayer_runtime_contract_ok")):
+			errors.append("MultiplayerSession did not preserve host-authoritative online policy.")
+
+	var multiplayer_post := runtime.get_node_or_null("MultiplayerPostTick")
+	if multiplayer_post == null:
+		errors.append("Runtime scene is missing MultiplayerPostTick.")
+	elif script_path(multiplayer_post) != CURRENT_MULTIPLAYER_POST_SCRIPT:
+		errors.append("MultiplayerPostTick must use %s, found %s." % [CURRENT_MULTIPLAYER_POST_SCRIPT, script_path(multiplayer_post)])
+	elif not multiplayer_post.has_method("multiplayer_post_tick_contract_ok") or not bool(multiplayer_post.call("multiplayer_post_tick_contract_ok")):
+		errors.append("MultiplayerPostTick did not preserve post-simulation ordering.")
+
+	var multiplayer_save_guard := runtime.get_node_or_null("MultiplayerSaveGuard")
+	if multiplayer_save_guard == null:
+		errors.append("Runtime scene is missing MultiplayerSaveGuard.")
+	elif script_path(multiplayer_save_guard) != CURRENT_MULTIPLAYER_SAVE_GUARD_SCRIPT:
+		errors.append("MultiplayerSaveGuard must use %s, found %s." % [CURRENT_MULTIPLAYER_SAVE_GUARD_SCRIPT, script_path(multiplayer_save_guard)])
+	elif not multiplayer_save_guard.has_method("multiplayer_save_guard_contract_ok") or not bool(multiplayer_save_guard.call("multiplayer_save_guard_contract_ok")):
+		errors.append("MultiplayerSaveGuard did not preserve pre-simulation save isolation.")
 
 	var audio := runtime.get_node_or_null("AudioMood")
 	if audio == null:
@@ -137,6 +182,17 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 			errors.append("PlayerControlsOverlay is missing control_remapping_overlay_contract_ok().")
 		elif not bool(controls_overlay.call("control_remapping_overlay_contract_ok")):
 			errors.append("PlayerControlsOverlay did not preserve the control-remapping presentation contract.")
+
+	var multiplayer_overlay := runtime.get_node_or_null("PresentationLayer/MultiplayerOverlay")
+	if multiplayer_overlay == null:
+		errors.append("Runtime scene is missing MultiplayerOverlay.")
+	else:
+		if script_path(multiplayer_overlay) != CURRENT_MULTIPLAYER_OVERLAY_SCRIPT:
+			errors.append("MultiplayerOverlay must use %s, found %s." % [CURRENT_MULTIPLAYER_OVERLAY_SCRIPT, script_path(multiplayer_overlay)])
+		if not multiplayer_overlay.has_method("multiplayer_overlay_contract_ok"):
+			errors.append("MultiplayerOverlay is missing multiplayer_overlay_contract_ok().")
+		elif not bool(multiplayer_overlay.call("multiplayer_overlay_contract_ok")):
+			errors.append("MultiplayerOverlay did not preserve the online presentation contract.")
 
 	if runtime.has_method("supply_runtime_contract_ok") and not bool(runtime.call("supply_runtime_contract_ok")):
 		errors.append("Runtime root did not initialise every regional supply cycle.")

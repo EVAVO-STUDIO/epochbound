@@ -19,7 +19,7 @@ var package_list: ItemList
 var import_path_edit: LineEdit
 var replace_check: CheckBox
 var status_label: RichTextLabel
-var import_dialog: EditorFileDialog
+var import_dialog: FileDialog
 
 
 func _ready() -> void:
@@ -114,9 +114,12 @@ func build_ui() -> void:
 	status_label.text = "[color=#9aa8b5]Package Studio ready.[/color]"
 	root.add_child(status_label)
 
-	import_dialog = EditorFileDialog.new()
-	import_dialog.file_mode = EditorFileDialog.FILE_MODE_OPEN_FILE
-	import_dialog.access = EditorFileDialog.ACCESS_FILESYSTEM
+	# FileDialog remains available in the editor and can also be instantiated by
+	# the headless editor-state regression. EditorFileDialog is editor-only and
+	# emitted a runtime error before the smoke test could inspect the UI.
+	import_dialog = FileDialog.new()
+	import_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	import_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	import_dialog.add_filter("*.zip", "Epochbound campaign package")
 	import_dialog.file_selected.connect(on_import_file_selected)
 	add_child(import_dialog)

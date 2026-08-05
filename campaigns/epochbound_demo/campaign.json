@@ -29,6 +29,19 @@
 	"presentation_files": ["presentation/core.json"],
 	"audio_files": ["audio/core.json"],
 	"animation_files": ["animation/core.json"],
+	"multiplayer_files": ["multiplayer/core.json"],
+	"multiplayer": {
+		"enabled": true,
+		"transport": "enet",
+		"default_port": 27491,
+		"max_allies": 2,
+		"max_invaders": 1,
+		"snapshot_rate_hz": 12,
+		"input_rate_hz": 30,
+		"shared_progression": "host_only",
+		"pvp_rewards": "session_only",
+		"friendly_fire": false
+	},
 	"equipment_slots": [
 		{"id": "weapon", "display_name": "Weapon"},
 		{"id": "body", "display_name": "Body"},

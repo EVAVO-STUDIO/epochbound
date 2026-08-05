@@ -6,9 +6,9 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const SUPPORTED_SCHEMA := 1
 const DEFAULT_PROFILE_ID := "eli_procedural"
 const TARGET_FALLBACK := "*"
-const DIRECTIONS := PackedStringArray(["down", "left", "right", "up"])
-const STATES := PackedStringArray(["idle", "walk", "attack", "hurt"])
-const FALLBACK_STYLES := PackedStringArray(["hero", "dog", "humanoid", "beast", "orb", "prop"])
+const DIRECTIONS := ["down", "left", "right", "up"]
+const STATES := ["idle", "walk", "attack", "hurt"]
+const FALLBACK_STYLES := ["hero", "dog", "humanoid", "beast", "orb", "prop"]
 
 
 static func default_catalog() -> Dictionary:

@@ -1,13 +1,26 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource path="res://src/presentation_runtime_current.gd" type="Script" id="1_app"]
 [ext_resource path="res://src/combat_readability_overlay.gd" type="Script" id="2_presentation"]
 [ext_resource path="res://src/presentation_camera.gd" type="Script" id="3_camera"]
 [ext_resource path="res://src/audio_mood_runtime.gd" type="Script" id="4_audio"]
 [ext_resource path="res://src/player_controls_overlay.gd" type="Script" id="5_controls"]
+[ext_resource path="res://src/multiplayer_session.gd" type="Script" id="6_multiplayer"]
+[ext_resource path="res://src/multiplayer_post_tick.gd" type="Script" id="7_multiplayer_post"]
+[ext_resource path="res://src/multiplayer_overlay.gd" type="Script" id="8_multiplayer_overlay"]
+[ext_resource path="res://src/multiplayer_save_guard.gd" type="Script" id="9_multiplayer_save"]
 
 [node name="Epochbound" type="Node2D"]
 script = ExtResource("1_app")
+
+[node name="MultiplayerSession" type="Node" parent="."]
+script = ExtResource("6_multiplayer")
+
+[node name="MultiplayerSaveGuard" type="Node" parent="."]
+script = ExtResource("9_multiplayer_save")
+
+[node name="MultiplayerPostTick" type="Node" parent="."]
+script = ExtResource("7_multiplayer_post")
 
 [node name="AudioMood" type="Node" parent="."]
 script = ExtResource("4_audio")
@@ -25,3 +38,6 @@ script = ExtResource("2_presentation")
 
 [node name="PlayerControlsOverlay" type="Node2D" parent="PresentationLayer"]
 script = ExtResource("5_controls")
+
+[node name="MultiplayerOverlay" type="Node2D" parent="PresentationLayer"]
+script = ExtResource("8_multiplayer_overlay")

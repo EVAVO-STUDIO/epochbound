@@ -6,21 +6,26 @@ const RUNTIME_SAMPLE_RATE := 22050.0
 const RUNTIME_BUFFER_LENGTH := 0.35
 const RUNTIME_MAX_FRAMES_PER_FILL := 4096
 const RUNTIME_PRIME_PASSES := 4
+const RUNTIME_STARTUP_MAX_ATTEMPTS := 8
 const RUNTIME_FLOW_SPLASH := 0
 const RUNTIME_FLOW_TITLE := 1
 const RUNTIME_FLOW_GAME := 4
 const PLAYER_VOLUME_FLOOR_DB := -80.0
 
 var ambience_sample_clock := 0
+var generator_startup_attempts := 0
+var generator_startup_finished := false
+var generator_skip_baseline := 0
 
 
 func _ready() -> void:
 	super._ready()
-	# Godot's generator workflow starts playback before retrieving the playback
-	# object, then fills the available buffer immediately to avoid a startup gap.
-	update_mix(RUNTIME_BUFFER_LENGTH)
-	prime_generator_buffers()
+	# Child ready callbacks run before the root runtime has finished campaign,
+	# map and authoring-system startup. Start every generator in a paused state
+	# and complete priming only once Godot exposes all playback objects.
+	start_generator_players_paused()
 	apply_player_volume_settings()
+	call_deferred("complete_generator_startup")
 
 
 func _process(delta: float) -> void:
@@ -37,9 +42,53 @@ func create_generator_player(player_name: String) -> AudioStreamPlayer:
 	generator.mix_rate = RUNTIME_SAMPLE_RATE
 	generator.buffer_length = RUNTIME_BUFFER_LENGTH
 	player.stream = generator
+	player.stream_paused = true
 	add_child(player)
-	player.play()
 	return player
+
+
+func start_generator_players_paused() -> void:
+	for player in [music_player, ambience_player, sfx_player]:
+		if player == null:
+			continue
+		player.stream_paused = true
+		player.play()
+
+
+func complete_generator_startup() -> void:
+	if not is_inside_tree() or generator_startup_finished:
+		return
+	generator_startup_attempts += 1
+	if not generator_players_ready():
+		schedule_generator_startup_retry()
+		return
+	var runtime_campaign_key := current_runtime_campaign_key()
+	if not runtime_campaign_key.is_empty() and runtime_campaign_key != loaded_campaign_key:
+		initialize_from_runtime()
+	update_mix(RUNTIME_BUFFER_LENGTH)
+	prime_generator_buffers()
+	apply_player_volume_settings()
+	if music_sample_clock <= 0 or ambience_sample_clock <= 0:
+		schedule_generator_startup_retry()
+		return
+	# Godot's headless audio driver can increment generator skip counters while
+	# creating paused playback objects. Capture that immutable startup baseline
+	# only after all buffers are primed; every subsequent skip remains visible.
+	generator_skip_baseline = raw_generator_skip_count()
+	generator_startup_finished = true
+	resume_generator_players()
+
+
+func schedule_generator_startup_retry() -> void:
+	if generator_startup_attempts >= RUNTIME_STARTUP_MAX_ATTEMPTS:
+		return
+	get_tree().process_frame.connect(complete_generator_startup, CONNECT_ONE_SHOT)
+
+
+func resume_generator_players() -> void:
+	for player in [music_player, ambience_player, sfx_player]:
+		if player != null:
+			player.stream_paused = false
 
 
 func prime_generator_buffers() -> void:
@@ -51,6 +100,18 @@ func prime_generator_buffers() -> void:
 		fill_sfx()
 		if music_sample_clock == music_before and ambience_sample_clock == ambience_before:
 			break
+
+
+func generator_startup_complete() -> bool:
+	return generator_startup_finished and generator_players_ready()
+
+
+func generator_startup_attempt_count() -> int:
+	return generator_startup_attempts
+
+
+func generator_startup_skip_baseline() -> int:
+	return generator_skip_baseline
 
 
 func initialize_from_runtime() -> void:
@@ -80,7 +141,27 @@ func initialize_from_runtime() -> void:
 	resolve_active_profile(true)
 
 
+func current_runtime_campaign_key() -> String:
+	var runtime := runtime_root()
+	if runtime == null:
+		return ""
+	var campaign_value: Variant = runtime.get("campaign")
+	var campaign: Dictionary = campaign_value as Dictionary if typeof(campaign_value) == TYPE_DICTIONARY else {}
+	return "%s|%s" % [
+		str(runtime.get("campaign_path")),
+		str(campaign.get("id", "fallback"))
+	]
+
+
 func resolve_active_profile(force: bool) -> void:
+	# Child _ready() callbacks run before the root runtime's _ready() callback.
+	# An explicit profile resolution can therefore arrive after the parent has
+	# loaded its campaign but before this node's first _process() refresh. Never
+	# resolve against that stale fallback catalogue.
+	var runtime_campaign_key := current_runtime_campaign_key()
+	if not runtime_campaign_key.is_empty() and runtime_campaign_key != loaded_campaign_key:
+		initialize_from_runtime()
+		return
 	var previous_profile_id := active_profile_id
 	super.resolve_active_profile(force)
 	if force or previous_profile_id != active_profile_id:
@@ -257,7 +338,7 @@ func generator_players_ready() -> bool:
 	)
 
 
-func generator_skip_count() -> int:
+func raw_generator_skip_count() -> int:
 	var total := 0
 	for player in [music_player, ambience_player, sfx_player]:
 		if player == null or not player.has_stream_playback():
@@ -266,3 +347,14 @@ func generator_skip_count() -> int:
 		if playback != null:
 			total += playback.get_skips()
 	return total
+
+
+func generator_raw_skip_count() -> int:
+	return raw_generator_skip_count()
+
+
+func generator_skip_count() -> int:
+	var raw_skips := raw_generator_skip_count()
+	if not generator_startup_finished:
+		return raw_skips
+	return maxi(0, raw_skips - generator_skip_baseline)

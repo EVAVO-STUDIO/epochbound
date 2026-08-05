@@ -2,6 +2,8 @@
 
 Epochbound includes one executable long-form journey that crosses the production runtime as a connected player route rather than testing each subsystem only in isolation.
 
+The route captures and restores two checksummed profiles so both mid-journey and completed-world state remain release-gated.
+
 The gate runs from:
 
 ```text

@@ -5,6 +5,37 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
+function Get-TrackedDiffFingerprint {
+    $diffOutput = & git diff --binary --no-ext-diff -- . 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to inspect tracked source changes."
+    }
+    $diffText = $diffOutput -join "`n"
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($diffText)
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [Convert]::ToHexString($hasher.ComputeHash($bytes))
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}
+
+function Assert-TrackedSourcesUnchanged {
+    param(
+        [Parameter(Mandatory = $true)] [string]$BaselineFingerprint,
+        [Parameter(Mandatory = $true)] [string]$Description
+    )
+    $currentFingerprint = Get-TrackedDiffFingerprint
+    if ($currentFingerprint -eq $BaselineFingerprint) {
+        return
+    }
+    Write-Host "`nTracked source changed during: $Description"
+    & git diff --stat -- . | ForEach-Object { Write-Host $_ }
+    & git diff --name-only -- . | ForEach-Object { Write-Host " - $_" }
+    throw "$Description modified tracked source files. Validation tests must restore exact source bytes."
+}
+
 function Invoke-GodotStep {
     param(
         [Parameter(Mandatory = $true)] [string]$Description,
@@ -28,12 +59,16 @@ try {
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Compile player settings controls storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
+        @("Compile host-authoritative co-op PvP runtime validators and tests", "res://tools/compile_multiplayer_probe.gd"),
         @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
         @("Smoke test persistent player settings and accessibility", "res://tools/smoke_player_settings.gd"),
         @("Smoke test player settings crash recovery and modal freeze edges", "res://tools/smoke_player_settings_recovery_edges.gd"),
         @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
+        @("Smoke test deterministic co-op and invasion session model", "res://tools/smoke_multiplayer_session_model.gd"),
+        @("Smoke test host-authoritative co-op PvP runtime and snapshots", "res://tools/smoke_multiplayer_runtime.gd"),
+        @("Smoke test malformed online policies areas and save isolation", "res://tools/smoke_multiplayer_validation_edges.gd"),
         @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
         @("Smoke test Encounter Studio and base combat", "res://tools/smoke_encounters.gd"),
@@ -89,11 +124,14 @@ try {
         @("Smoke test hash-valid packages with invalid Sprite Animation data", "res://tools/smoke_sprite_package_validation.gd")
     )
 
+    $TrackedSourceBaseline = Get-TrackedDiffFingerprint
     Invoke-GodotStep "Import project" @("--headless", "--path", $ProjectRoot, "--import")
+    Assert-TrackedSourcesUnchanged $TrackedSourceBaseline "Import project"
     foreach ($Test in $Tests) {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
+        Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

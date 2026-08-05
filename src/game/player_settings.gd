@@ -65,8 +65,7 @@ static func sanitize(value: Variant) -> Dictionary:
 		if kind == "range" and typeof(raw) in [TYPE_INT, TYPE_FLOAT]:
 			var minimum := float(definition.get("minimum", 0.0))
 			var maximum := float(definition.get("maximum", 1.0))
-			var step := maxf(0.001, float(definition.get("step", 0.1)))
-			output[setting_id] = clampf(snappedf(float(raw), step), minimum, maximum)
+			output[setting_id] = clampf(float(raw), minimum, maximum)
 		elif kind == "boolean" and typeof(raw) == TYPE_BOOL:
 			output[setting_id] = bool(raw)
 	output["input_bindings"] = PlayerInputBindings.sanitize_profile(
@@ -151,7 +150,7 @@ static func number(settings: Dictionary, setting_id: String, fallback: float = 1
 	var raw: Variant = settings.get(setting_id, 1.0)
 	if typeof(raw) not in [TYPE_INT, TYPE_FLOAT]:
 		return 1.0
-	return clampf(snappedf(float(raw), step), 0.0, 1.0)
+	return clampf(float(raw), 0.0, 1.0)
 
 
 static func boolean(settings: Dictionary, setting_id: String, fallback: bool = false) -> bool:

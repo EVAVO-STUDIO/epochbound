@@ -2,12 +2,11 @@ extends "res://src/sprite_animation_overlay_current.gd"
 
 const AnimationRepository = preload("res://src/content/campaign_repository.gd")
 
-const FLOW_PAUSED := 5
 const MOTION_DISTANCE_RESET := 48.0
 const WALK_FRAME_DISTANCE_MIN := 3.0
 const WALK_FRAME_DISTANCE_MAX := 8.0
 const DEPTH_EPSILON := 0.001
-const OCCLUDING_LANDMARKS := PackedStringArray(["tree", "dead_tree", "ruin"])
+const OCCLUDING_LANDMARKS := ["tree", "dead_tree", "ruin"]
 
 var travel_distance_by_key: Dictionary = {}
 var last_depth_order := PackedStringArray()

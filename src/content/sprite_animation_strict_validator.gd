@@ -5,7 +5,7 @@ const Repository = preload("res://src/content/campaign_repository.gd")
 const BaseValidator = preload("res://src/content/sprite_animation_validator.gd")
 const SpriteAnimationCatalog = preload("res://src/content/sprite_animation_catalog.gd")
 
-const SUPPORTED_DIRECTION_COUNTS := PackedInt32Array([1, 4])
+const SUPPORTED_DIRECTION_COUNTS := [1, 4]
 const MAX_RENDER_DIMENSION := 128
 
 

@@ -332,14 +332,15 @@ func draw_interaction_world_pulse() -> void:
 		return
 	var position_value: Variant = context_prompt.get("position", Vector2.ZERO)
 	var world_position: Vector2 = position_value if position_value is Vector2 else Vector2.ZERO
-	var position := world_to_screen(world_position)
+	var position: Vector2 = world_to_screen(world_position)
 	var enabled := bool(context_prompt.get("enabled", true))
 	var color := profile_color("accent", "d49a45") if enabled else profile_color("danger", "b94d45")
 	var pulse := 10.0 + sin(environment_clock * 5.0) * 2.0
 	var alpha := context_prompt_alpha * (0.48 if enabled else 0.62)
 	draw_arc(position, pulse, 0.0, TAU, 20, Color(color, alpha), 1.0)
-	for direction in [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]:
-		var start := position + direction * (pulse + 2.0)
+	for direction_value in [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]:
+		var direction: Vector2 = direction_value
+		var start: Vector2 = position + direction * (pulse + 2.0)
 		draw_line(start, start + direction * 3.0, Color(color, alpha), 1.0)
 
 

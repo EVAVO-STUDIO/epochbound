@@ -35,7 +35,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	profile_notice_timer = maxf(0.0, profile_notice_timer - delta)
+	if editor_open or connection_setup_can_open():
+		profile_notice_timer = maxf(0.0, profile_notice_timer - delta)
 	if profile_notice_timer <= 0.0 and not editor_open:
 		profile_notice = ""
 	if not editor_open and connection_setup_can_open():
@@ -142,11 +143,11 @@ func load_saved_profile(
 		root_path
 	)
 	var load_errors_value: Variant = result.get("errors", [])
-	var load_errors: Array = (
-		load_errors_value as Array
-		if typeof(load_errors_value) == TYPE_ARRAY
-		else []
-	)
+	var load_error_count := 0
+	if typeof(load_errors_value) == TYPE_ARRAY:
+		load_error_count = (load_errors_value as Array).size()
+	elif typeof(load_errors_value) == TYPE_PACKED_STRING_ARRAY:
+		load_error_count = (load_errors_value as PackedStringArray).size()
 	if bool(result.get("ok", false)):
 		apply_profile_to_session(
 			result.get(
@@ -158,13 +159,13 @@ func load_saved_profile(
 			)
 		)
 		if bool(result.get("recovered_from_backup", false)):
-			profile_notice = "RECOVERED CONNECTION DETAILS FROM BACKUP"
+			profile_notice = "RECOVERED SAVED CONNECTION"
 			profile_notice_timer = PROFILE_NOTICE_DURATION
 		elif bool(result.get("migrated", false)):
-			profile_notice = "CONNECTION DETAILS UPDATED TO CURRENT VERSION"
+			profile_notice = "UPDATED SAVED CONNECTION"
 			profile_notice_timer = PROFILE_NOTICE_DURATION
-		elif bool(result.get("used_defaults", false)) and not load_errors.is_empty():
-			profile_notice = "INVALID CONNECTION DETAILS — USING LOCALHOST DEFAULTS"
+		elif bool(result.get("used_defaults", false)) and load_error_count > 0:
+			profile_notice = "INVALID SAVED CONNECTION — LOCALHOST"
 			profile_notice_timer = PROFILE_NOTICE_DURATION
 	return result
 
@@ -525,10 +526,15 @@ func _draw() -> void:
 		return
 	draw_rect(LOBBY_HINT_RECT, Color(Color("15191b"), 0.96))
 	draw_rect(LOBBY_HINT_RECT, Color(Color("9f8651"), 0.9), false, 1.0)
+	var hint_text := (
+		profile_notice
+		if profile_notice_timer > 0.0 and not profile_notice.is_empty()
+		else "RIGHT / TAB  CONNECTION SETUP"
+	)
 	draw_string(
 		ThemeDB.fallback_font,
 		LOBBY_HINT_RECT.position + Vector2(8, 14),
-		"RIGHT / TAB  CONNECTION SETUP",
+		hint_text,
 		HORIZONTAL_ALIGNMENT_CENTER,
 		int(LOBBY_HINT_RECT.size.x - 16.0),
 		8,

@@ -235,6 +235,17 @@ func run_test() -> void:
 				),
 				"Connection panel must retain its player-local editor contract."
 			)
+			var panel_recovery := panel.call(
+				"load_saved_profile",
+				TEST_ROOT
+			) as Dictionary
+			check(
+				bool(panel_recovery.get("recovered_from_backup", false))
+				and str(panel.get("profile_notice"))
+					== "RECOVERED SAVED CONNECTION"
+				and float(panel.get("profile_notice_timer")) > 0.0,
+				"Backup recovery must remain visible until the online lobby is opened."
+			)
 			session.call("toggle_lobby")
 			check(
 				bool(session.get("lobby_open")),

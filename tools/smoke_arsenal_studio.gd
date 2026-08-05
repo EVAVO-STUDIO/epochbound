@@ -63,6 +63,8 @@ func run_smoke_test() -> void:
 		check(float((range_value as SpinBox).value) == 260.0, "Enemy form must preserve the phased Sentinel's base projectile range.")
 
 	var item_path := str(studio.get("active_item_path"))
+	var item_source_snapshot := read_source_text(item_path)
+	check(bool(item_source_snapshot.get("ok", false)), "Arsenal rollback test must snapshot the exact item source bytes.")
 	var valid_item_read := Repository.read_json(item_path)
 	check(bool(valid_item_read.get("ok", false)), "Arsenal rollback test must read the valid item catalogue.")
 	var invalid_items: Dictionary = (studio.get("active_item_catalog") as Dictionary).duplicate(true)
@@ -85,8 +87,20 @@ func run_smoke_test() -> void:
 		if typeof(record_value) == TYPE_DICTIONARY and str((record_value as Dictionary).get("id", "")) == "clockglass_dartcaster":
 			restored_ammo_id = str((((record_value as Dictionary).get("equipment", {}) as Dictionary).get("ranged", {}) as Dictionary).get("ammo_item_id", ""))
 	check(restored_ammo_id == "archive_bolts", "Invalid ranged item edit must restore the prior ammunition reference.")
+	check(
+		restore_source_text(item_path, str(item_source_snapshot.get("text", ""))),
+		"Arsenal item rollback regression must restore the exact original source bytes."
+	)
+	var exact_item_restore := read_source_text(item_path)
+	check(
+		bool(exact_item_restore.get("ok", false))
+		and str(exact_item_restore.get("text", "")) == str(item_source_snapshot.get("text", "")),
+		"Arsenal item rollback regression must leave the tracked item source byte-for-byte unchanged."
+	)
 
 	var object_path := str(studio.get("active_object_path"))
+	var object_source_snapshot := read_source_text(object_path)
+	check(bool(object_source_snapshot.get("ok", false)), "Arsenal rollback test must snapshot the exact object source bytes.")
 	var invalid_objects: Dictionary = (studio.get("active_object_catalog") as Dictionary).duplicate(true)
 	for index in range((invalid_objects.get("objects", []) as Array).size()):
 		var candidate: Dictionary = (invalid_objects.get("objects", []) as Array)[index]
@@ -102,6 +116,16 @@ func run_smoke_test() -> void:
 		if typeof(record_value) == TYPE_DICTIONARY and str((record_value as Dictionary).get("id", "")) == "underworks_sentinel":
 			restored_attack_radius = float((record_value as Dictionary).get("attack_radius", 0.0))
 	check(restored_attack_radius == 160.0, "Invalid enemy edit must restore the prior attack radius.")
+	check(
+		restore_source_text(object_path, str(object_source_snapshot.get("text", ""))),
+		"Arsenal enemy rollback regression must restore the exact original source bytes."
+	)
+	var exact_object_restore := read_source_text(object_path)
+	check(
+		bool(exact_object_restore.get("ok", false))
+		and str(exact_object_restore.get("text", "")) == str(object_source_snapshot.get("text", "")),
+		"Arsenal enemy rollback regression must leave the tracked object source byte-for-byte unchanged."
+	)
 
 	var default_ammo := ArsenalCatalog.default_ammunition("test_bolts", "Test Bolts")
 	check(ArsenalCatalog.is_ammunition(default_ammo), "Default ammunition helper must create a valid ammunition item.")
@@ -113,9 +137,29 @@ func run_smoke_test() -> void:
 	finish()
 
 
+func read_source_text(path: String) -> Dictionary:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return {"ok": false, "text": ""}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {"ok": false, "text": ""}
+	return {"ok": true, "text": file.get_as_text()}
+
+
+func restore_source_text(path: String, text: String) -> bool:
+	if path.is_empty():
+		return false
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(text)
+	file.flush()
+	return true
+
+
 func finish() -> void:
 	if failures.is_empty():
-		print("Arsenal Studio smoke test passed: campaigns, weapons, ammunition, enemy projectiles and editor forms are coherent.")
+		print("Arsenal Studio smoke test passed: campaigns, weapons, ammunition, enemy projectiles, editor forms and exact source rollback isolation are coherent.")
 		quit(0)
 		return
 	for failure in failures:

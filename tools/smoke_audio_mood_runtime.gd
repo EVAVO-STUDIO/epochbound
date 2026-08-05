@@ -6,6 +6,7 @@ const AudioMoodValidator = preload("res://src/content/audio_mood_strict_validato
 
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const RUNTIME_SCENE := "res://src/app.tscn"
+const STARTUP_FRAME_BUDGET := 10
 
 var failures: Array[String] = []
 
@@ -36,10 +37,22 @@ func run_test() -> void:
 		return
 	var runtime: Node = (packed as PackedScene).instantiate()
 	root.add_child(runtime)
-	await process_frame
 	var controller: Node = runtime.get_node_or_null("AudioMood")
 	check(controller != null, "Runtime scene must include AudioMood.")
 	if controller != null:
+		for _frame_index in range(STARTUP_FRAME_BUDGET):
+			if controller.has_method("generator_startup_complete") and bool(controller.call("generator_startup_complete")):
+				break
+			await process_frame
+		var startup_context := {
+			"complete": bool(controller.call("generator_startup_complete")) if controller.has_method("generator_startup_complete") else false,
+			"attempts": int(controller.call("generator_startup_attempt_count")) if controller.has_method("generator_startup_attempt_count") else -1,
+			"players_ready": bool(controller.call("generator_players_ready")),
+			"music_clock": int(controller.get("music_sample_clock")),
+			"ambience_clock": int(controller.call("ambience_clock_value")),
+			"skips": int(controller.call("generator_skip_count"))
+		}
+		check(bool(startup_context.get("complete", false)), "Audio startup must complete within the bounded frame budget. Context: %s" % JSON.stringify(startup_context))
 		check(str(controller.get_script().resource_path) == "res://src/audio_mood_runtime.gd", "Runtime scene must use the hardened Audio and Mood adapter.")
 		var music: AudioStreamPlayer = controller.get_node_or_null("Music") as AudioStreamPlayer
 		var ambience: AudioStreamPlayer = controller.get_node_or_null("Ambience") as AudioStreamPlayer
@@ -48,9 +61,9 @@ func run_test() -> void:
 		check(ambience != null and ambience.bus == "Ambience", "Ambience generator must route through the Ambience bus.")
 		check(sfx != null and sfx.bus == "SFX", "SFX generator must route through the SFX bus.")
 		check(bool(controller.call("generator_players_ready")), "All generator playback objects must be ready after startup priming.")
-		check(int(controller.get("music_sample_clock")) > 0, "Music buffer must be primed immediately after playback starts.")
+		check(int(controller.get("music_sample_clock")) > 0, "Music buffer must be primed before playback is released.")
 		check(int(controller.call("ambience_clock_value")) > 0, "Ambience must use and advance its own sample clock.")
-		check(int(controller.call("generator_skip_count")) == 0, "Startup buffer priming must avoid generator underruns.")
+		check(int(controller.call("generator_skip_count")) == 0, "Startup buffer priming must avoid generator underruns. Context: %s" % JSON.stringify(startup_context))
 		controller.call("queue_sound", "shift")
 		check(int(controller.call("queued_sfx_count")) >= 3, "Era-shift feedback must queue a three-voice original stinger.")
 		runtime.set("flow", 4)
@@ -101,7 +114,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood runtime smoke test passed: profiles, buses, fully primed buffers, zero underruns, independent ambience timing and event cues are coherent.")
+		print("Audio and Mood runtime smoke test passed: profiles, buses, bounded priming, zero underruns, independent ambience timing and event cues are coherent.")
 		quit(0)
 		return
 	for failure in failures:

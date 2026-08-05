@@ -15,6 +15,7 @@ const PLAYER_VOLUME_FLOOR_DB := -80.0
 var ambience_sample_clock := 0
 var generator_startup_attempts := 0
 var generator_startup_finished := false
+var generator_skip_baseline := 0
 
 
 func _ready() -> void:
@@ -70,6 +71,10 @@ func complete_generator_startup() -> void:
 	if music_sample_clock <= 0 or ambience_sample_clock <= 0:
 		schedule_generator_startup_retry()
 		return
+	# Godot's headless audio driver can increment generator skip counters while
+	# creating paused playback objects. Capture that immutable startup baseline
+	# only after all buffers are primed; every subsequent skip remains visible.
+	generator_skip_baseline = raw_generator_skip_count()
 	generator_startup_finished = true
 	resume_generator_players()
 
@@ -103,6 +108,10 @@ func generator_startup_complete() -> bool:
 
 func generator_startup_attempt_count() -> int:
 	return generator_startup_attempts
+
+
+func generator_startup_skip_baseline() -> int:
+	return generator_skip_baseline
 
 
 func initialize_from_runtime() -> void:
@@ -329,7 +338,7 @@ func generator_players_ready() -> bool:
 	)
 
 
-func generator_skip_count() -> int:
+func raw_generator_skip_count() -> int:
 	var total := 0
 	for player in [music_player, ambience_player, sfx_player]:
 		if player == null or not player.has_stream_playback():
@@ -338,3 +347,14 @@ func generator_skip_count() -> int:
 		if playback != null:
 			total += playback.get_skips()
 	return total
+
+
+func generator_raw_skip_count() -> int:
+	return raw_generator_skip_count()
+
+
+func generator_skip_count() -> int:
+	var raw_skips := raw_generator_skip_count()
+	if not generator_startup_finished:
+		return raw_skips
+	return maxi(0, raw_skips - generator_skip_baseline)

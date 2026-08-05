@@ -5,6 +5,7 @@ const CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"
 const CURRENT_MULTIPLAYER_OVERLAY_SCRIPT := "res://src/multiplayer_overlay.gd"
+const CURRENT_MULTIPLAYER_CONNECTION_PANEL_SCRIPT := "res://src/multiplayer_connection_panel.gd"
 const CURRENT_MULTIPLAYER_SESSION_SCRIPT := "res://src/multiplayer_session.gd"
 const CURRENT_MULTIPLAYER_POST_SCRIPT := "res://src/multiplayer_post_tick.gd"
 const CURRENT_MULTIPLAYER_SAVE_GUARD_SCRIPT := "res://src/multiplayer_save_guard.gd"
@@ -193,6 +194,17 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 			errors.append("MultiplayerOverlay is missing multiplayer_overlay_contract_ok().")
 		elif not bool(multiplayer_overlay.call("multiplayer_overlay_contract_ok")):
 			errors.append("MultiplayerOverlay did not preserve the online presentation contract.")
+
+	var multiplayer_connection_panel := runtime.get_node_or_null("PresentationLayer/MultiplayerConnectionPanel")
+	if multiplayer_connection_panel == null:
+		errors.append("Runtime scene is missing MultiplayerConnectionPanel.")
+	else:
+		if script_path(multiplayer_connection_panel) != CURRENT_MULTIPLAYER_CONNECTION_PANEL_SCRIPT:
+			errors.append("MultiplayerConnectionPanel must use %s, found %s." % [CURRENT_MULTIPLAYER_CONNECTION_PANEL_SCRIPT, script_path(multiplayer_connection_panel)])
+		if not multiplayer_connection_panel.has_method("multiplayer_connection_panel_contract_ok"):
+			errors.append("MultiplayerConnectionPanel is missing multiplayer_connection_panel_contract_ok().")
+		elif not bool(multiplayer_connection_panel.call("multiplayer_connection_panel_contract_ok")):
+			errors.append("MultiplayerConnectionPanel did not preserve the player-local connection setup contract.")
 
 	if runtime.has_method("supply_runtime_contract_ok") and not bool(runtime.call("supply_runtime_contract_ok")):
 		errors.append("Runtime root did not initialise every regional supply cycle.")

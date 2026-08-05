@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource path="res://src/presentation_runtime_current.gd" type="Script" id="1_app"]
 [ext_resource path="res://src/combat_readability_overlay.gd" type="Script" id="2_presentation"]
@@ -9,6 +9,7 @@
 [ext_resource path="res://src/multiplayer_post_tick.gd" type="Script" id="7_multiplayer_post"]
 [ext_resource path="res://src/multiplayer_overlay.gd" type="Script" id="8_multiplayer_overlay"]
 [ext_resource path="res://src/multiplayer_save_guard.gd" type="Script" id="9_multiplayer_save"]
+[ext_resource path="res://src/multiplayer_connection_panel.gd" type="Script" id="10_multiplayer_connection"]
 
 [node name="Epochbound" type="Node2D"]
 script = ExtResource("1_app")
@@ -41,3 +42,6 @@ script = ExtResource("5_controls")
 
 [node name="MultiplayerOverlay" type="Node2D" parent="PresentationLayer"]
 script = ExtResource("8_multiplayer_overlay")
+
+[node name="MultiplayerConnectionPanel" type="Control" parent="PresentationLayer"]
+script = ExtResource("10_multiplayer_connection")

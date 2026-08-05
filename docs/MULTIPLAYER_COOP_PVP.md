@@ -18,6 +18,9 @@ The production vertical slice supports:
 - up to two co-op allies;
 - up to one invader;
 - direct-IP ENet sessions over UDP;
+- in-game hostname, IPv4, IPv6, UDP-port and display-name setup;
+- a versioned player-local connection profile with atomic writes and backup recovery;
+- command-line networking overrides for automation and multi-instance testing;
 - campaign-version and protocol matching;
 - host-authoritative movement, enemy damage and PvP damage;
 - unreliable-ordered input and snapshot channels;
@@ -43,6 +46,7 @@ The online menu uses fixed recovery inputs and is not part of the remappable gam
 | --- | --- | --- |
 | Open or close Online Play | N | Guide |
 | Select | Up / Down | D-pad Up / Down |
+| Open Connection Setup | Right or Tab | D-pad Right or focus-next |
 | Confirm | Active Interact binding | Confirm button |
 | Back | Escape | Start |
 
@@ -57,9 +61,34 @@ BACK
 
 When already online it offers **Leave Online Session** and **Back**.
 
-The in-game menu uses `127.0.0.1` and the campaign default port for a local test. External addresses are supplied through command-line launch options until a platform invitation or address-entry surface is added.
+The offline lobby shows the current connection address and UDP port. Press **Right** or **Tab** to open **Connection Setup** before hosting, joining or invading. The setup surface provides:
+
+```text
+hostname or IPv4 / IPv6 address
+UDP port
+online display name
+Save Connection
+Reset Localhost
+Back
+```
+
+The address field accepts a hostname or a direct IPv4/IPv6 address. It rejects URL schemes, paths, whitespace and combined `address:port` input because the UDP port has its own bounded field. Bracketed IPv6 input such as `[::1]` is normalised to the address ENet consumes.
+
+The display name accepts letters, numbers, spaces, underscores and hyphens up to the authored session-name limit. The UDP port must be between `1024` and `65535`.
+
+Connection details are player-local and never enter campaign data, portable campaign packages or save-profile payloads. They are stored separately at:
+
+```text
+user://settings/multiplayer_connection.json
+```
+
+Writes use a temporary file, rotate one valid previous profile to `.bak`, and recover from that backup when the primary JSON is malformed or unavailable. **Reset Localhost** restores `127.0.0.1`, the campaign default port and the local default display name in the form; saving is still deliberate.
+
+The panel uses normal Control focus, LineEdit and SpinBox behaviour, so keyboard, mouse, controller focus navigation and supported platform virtual keyboards share one input surface. While the form owns text input, lobby polling is suspended. It resumes on the next frame after Save or Back so the same Confirm or Cancel press cannot also activate the parent lobby.
 
 ## Command-line launch
+
+Command-line networking arguments remain available for automation, dedicated test scripts and launching several local instances. When any supported networking argument is present, it takes precedence over the saved in-game connection profile.
 
 Host on the campaign default port:
 
@@ -142,6 +171,8 @@ online_role
 
 Manual profiles are blocked while remote peers are present. Host autosaves may continue during peaceful co-op, but defer while an invader is active. Clients never write the host's world state.
 
+The connection profile is also outside durable campaign progression. Its address, port and display name configure a future session but are not captured by `capture_save_profile`, transferred in snapshots or installed with campaign packages.
+
 ## Authored online areas
 
 Campaigns opt in through `campaign.json`:
@@ -223,12 +254,20 @@ The complete Godot gate directly compiles and executes:
 ```text
 res://tools/compile_multiplayer_probe.gd
 res://tools/smoke_multiplayer_session_model.gd
+res://tools/smoke_multiplayer_connection_profile.gd
 res://tools/smoke_multiplayer_runtime.gd
 res://tools/smoke_multiplayer_validation_edges.gd
 ```
 
 The suite checks:
 
+- hostname, IPv4 and bracketed IPv6 profile handling;
+- rejection of URL schemes, paths, whitespace, invalid ports and invalid display names;
+- atomic player-local writes, valid-backup rotation and malformed-primary recovery;
+- canonical connection-panel composition and Control availability;
+- focused text ownership and next-frame lobby polling restoration;
+- immediate application of saved address, port and display name to the session;
+- separation of connection details from campaign saves and packages;
 - party and invasion capacity;
 - monotonic client input sequences;
 - sanctuary safety;
@@ -244,7 +283,8 @@ The suite checks:
 - strict policy types and ranges;
 - exact map, era, bounds and spawn validation;
 - canonical scene composition;
-- read-only release workflow policy.
+- read-only release workflow policy;
+- exact tracked-source cleanliness after every validation step.
 
 ## Security and trust boundary
 
@@ -254,31 +294,34 @@ The suite checks:
 - Clients cannot nominate their peer ID, health, damage, rewards or progression.
 - Campaign and release versions must match before role acceptance.
 - All campaign packages still pass complete staged validation before installation.
+- Saved connection details contain no secret, account token or durable game state.
 - The high-level Godot protocol is used only between matching Godot clients; it is not presented as a stable protocol for non-Godot servers.
 
 Host authority reduces casual state tampering but is not a substitute for a production identity service, relay, moderation, telemetry and anti-cheat program.
 
 ## Manual test route
 
-1. Launch one instance with `--host`.
-2. Launch a second with `--join=127.0.0.1`.
+1. Launch the host instance, press **N**, open **Connection Setup**, choose the UDP port and display name, save, then select **Host Co-op**.
+2. Launch a second instance, press **N**, open **Connection Setup**, enter `127.0.0.1` or the host's LAN address and matching UDP port, save, then select **Join Co-op**.
 3. Confirm the ally appears in Bellweather Sanctuary and cannot damage the host.
 4. Travel to Clockwood Edge and confirm the ally follows the host map and era.
 5. Let the ally strike an Ash Hound and confirm the host owns the enemy health change.
 6. Move the host into Clockwood Ashen Hunt.
-7. Launch a third instance with `--invade --join=127.0.0.1`.
+7. Launch a third instance, enter the same host endpoint through **Connection Setup**, save, then select **Invade**.
 8. Confirm host and invader damage works only inside the marked area.
 9. Walk outside the invasion area and confirm the invader is removed.
 10. Re-enter, invade again and defeat the invader.
 11. Confirm the invader is banished and no durable reward appears in the host save.
 12. Enter Museum Underworks with the ally and complete the Sentinel route.
 13. Close the online session, save, reload and confirm no guest actor or invasion state returns.
+14. Restart a client and confirm its saved endpoint and display name reload without changing any campaign save slot.
+15. Repeat one launch with `--join`, `--port` or `--name` and confirm command-line values take precedence over the player-local profile.
 
 ## Remaining production boundaries
 
 The current implementation is a validated direct-IP vertical slice. Production Internet multiplayer still requires deliberate work on:
 
-- platform invitations or an address-entry interface;
+- platform invitations, friend discovery or join codes;
 - relay and NAT traversal;
 - optional dedicated-server orchestration;
 - reconnect and host-migration policy;

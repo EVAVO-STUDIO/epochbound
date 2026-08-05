@@ -61,7 +61,7 @@ It uses a unique operating-system temporary directory for readiness markers, rec
 
 After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
 
-This division is deliberate: the gate validates the live transport exchange and does **not validate graceful disconnect** or Godot’s independent headless process-exit lifecycle. Those require a separate test boundary rather than being inferred from successful UDP communication.
+This division is deliberate: the gate validates the live transport exchange and does not validate graceful disconnect or Godot’s independent headless process-exit lifecycle. Those require a separate test boundary rather than being inferred from successful UDP communication.
 
 ## Permanent source contract
 

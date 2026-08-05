@@ -80,7 +80,27 @@ func initialize_from_runtime() -> void:
 	resolve_active_profile(true)
 
 
+func current_runtime_campaign_key() -> String:
+	var runtime := runtime_root()
+	if runtime == null:
+		return ""
+	var campaign_value: Variant = runtime.get("campaign")
+	var campaign: Dictionary = campaign_value as Dictionary if typeof(campaign_value) == TYPE_DICTIONARY else {}
+	return "%s|%s" % [
+		str(runtime.get("campaign_path")),
+		str(campaign.get("id", "fallback"))
+	]
+
+
 func resolve_active_profile(force: bool) -> void:
+	# Child _ready() callbacks run before the root runtime's _ready() callback.
+	# An explicit profile resolution can therefore arrive after the parent has
+	# loaded its campaign but before this node's first _process() refresh. Never
+	# resolve against that stale fallback catalogue.
+	var runtime_campaign_key := current_runtime_campaign_key()
+	if not runtime_campaign_key.is_empty() and runtime_campaign_key != loaded_campaign_key:
+		initialize_from_runtime()
+		return
 	var previous_profile_id := active_profile_id
 	super.resolve_active_profile(force)
 	if force or previous_profile_id != active_profile_id:

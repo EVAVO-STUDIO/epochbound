@@ -83,7 +83,6 @@ func run_test() -> void:
 			"definition_count": int((controller.get("definitions") as Dictionary).size()) if typeof(controller.get("definitions")) == TYPE_DICTIONARY else -1,
 			"binding_count": int((controller.get("bindings") as Array).size()) if typeof(controller.get("bindings")) == TYPE_ARRAY else -1
 		}
-		print("AUDIO_RUNTIME_CONTEXT %s" % JSON.stringify(runtime_context))
 		check(
 			str(controller.get("active_profile_id")) == "bellweather_verdant",
 			"Gameplay must resolve the current map and era audio profile. Context: %s" % JSON.stringify(runtime_context)

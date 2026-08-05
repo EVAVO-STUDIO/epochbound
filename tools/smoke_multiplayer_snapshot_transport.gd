@@ -61,7 +61,7 @@ func run_test() -> void:
 	var session: Node = runtime.get_node_or_null("MultiplayerSession")
 	check(session != null, "Snapshot transport matrix requires MultiplayerSession.")
 	if session == null:
-		cleanup(runtime)
+		await cleanup(runtime)
 		finish()
 		return
 
@@ -73,7 +73,7 @@ func run_test() -> void:
 		await validate_snapshot_case(runtime, session, case_data)
 
 	validate_payload_rejection(session)
-	cleanup(runtime)
+	await cleanup(runtime)
 	finish()
 
 
@@ -197,19 +197,30 @@ func validate_payload_rejection(session: Node) -> void:
 	oversized.resize(MAX_WIRE_BYTES + 1)
 	check(
 		(session.call("decode_world_snapshot", oversized) as Dictionary).is_empty(),
-		"Snapshot transport must reject compressed payloads above 1,200 bytes."
+		"Snapshot transport must reject payloads above 1,200 bytes before decompression."
 	)
-	var corrupt := PackedByteArray([1, 2, 3, 4, 5, 6, 7, 8])
+	var wrong_magic := PackedByteArray([1, 2, 3, 4, 5, 6, 7, 8])
 	check(
-		(session.call("decode_world_snapshot", corrupt) as Dictionary).is_empty(),
-		"Snapshot transport must reject malformed compressed payloads."
+		(session.call("decode_world_snapshot", wrong_magic) as Dictionary).is_empty(),
+		"Snapshot transport must reject malformed wire headers before decompression."
 	)
-	var incompressible := PackedByteArray()
-	incompressible.resize(8192)
-	var state := 0x13579BDF
-	for index in range(incompressible.size()):
-		state = int((1103515245 * state + 12345) & 0x7fffffff)
-		incompressible[index] = state & 0xff
+	var valid_value: Variant = session.call(
+		"encode_world_snapshot",
+		{"protocol_version": 1, "sequence": 7, "marker": "checksum"}
+	)
+	var tampered: PackedByteArray = (
+		(valid_value as PackedByteArray).duplicate()
+		if valid_value is PackedByteArray
+		else PackedByteArray()
+	)
+	check(not tampered.is_empty(), "Snapshot transport checksum setup must encode.")
+	if not tampered.is_empty():
+		tampered[tampered.size() - 1] = int(tampered[tampered.size() - 1]) ^ 0x01
+		check(
+			(session.call("decode_world_snapshot", tampered) as Dictionary).is_empty(),
+			"Snapshot transport must reject checksum mismatches before decompression."
+		)
+	var incompressible := deterministic_noise(8192)
 	var rejected_value: Variant = session.call(
 		"encode_world_snapshot",
 		{"padding": incompressible}
@@ -223,6 +234,19 @@ func validate_payload_rejection(session: Node) -> void:
 		rejected.is_empty(),
 		"Snapshot transport must fail closed when compressed state exceeds its wire budget."
 	)
+
+
+func deterministic_noise(size: int) -> PackedByteArray:
+	var output := PackedByteArray()
+	output.resize(maxi(0, size))
+	var state: int = 0x13579BDF
+	for index in range(output.size()):
+		state = state ^ ((state << 13) & 0x7fffffff)
+		state = state ^ (state >> 17)
+		state = state ^ ((state << 5) & 0x7fffffff)
+		state = state & 0x7fffffff
+		output[index] = state & 0xff
+	return output
 
 
 func instantiate_runtime() -> Node:
@@ -246,8 +270,9 @@ func instantiate_runtime() -> Node:
 func cleanup(runtime: Node) -> void:
 	if runtime == null:
 		return
-	root.remove_child(runtime)
-	runtime.free()
+	runtime.queue_free()
+	await process_frame
+	await process_frame
 
 
 func check(condition: bool, message: String) -> void:

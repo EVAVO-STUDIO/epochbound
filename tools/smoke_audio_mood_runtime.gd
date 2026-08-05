@@ -55,7 +55,26 @@ func run_test() -> void:
 		check(int(controller.call("queued_sfx_count")) >= 3, "Era-shift feedback must queue a three-voice original stinger.")
 		runtime.set("flow", 4)
 		controller.call("resolve_active_profile", true)
-		check(str(controller.get("active_profile_id")) == "bellweather_verdant", "Gameplay must resolve the current map and era audio profile.")
+		var map_value: Variant = runtime.get("map_data")
+		var map_data: Dictionary = map_value as Dictionary if typeof(map_value) == TYPE_DICTIONARY else {}
+		var runtime_context := {
+			"flow": int(runtime.get("flow")),
+			"map_id": str(map_data.get("id", "")),
+			"era_id": str(runtime.get("current_era_id")),
+			"campaign_path": str(runtime.get("campaign_path")),
+			"campaign_id": str((runtime.get("campaign") as Dictionary).get("id", "")) if typeof(runtime.get("campaign")) == TYPE_DICTIONARY else "",
+			"load_error": str(runtime.get("load_error")),
+			"active_profile_id": str(controller.get("active_profile_id")),
+			"loaded_campaign_key": str(controller.get("loaded_campaign_key")),
+			"loaded_context_key": str(controller.get("loaded_context_key")),
+			"definition_count": int((controller.get("definitions") as Dictionary).size()) if typeof(controller.get("definitions")) == TYPE_DICTIONARY else -1,
+			"binding_count": int((controller.get("bindings") as Array).size()) if typeof(controller.get("bindings")) == TYPE_ARRAY else -1
+		}
+		print("AUDIO_RUNTIME_CONTEXT %s" % JSON.stringify(runtime_context))
+		check(
+			str(controller.get("active_profile_id")) == "bellweather_verdant",
+			"Gameplay must resolve the current map and era audio profile. Context: %s" % JSON.stringify(runtime_context)
+		)
 		controller.set("previous_flow", 1)
 		controller.set("previous_map_id", "previous_map")
 		controller.set("previous_era_id", str(runtime.get("current_era_id")))

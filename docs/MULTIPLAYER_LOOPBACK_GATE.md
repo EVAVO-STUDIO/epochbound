@@ -18,6 +18,14 @@ The host enters the authored `clockwood_ashen_hunt` region in Clockwood Edge’s
 
 The ally and invader then connect to `127.0.0.1` through the production `join_session` path. They use the same campaign-version negotiation, role-capacity checks and reliable join RPCs as a normal game session.
 
+## Deterministic input evidence
+
+After the real join is accepted, each client driver sends bounded input retries through the production `_submit_input` RPC every 200 milliseconds until the host records a fresh monotonic sequence. This removes dependence on idle-frame timing while preserving the actual unreliable-ordered input channel and host validation path.
+
+The driver does not create peers, inject peer state or call test-only registration helpers. The host receipt succeeds only after it records one real ally input stream and one real invader input stream.
+
+Client receipts are promoted atomically from temporary files, so the parent harness cannot mistake a partially written record for complete evidence.
+
 ## Bounded snapshot transport
 
 The canonical `MultiplayerSession` uses `res://src/multiplayer_transport_session.gd`, which extends the host-authoritative base session without changing progression or save ownership.
@@ -44,6 +52,7 @@ Each client receipt must prove:
 
 - the connection completed as the requested role;
 - the server assigned a real peer ID greater than one;
+- at least one bounded production input RPC was sent;
 - the client received a fresh authoritative snapshot;
 - authoritative snapshots reach both clients;
 - the snapshot restored all three transient actors;
@@ -57,7 +66,7 @@ The harness is:
 scripts/validate_multiplayer_loopback.ps1
 ```
 
-It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, applies hard timeouts and rejects any child that exits or logs a parser, runtime or native crash before producing evidence.
+It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, staggers ally and invader startup, applies hard timeouts and rejects any child that exits or logs a parser, runtime or native crash before producing evidence.
 
 After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
 
@@ -71,13 +80,14 @@ Before Godot starts, the exact-main workflow runs:
 python3 tools/check_multiplayer_loopback_contract.py
 ```
 
-The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking remote input, stop checking authoritative snapshots, remove the 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
+The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking authoritative snapshots, remove the 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
 
 The multiplayer compile probe also loads:
 
 ```text
 res://src/multiplayer_transport_session.gd
 res://tools/multiplayer_loopback_peer.gd
+res://tools/multiplayer_loopback_peer_driver.gd
 ```
 
 so parser or inheritance drift fails before process orchestration begins.
@@ -92,7 +102,7 @@ The governed exact-main receipt records:
 }
 ```
 
-A release is not considered multiplayer-transport validated if the static contract, real loopback process exchange, bounded snapshot evidence, child-log review, clean-source verification or receipt field is absent.
+A release is not considered multiplayer-transport validated if the static contract, real loopback process exchange, bounded input and snapshot evidence, child-log review, clean-source verification or receipt field is absent.
 
 ## What this gate does not prove
 

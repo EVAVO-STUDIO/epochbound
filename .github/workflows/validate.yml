@@ -95,6 +95,9 @@ jobs:
       - name: Validate multiplayer connection setup contract
         run: python3 tools/check_multiplayer_connection_contract.py
 
+      - name: Validate real ENet loopback integration contract
+        run: python3 tools/check_multiplayer_loopback_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -127,6 +130,14 @@ jobs:
           & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot"
 
+      - name: Run real ENet host ally and invader loopback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_loopback.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE"
+
       - name: Confirm validation did not modify tracked source
         if: always()
         shell: bash
@@ -148,7 +159,7 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.8",
+              "schemaVersion": "1.9",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -159,6 +170,7 @@ jobs:
               "canonicalJourneyValidation": "passed",
               "multiplayerValidation": "passed",
               "multiplayerConnectionValidation": "passed",
+              "multiplayerLoopbackValidation": "passed",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",

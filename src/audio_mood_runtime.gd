@@ -16,10 +16,13 @@ var ambience_sample_clock := 0
 
 func _ready() -> void:
 	super._ready()
-	# Godot's generator workflow starts playback before retrieving the playback
-	# object, then fills the available buffer immediately to avoid a startup gap.
+	# Do not let the audio thread consume empty generator buffers while campaign
+	# validation and catalogue loading are still running. Start each playback in
+	# a paused state, fill the complete buffers, then release all buses together.
+	start_generator_players_paused()
 	update_mix(RUNTIME_BUFFER_LENGTH)
 	prime_generator_buffers()
+	resume_generator_players()
 	apply_player_volume_settings()
 
 
@@ -38,8 +41,21 @@ func create_generator_player(player_name: String) -> AudioStreamPlayer:
 	generator.buffer_length = RUNTIME_BUFFER_LENGTH
 	player.stream = generator
 	add_child(player)
-	player.play()
 	return player
+
+
+func start_generator_players_paused() -> void:
+	for player in [music_player, ambience_player, sfx_player]:
+		if player == null:
+			continue
+		player.play()
+		player.stream_paused = true
+
+
+func resume_generator_players() -> void:
+	for player in [music_player, ambience_player, sfx_player]:
+		if player != null:
+			player.stream_paused = false
 
 
 func prime_generator_buffers() -> void:

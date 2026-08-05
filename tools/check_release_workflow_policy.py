@@ -112,11 +112,14 @@ require(
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_canonical_journey_contract.py",
         "python3 tools/check_multiplayer_contract.py",
+        "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        '"schemaVersion": "1.8"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
+        '"multiplayerConnectionValidation": "passed"',
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],
@@ -214,6 +217,8 @@ require(
         "smoke_progression_affordability.gd",
         "Smoke test multi-source progression affordability planning",
         "smoke_multiplayer_session_model.gd",
+        "smoke_multiplayer_connection_profile.gd",
+        "Smoke test player-local multiplayer connection setup and recovery",
         "smoke_multiplayer_runtime.gd",
         "smoke_multiplayer_validation_edges.gd",
         "host-authoritative co-op",
@@ -259,11 +264,15 @@ require(
         "multiplayer_catalog.gd",
         "multiplayer_area_validator.gd",
         "multiplayer_session_model.gd",
+        "multiplayer_connection_profile.gd",
+        "multiplayer_connection_profile_store.gd",
         "multiplayer_session.gd",
         "multiplayer_save_guard.gd",
         "multiplayer_post_tick.gd",
         "multiplayer_overlay.gd",
+        "multiplayer_connection_panel.gd",
         "smoke_multiplayer_session_model.gd",
+        "smoke_multiplayer_connection_profile.gd",
         "smoke_multiplayer_runtime.gd",
         "smoke_multiplayer_validation_edges.gd",
         "app.tscn",
@@ -488,6 +497,23 @@ require(
     ],
 )
 
+multiplayer_connection_contract = read(
+    "multiplayer_connection_contract",
+    ROOT / "tools/check_multiplayer_connection_contract.py",
+)
+require(
+    "multiplayer_connection_contract",
+    multiplayer_connection_contract,
+    [
+        'PROFILE_FILENAME := "multiplayer_connection.json"',
+        "Connection profiles must keep the UDP port in its separately bounded field",
+        "Raw connection data fails before temporary writes or backup rotation".lower(),
+        "multiplayer_connection_panel_contract_ok",
+        "smoke_multiplayer_connection_profile.gd",
+        "epochbound_multiplayer_connection_contract_passed",
+    ],
+)
+
 multiplayer_session = read("multiplayer_session", ROOT / "src/multiplayer_session.gd")
 require(
     "multiplayer_session",
@@ -530,5 +556,6 @@ print("- focused Audio, Sprite and Linux Agent workflows remain governed manual 
 print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
+print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
 print("- runtime composition, player settings, persistent controls, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

@@ -92,6 +92,9 @@ jobs:
       - name: Validate co-op and PvP integration contract
         run: python3 tools/check_multiplayer_contract.py
 
+      - name: Validate multiplayer connection setup contract
+        run: python3 tools/check_multiplayer_connection_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -145,7 +148,7 @@ jobs:
           from pathlib import Path
 
           payload = {
-              "schemaVersion": "1.7",
+              "schemaVersion": "1.8",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -155,6 +158,7 @@ jobs:
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
               "multiplayerValidation": "passed",
+              "multiplayerConnectionValidation": "passed",
               "campaignAudit": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",

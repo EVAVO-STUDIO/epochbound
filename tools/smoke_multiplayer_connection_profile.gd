@@ -41,6 +41,12 @@ func run_test() -> void:
 		"Connection profiles must reject whitespace."
 	)
 	check(
+		not MultiplayerConnectionProfile.address_is_valid(
+			"play.example.test:27491"
+		),
+		"Connection profiles must keep the UDP port in its separately bounded field."
+	)
+	check(
 		not bool(
 			MultiplayerConnectionProfile.validate(
 				{
@@ -104,6 +110,35 @@ func run_test() -> void:
 			MultiplayerConnectionProfileStore.backup_path(TEST_ROOT)
 		),
 		"A second valid write must retain one known-good backup."
+	)
+	var rejected_write := MultiplayerConnectionProfileStore.write_profile(
+		{
+			"schema_version": MultiplayerConnectionProfile.CURRENT_SCHEMA,
+			"address": "https://invalid.example.test/path",
+			"port": 27501,
+			"player_name": "SECOND ALLY"
+		},
+		27491,
+		"WANDERER",
+		TEST_ROOT
+	)
+	check(
+		not bool(rejected_write.get("ok", true)),
+		"Invalid raw connection data must fail before rotating the current profile."
+	)
+	var preserved_after_rejection := MultiplayerConnectionProfileStore.load_profile(
+		27491,
+		"WANDERER",
+		TEST_ROOT
+	)
+	check(
+		str(
+			(preserved_after_rejection.get("profile", {}) as Dictionary).get(
+				"address",
+				""
+			)
+		) == "second.example.test",
+		"A rejected write must preserve the exact current primary profile."
 	)
 	var primary_file := FileAccess.open(
 		MultiplayerConnectionProfileStore.profile_path(TEST_ROOT),
@@ -183,6 +218,37 @@ func run_test() -> void:
 				"Connection setup must expose address, port and display-name controls."
 			)
 			if address_edit != null and port_edit != null and name_edit != null:
+				check(
+					int(panel.get("mouse_filter")) == Control.MOUSE_FILTER_STOP,
+					"Open connection setup must block clicks from reaching the lobby beneath it."
+				)
+				check(
+					address_edit.virtual_keyboard_type == LineEdit.KEYBOARD_TYPE_URL,
+					"Address entry must request an address-appropriate virtual keyboard."
+				)
+				check(
+					address_edit.max_length
+						== MultiplayerConnectionProfile.MAX_ADDRESS_LENGTH
+					and name_edit.max_length > 0,
+					"Text controls must retain bounded address and display-name lengths."
+				)
+				check(
+					address_edit.focus_neighbor_bottom != NodePath("")
+					and port_edit.focus_neighbor_right != NodePath(""),
+					"Keyboard and controller focus navigation must remain explicitly wired."
+				)
+				address_edit.text = "https://invalid.example.test/path"
+				port_edit.value = 27601
+				name_edit.text = "MORROW ALLY"
+				check(
+					not bool(panel.call("save_current_profile", TEST_ROOT)),
+					"Invalid in-game connection details must be rejected without closing setup."
+				)
+				check(
+					bool(panel.get("editor_open"))
+					and not session.is_processing(),
+					"A rejected form must retain text ownership and suspended lobby polling."
+				)
 				address_edit.text = "lan-host.example.test"
 				port_edit.value = 27601
 				name_edit.text = "MORROW ALLY"
@@ -212,6 +278,27 @@ func run_test() -> void:
 					bool(session.get("lobby_open")),
 					"Saving connection setup must return to the existing lobby."
 				)
+				check(
+					not bool(panel.get("editor_open"))
+					and int(panel.get("mouse_filter")) == Control.MOUSE_FILTER_IGNORE,
+					"Closed connection setup must release GUI input back to the lobby."
+				)
+				var captured := runtime.call(
+					"capture_save_profile",
+					"slot_1",
+					"Connection profile isolation smoke"
+				) as Dictionary
+				var payload := captured.get("payload", {}) as Dictionary
+				for forbidden_key in [
+					"connect_address",
+					"connect_port",
+					"local_name",
+					"multiplayer_connection_profile"
+				]:
+					check(
+						not payload.has(forbidden_key),
+						"Campaign saves must exclude player-local connection field '%s'." % forbidden_key
+					)
 			var stored := MultiplayerConnectionProfileStore.load_profile(
 				27491,
 				"WANDERER",
@@ -277,7 +364,7 @@ func check(condition: bool, message: String) -> void:
 func finish() -> void:
 	if failures.is_empty():
 		print(
-			"Multiplayer connection profile smoke test passed: hostname and IP validation, atomic player-local persistence, backup recovery, focused text controls and lobby restoration are coherent."
+			"Multiplayer connection profile smoke test passed: hostname and IP validation, fail-closed atomic persistence, backup recovery, focus and virtual-keyboard wiring, save isolation and lobby restoration are coherent."
 		)
 		quit(0)
 		return

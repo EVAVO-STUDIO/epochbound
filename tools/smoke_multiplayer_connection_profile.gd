@@ -15,6 +15,46 @@ func _initialize() -> void:
 
 func run_test() -> void:
 	MultiplayerConnectionProfileStore.delete_profile(TEST_ROOT)
+	var invalid_root_error := DirAccess.make_dir_recursive_absolute(
+		ProjectSettings.globalize_path(TEST_ROOT)
+	)
+	check(
+		invalid_root_error == OK or invalid_root_error == ERR_ALREADY_EXISTS,
+		"Invalid-primary fallback setup must create its isolated test directory."
+	)
+	var invalid_primary := FileAccess.open(
+		MultiplayerConnectionProfileStore.profile_path(TEST_ROOT),
+		FileAccess.WRITE
+	)
+	check(
+		invalid_primary != null,
+		"Invalid-primary fallback setup must open its isolated profile."
+	)
+	if invalid_primary != null:
+		invalid_primary.store_string("{broken")
+		invalid_primary.flush()
+		invalid_primary.close()
+	var defaults_after_invalid := MultiplayerConnectionProfileStore.load_profile(
+		27491,
+		"WANDERER",
+		TEST_ROOT
+	)
+	check(
+		bool(defaults_after_invalid.get("ok", false))
+		and bool(defaults_after_invalid.get("used_defaults", false))
+		and not (defaults_after_invalid.get("errors", []) as Array).is_empty(),
+		"An invalid primary without a backup must fall back visibly to safe defaults."
+	)
+	check(
+		str(
+			(defaults_after_invalid.get("profile", {}) as Dictionary).get(
+				"address",
+				""
+			)
+		) == MultiplayerConnectionProfile.DEFAULT_ADDRESS,
+		"Invalid-primary fallback must use the localhost default address."
+	)
+	MultiplayerConnectionProfileStore.delete_profile(TEST_ROOT)
 
 	check(
 		MultiplayerConnectionProfile.address_is_valid("play.example.test"),

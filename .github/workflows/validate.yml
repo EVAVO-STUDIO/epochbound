@@ -123,6 +123,13 @@ jobs:
           command -v pwsh >/dev/null || { echo "PowerShell is required on the hosted runner" >&2; exit 1; }
           rm -rf .godot-download
 
+      - name: Run all-map snapshot transport matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_multiplayer_snapshot_transport.gd
+
       - name: Run complete seventeen-system validation gate
         shell: pwsh
         run: |

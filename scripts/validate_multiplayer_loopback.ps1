@@ -133,42 +133,42 @@ $peers = @()
 
 try {
     Write-Host "`n==> Smoke test real ENet host ally and invader loopback on UDP $port"
-    $host = Start-LoopbackPeer `
+    $hostPeer = Start-LoopbackPeer `
         -Role "host" `
         -Port $port `
         -ReceiptPath $hostReceiptPath `
         -ReadyPath $readyPath `
         -RunRoot $runRoot
-    $peers += $host
+    $peers += $hostPeer
 
     $readyDeadline = [DateTime]::UtcNow.AddSeconds(15)
     while (-not (Test-Path $readyPath) -and [DateTime]::UtcNow -lt $readyDeadline) {
-        $host.Process.Refresh()
-        if ($host.Process.HasExited) {
+        $hostPeer.Process.Refresh()
+        if ($hostPeer.Process.HasExited) {
             break
         }
         Start-Sleep -Milliseconds 100
     }
     if (-not (Test-Path $readyPath)) {
-        Write-PeerLogs $host
+        Write-PeerLogs $hostPeer
         throw "Real ENet loopback host did not open its UDP listener."
     }
 
-    $ally = Start-LoopbackPeer `
+    $allyPeer = Start-LoopbackPeer `
         -Role "ally" `
         -Port $port `
         -ReceiptPath $allyReceiptPath `
         -ReadyPath $readyPath `
         -RunRoot $runRoot
-    $peers += $ally
+    $peers += $allyPeer
     Start-Sleep -Milliseconds 350
-    $invader = Start-LoopbackPeer `
+    $invaderPeer = Start-LoopbackPeer `
         -Role "invader" `
         -Port $port `
         -ReceiptPath $invaderReceiptPath `
         -ReadyPath $readyPath `
         -RunRoot $runRoot
-    $peers += $invader
+    $peers += $invaderPeer
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     while ([DateTime]::UtcNow -lt $deadline) {

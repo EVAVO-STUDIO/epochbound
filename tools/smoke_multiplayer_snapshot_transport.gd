@@ -3,6 +3,7 @@ extends SceneTree
 const MultiplayerSessionModel = preload("res://src/game/multiplayer_session_model.gd")
 
 const RUNTIME_SCENE := "res://src/app.tscn"
+const MAX_WIRE_BYTES := 1200
 const SNAPSHOT_CASES := [
 	{
 		"map_id": "bellweather_crossing",
@@ -144,7 +145,7 @@ func validate_snapshot_case(
 	var uncompressed_bytes := int(session.get("last_snapshot_uncompressed_bytes"))
 	check(wire_bytes > 0, "Snapshot transport payload must not be empty for %s." % context)
 	check(
-		wire_bytes <= int(session.get("MAX_NETWORK_SNAPSHOT_BYTES")),
+		wire_bytes <= MAX_WIRE_BYTES,
 		"Snapshot transport payload for %s must remain inside the 1,200-byte wire budget." % context
 	)
 	check(
@@ -193,7 +194,7 @@ func validate_snapshot_case(
 
 func validate_payload_rejection(session: Node) -> void:
 	var oversized := PackedByteArray()
-	oversized.resize(1201)
+	oversized.resize(MAX_WIRE_BYTES + 1)
 	check(
 		(session.call("decode_world_snapshot", oversized) as Dictionary).is_empty(),
 		"Snapshot transport must reject compressed payloads above 1,200 bytes."

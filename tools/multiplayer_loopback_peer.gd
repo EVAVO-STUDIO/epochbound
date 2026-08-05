@@ -147,6 +147,15 @@ func run_host() -> void:
 			var snapshot: Dictionary = (
 				snapshot_value if typeof(snapshot_value) == TYPE_DICTIONARY else {}
 			)
+			var payload_value: Variant = session.call("encode_world_snapshot", snapshot)
+			var payload: PackedByteArray = (
+				payload_value
+				if payload_value is PackedByteArray
+				else PackedByteArray()
+			)
+			if payload.is_empty():
+				finish_failure("Loopback host could not encode a bounded network snapshot.")
+				return
 			var receipt := {
 				"ok": true,
 				"role": MultiplayerSessionModel.ROLE_HOST,
@@ -163,6 +172,10 @@ func run_host() -> void:
 				"input_peer_count": remote_input_peer_count(peers),
 				"snapshot_sequence": int(snapshot.get("sequence", -1)),
 				"protocol_version": int(snapshot.get("protocol_version", 0)),
+				"snapshot_wire_bytes": payload.size(),
+				"snapshot_uncompressed_bytes": int(
+					session.get("last_snapshot_uncompressed_bytes")
+				),
 				"map_id": str(snapshot.get("map_id", "")),
 				"era_id": str(snapshot.get("era_id", "")),
 				"area_id": EXPECTED_AREA
@@ -170,7 +183,9 @@ func run_host() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback host could not write its validation receipt.")
 				return
-			await create_timer(2.0).timeout
+			# The host closes first after both clients have proven receipt. Keeping
+			# clients alive avoids broadcasting into an ENet peer already tearing down.
+			await create_timer(0.75).timeout
 			finish_success()
 			return
 		await create_timer(0.05).timeout
@@ -233,7 +248,9 @@ func run_client() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback %s could not write its validation receipt." % peer_role)
 				return
-			await create_timer(1.0).timeout
+			# Remain connected until the host completes and closes the authoritative
+			# session, preventing a normal client exit from racing a snapshot send.
+			await create_timer(2.0).timeout
 			finish_success()
 			return
 		await create_timer(0.05).timeout

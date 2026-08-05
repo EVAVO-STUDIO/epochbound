@@ -7,12 +7,14 @@ const SaveValidator = preload("res://src/content/save_validator.gd")
 const CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const CAMPAIGN_ID := "epochbound_demo"
 const SLOT_ID := "slot_2"
+const DISCOVERY_CAMPAIGN_ID := "epochbound_save_discovery_smoke"
 
 var failures: Array[String] = []
 
 
 func _initialize() -> void:
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
+	clear_discovery_directory()
 	test_legacy_migration()
 	test_schema_two_economy_migration()
 	test_schema_three_arsenal_migration()
@@ -23,6 +25,7 @@ func _initialize() -> void:
 	test_future_schema_rejection()
 	test_backup_recovery()
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
+	clear_discovery_directory()
 	finish()
 
 
@@ -125,22 +128,29 @@ func test_canonical_slot_discovery() -> void:
 	check(not SaveProfile.valid_slot_id("slot_0"), "Slot zero must be rejected.")
 	check(not SaveProfile.valid_slot_id("checkpoint"), "Arbitrary save filenames must not become slots.")
 
-	var directory := SaveProfileStore.campaign_directory(CAMPAIGN_ID)
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
+	clear_discovery_directory()
+	var directory := SaveProfileStore.campaign_directory(DISCOVERY_CAMPAIGN_ID)
+	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
+	check(directory_error == OK or directory_error == ERR_ALREADY_EXISTS, "Slot discovery test must create its isolated campaign directory.")
 	var profile := valid_profile("Mismatched filename", 98)
-	var invalid_path := directory.path_join("slot_01.json")
-	var mismatched_path := directory.path_join("slot_1.json")
-	for path in [invalid_path, mismatched_path]:
-		var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
-		check(file != null, "Slot discovery test must be able to create its fixture.")
+	var wrong_campaign_profile := profile.duplicate(true)
+	wrong_campaign_profile["slot_id"] = "slot_3"
+	SaveProfile.refresh_checksum(wrong_campaign_profile)
+	var fixtures := {
+		directory.path_join("slot_01.json"): profile,
+		directory.path_join("slot_1.json"): profile,
+		directory.path_join("slot_3.json"): wrong_campaign_profile
+	}
+	for path in fixtures.keys():
+		var file: FileAccess = FileAccess.open(str(path), FileAccess.WRITE)
+		check(file != null, "Slot discovery test must be able to create its isolated fixture.")
 		if file != null:
-			file.store_string(JSON.stringify(SaveProfile.canonicalize(profile), "\t", true) + "\n")
+			file.store_string(JSON.stringify(SaveProfile.canonicalize(fixtures.get(path)), "\t", true) + "\n")
+			file.flush()
 			file.close()
-	var records := SaveProfileStore.list_campaign_profiles(CAMPAIGN_ID)
-	check(records.is_empty(), "Continue discovery must ignore non-canonical filenames and filename/profile slot mismatches.")
-	for path in [invalid_path, mismatched_path]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var records := SaveProfileStore.list_campaign_profiles(DISCOVERY_CAMPAIGN_ID)
+	check(records.is_empty(), "Continue discovery must ignore non-canonical filenames, filename/profile slot mismatches and wrong-directory campaign IDs.")
+	clear_discovery_directory()
 
 
 func test_json_round_trip_checksum() -> void:
@@ -232,6 +242,22 @@ func valid_profile(reason: String, saved_at: int) -> Dictionary:
 	return SaveProfile.build_profile(CAMPAIGN_ID, SLOT_ID, metadata, payload)
 
 
+func clear_discovery_directory() -> void:
+	var directory_path := SaveProfileStore.campaign_directory(DISCOVERY_CAMPAIGN_ID)
+	var directory: DirAccess = DirAccess.open(directory_path)
+	if directory != null:
+		directory.list_dir_begin()
+		var filename := directory.get_next()
+		while not filename.is_empty():
+			if not directory.current_is_dir():
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(directory_path.path_join(filename)))
+			filename = directory.get_next()
+		directory.list_dir_end()
+	var absolute_directory := ProjectSettings.globalize_path(directory_path)
+	if DirAccess.dir_exists_absolute(absolute_directory):
+		DirAccess.remove_absolute(absolute_directory)
+
+
 func contains_fragment(messages: Variant, fragment: String) -> bool:
 	if typeof(messages) != TYPE_ARRAY:
 		return false
@@ -243,7 +269,7 @@ func contains_fragment(messages: Variant, fragment: String) -> bool:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Save migration smoke test passed: legacy migration, policy compatibility, canonical slots, JSON round trips, integrity rejection and backup recovery are coherent.")
+		print("Save migration smoke test passed: legacy migration, policy compatibility, isolated canonical slots, JSON round trips, integrity rejection and backup recovery are coherent.")
 		quit(0)
 		return
 	for failure in failures:

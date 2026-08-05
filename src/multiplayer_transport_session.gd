@@ -1,6 +1,10 @@
 extends "res://src/multiplayer_session.gd"
 
 const NETWORK_SNAPSHOT_COMPRESSION_MODE := FileAccess.COMPRESSION_DEFLATE
+const SNAPSHOT_WIRE_MAGIC_TEXT := "EPB1"
+const SNAPSHOT_WIRE_MAGIC_BYTES := 4
+const SNAPSHOT_WIRE_DIGEST_BYTES := 32
+const SNAPSHOT_WIRE_HEADER_BYTES := SNAPSHOT_WIRE_MAGIC_BYTES + SNAPSHOT_WIRE_DIGEST_BYTES
 const MAX_NETWORK_SNAPSHOT_BYTES := 1200
 const MAX_DECOMPRESSED_SNAPSHOT_BYTES := 65536
 
@@ -59,19 +63,44 @@ func encode_world_snapshot(snapshot: Dictionary) -> PackedByteArray:
 	var compressed: PackedByteArray = serialized.compress(
 		NETWORK_SNAPSHOT_COMPRESSION_MODE
 	)
-	last_snapshot_wire_bytes = compressed.size()
-	if (
-		compressed.is_empty()
-		or compressed.size() > MAX_NETWORK_SNAPSHOT_BYTES
-	):
+	if compressed.is_empty():
+		last_snapshot_wire_bytes = 0
 		return PackedByteArray()
-	return compressed
+	var digest: PackedByteArray = snapshot_wire_digest(compressed)
+	if digest.size() != SNAPSHOT_WIRE_DIGEST_BYTES:
+		last_snapshot_wire_bytes = 0
+		return PackedByteArray()
+	var payload := PackedByteArray()
+	payload.append_array(snapshot_wire_magic())
+	payload.append_array(digest)
+	payload.append_array(compressed)
+	last_snapshot_wire_bytes = payload.size()
+	if payload.size() > MAX_NETWORK_SNAPSHOT_BYTES:
+		return PackedByteArray()
+	return payload
 
 
 func decode_world_snapshot(payload: PackedByteArray) -> Dictionary:
-	if payload.is_empty() or payload.size() > MAX_NETWORK_SNAPSHOT_BYTES:
+	if (
+		payload.size() <= SNAPSHOT_WIRE_HEADER_BYTES
+		or payload.size() > MAX_NETWORK_SNAPSHOT_BYTES
+	):
 		return {}
-	var serialized: PackedByteArray = payload.decompress_dynamic(
+	var magic: PackedByteArray = payload.slice(0, SNAPSHOT_WIRE_MAGIC_BYTES)
+	if magic != snapshot_wire_magic():
+		return {}
+	var expected_digest: PackedByteArray = payload.slice(
+		SNAPSHOT_WIRE_MAGIC_BYTES,
+		SNAPSHOT_WIRE_HEADER_BYTES
+	)
+	var compressed: PackedByteArray = payload.slice(SNAPSHOT_WIRE_HEADER_BYTES)
+	var actual_digest: PackedByteArray = snapshot_wire_digest(compressed)
+	if (
+		actual_digest.size() != SNAPSHOT_WIRE_DIGEST_BYTES
+		or actual_digest != expected_digest
+	):
+		return {}
+	var serialized: PackedByteArray = compressed.decompress_dynamic(
 		MAX_DECOMPRESSED_SNAPSHOT_BYTES,
 		NETWORK_SNAPSHOT_COMPRESSION_MODE
 	)
@@ -79,6 +108,21 @@ func decode_world_snapshot(payload: PackedByteArray) -> Dictionary:
 		return {}
 	var decoded: Variant = bytes_to_var(serialized)
 	return decoded as Dictionary if typeof(decoded) == TYPE_DICTIONARY else {}
+
+
+func snapshot_wire_magic() -> PackedByteArray:
+	return SNAPSHOT_WIRE_MAGIC_TEXT.to_ascii_buffer()
+
+
+func snapshot_wire_digest(value: PackedByteArray) -> PackedByteArray:
+	if value.is_empty():
+		return PackedByteArray()
+	var hashing := HashingContext.new()
+	if hashing.start(HashingContext.HASH_SHA256) != OK:
+		return PackedByteArray()
+	if hashing.update(value) != OK:
+		return PackedByteArray()
+	return hashing.finish()
 
 
 @rpc("authority", "call_remote", "unreliable_ordered", SNAPSHOT_CHANNEL)
@@ -112,7 +156,6 @@ func snapshot_runtime_entities() -> Array:
 		)
 		output.append({
 			"placement_id": str(entity.get("placement_id", "")),
-			"object_id": str(entity.get("object_id", "")),
 			"position": {
 				"x": snappedf(position.x, 0.01),
 				"y": snappedf(position.y, 0.01)
@@ -220,7 +263,10 @@ func leave_session(reason: String = "ONLINE SESSION CLOSED") -> void:
 func multiplayer_runtime_contract_ok() -> bool:
 	return (
 		super.multiplayer_runtime_contract_ok()
-		and MAX_NETWORK_SNAPSHOT_BYTES > 0
+		and SNAPSHOT_WIRE_MAGIC_TEXT.length() == SNAPSHOT_WIRE_MAGIC_BYTES
+		and SNAPSHOT_WIRE_DIGEST_BYTES == 32
+		and SNAPSHOT_WIRE_HEADER_BYTES == 36
+		and MAX_NETWORK_SNAPSHOT_BYTES > SNAPSHOT_WIRE_HEADER_BYTES
 		and MAX_NETWORK_SNAPSHOT_BYTES < 1392
 		and MAX_DECOMPRESSED_SNAPSHOT_BYTES >= MAX_NETWORK_SNAPSHOT_BYTES
 		and NETWORK_SNAPSHOT_COMPRESSION_MODE == FileAccess.COMPRESSION_DEFLATE

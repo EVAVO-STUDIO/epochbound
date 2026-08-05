@@ -7,6 +7,7 @@ const TARGETS := [
 	"res://src/game/multiplayer_connection_profile.gd",
 	"res://src/game/multiplayer_connection_profile_store.gd",
 	"res://src/multiplayer_session.gd",
+	"res://src/multiplayer_transport_session.gd",
 	"res://src/multiplayer_save_guard.gd",
 	"res://src/multiplayer_post_tick.gd",
 	"res://src/multiplayer_overlay.gd",
@@ -35,7 +36,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected PackedScene at %s." % path)
 	if failures.is_empty():
-		print("Multiplayer compile probe passed: policy, authored areas, host authority, ENet session, real loopback peer, save isolation, player-local connection setup, overlays and regressions load cleanly.")
+		print("Multiplayer compile probe passed: policy, authored areas, host authority, bounded ENet transport, real loopback peer, save isolation, player-local connection setup, overlays and regressions load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

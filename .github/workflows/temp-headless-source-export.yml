@@ -116,14 +116,14 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
-      - name: Commit and push only validated permanent files
+      - name: Commit and push validated non-workflow files
         shell: bash
         run: |
           set -euo pipefail
           rm -rf .godot-bin .godot tools/__pycache__
           find addons src tools -type f -name '*.gd.uid' -delete
+          git checkout -- .github/workflows/validate.yml
           cat > "${RUNNER_TEMP}/expected-files.txt" <<'FILES'
-          .github/workflows/validate.yml
           README.md
           docs/HEADLESS_RUNTIME_CLEANUP.md
           scripts/validate.ps1

@@ -177,7 +177,30 @@ jobs:
           rm -f .evavo/reference-warning-free.patch.xz.b64.part*
           rm -f .evavo/reference-warning-free.patch.xz.part*
           rm -f .github/workflows/temp-reference-warning-free-validation.yml
-          git add -A
+
+          while IFS= read -r path; do
+            git add -- "$path"
+          done < "${RUNNER_TEMP}/expected-files.txt"
+          git add -u -- .evavo
+          git add -u -- .github/workflows/temp-reference-warning-free-validation.yml
+
+          cat "${RUNNER_TEMP}/expected-files.txt" > "${RUNNER_TEMP}/expected-staged-files.txt"
+          cat >> "${RUNNER_TEMP}/expected-staged-files.txt" <<'TEMP_FILES'
+          .evavo/reference-warning-free.patch.xz.b64.part00
+          .evavo/reference-warning-free.patch.xz.b64.part01
+          .evavo/reference-warning-free.patch.xz.b64.part02
+          .evavo/reference-warning-free.patch.xz.b64.part03
+          .evavo/reference-warning-free.patch.xz.part00
+          .evavo/reference-warning-free.patch.xz.part01
+          .evavo/reference-warning-free.patch.xz.part02
+          .evavo/reference-warning-free.patch.xz.part03
+          .github/workflows/temp-reference-warning-free-validation.yml
+          TEMP_FILES
+          sort -o "${RUNNER_TEMP}/expected-staged-files.txt" "${RUNNER_TEMP}/expected-staged-files.txt"
+          git diff --cached --name-only | sort > "${RUNNER_TEMP}/actual-staged-files.txt"
+          diff -u "${RUNNER_TEMP}/expected-staged-files.txt" "${RUNNER_TEMP}/actual-staged-files.txt"
+          git diff --cached --check
+
           git config user.name "EVAVO Release Agent"
           git config user.email "evavo.studio@gmail.com"
           git commit -m "feat: enforce warning-free reference release readiness"

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate-and-publish:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     env:
       GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip

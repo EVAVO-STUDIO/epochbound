@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const AudioMoodCatalog = preload("res://src/content/audio_mood_catalog.gd")
 const AudioMoodValidator = preload("res://src/content/audio_mood_strict_validator.gd")
@@ -101,8 +103,7 @@ func run_test() -> void:
 		var voices_before := int(controller.call("queued_sfx_count"))
 		controller.call("update_events")
 		check(int(controller.call("queued_sfx_count")) == voices_before + 1, "Entering gameplay and changing maps in one frame must queue one travel cue, not two.")
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

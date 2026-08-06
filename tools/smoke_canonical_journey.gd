@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const EconomyModel = preload("res://src/game/economy_model.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")
 
@@ -132,8 +134,7 @@ func run_journey() -> void:
 	check(int(runtime.get("clock_shards")) == final_shards, "Final restore must preserve shards exactly.")
 	check(not bool(dict(runtime, "engaged_bosses").get(BOSS_ID, false)), "A restored completed boss must not remain engaged.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

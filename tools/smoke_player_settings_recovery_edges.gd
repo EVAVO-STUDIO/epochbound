@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 const PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
 
@@ -128,8 +130,7 @@ func test_modal_presentation_freeze() -> void:
 	var healed_settings: Dictionary = healed_value as Dictionary if typeof(healed_value) == TYPE_DICTIONARY else {}
 	check(is_equal_approx(PlayerSettings.number(healed_settings, "master_volume"), 0.3), "The healed primary file must retain the recovered value.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func check(condition: bool, message: String) -> void:

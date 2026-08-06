@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const Validator = preload("res://src/content/combat_director_validator.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
@@ -50,7 +52,7 @@ func run_smoke_test() -> void:
 		var clockwood_zone: Dictionary = clockwood_ashen[0]
 		check(EncounterZoneModel.enemy_placement_ids(clockwood_zone).size() == 2, "Clockwood zone must coordinate two authored enemies.")
 
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -83,8 +85,7 @@ func probe_runtime_scene() -> void:
 	check(runtime.has_method("damage_entity"), "Runtime must expose enemy damage and stagger handling.")
 	check(runtime.has_method("update_zone_clear_states"), "Runtime must expose persistent zone clearing.")
 	if not runtime.has_method("update_runtime_entities"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		return
 
 	runtime.set("current_era_id", "ashen")
@@ -93,8 +94,7 @@ func probe_runtime_scene() -> void:
 	var hound_index := enemy_index(entities, "crossing_hound")
 	check(hound_index >= 0, "Ashen Bellweather must instantiate crossing_hound.")
 	if hound_index < 0:
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		return
 
 	var hound: Dictionary = entities[hound_index]
@@ -163,8 +163,7 @@ func probe_runtime_scene() -> void:
 	check(session.get("bellweather:zone:east_ash_hunt") == "cleared", "Defeated zone members must persist a clear-state key.")
 	check(str(runtime.get("zone_banner")) == "EAST ASH HUNT CLEARED", "Cleared encounter must publish a player-facing zone banner.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func runtime_entities(runtime: Object) -> Array:

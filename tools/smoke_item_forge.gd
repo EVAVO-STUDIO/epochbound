@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const ItemValidator = preload("res://src/content/item_validator.gd")
@@ -57,7 +59,7 @@ func run_smoke_test() -> void:
 	check(InventoryModel.count(model_inventory, "brass_filings") == 0, "Crafting must consume brass ingredients.")
 	check(InventoryModel.count(model_inventory, "ashen_resin") == 0, "Crafting must consume resin ingredients.")
 
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -82,8 +84,7 @@ func probe_runtime_scene() -> void:
 	check(runtime.has_method("craft_inventory_recipe"), "Runtime must expose crafting.")
 	check(runtime.has_method("open_inventory"), "Runtime must expose the inventory overlay.")
 	if not runtime.has_method("craft_inventory_recipe"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		return
 
 	var inventory := runtime_inventory(runtime)
@@ -165,8 +166,7 @@ func probe_runtime_scene() -> void:
 	check(InventoryModel.count(inventory, "clockglass_fragment") == 0, "Lens crafting must consume both fragments.")
 	check(InventoryModel.count(inventory, "brass_filings") == 0, "Lens crafting must consume the remaining brass.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func runtime_inventory(runtime: Object) -> Dictionary:

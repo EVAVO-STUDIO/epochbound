@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const PresentationCatalog = preload("res://src/content/presentation_catalog.gd")
 const PresentationValidator = preload("res://src/content/presentation_validator.gd")
@@ -62,8 +64,7 @@ func run_test() -> void:
 		check(overlay.has_method("draw_adventure_hud"), "Presentation overlay must provide the framed adventure HUD.")
 		overlay.call("initialize_from_runtime")
 		check(str(overlay.get("active_profile_id")) == "bellweather_verdant", "Runtime overlay must resolve the current map and era profile.")
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

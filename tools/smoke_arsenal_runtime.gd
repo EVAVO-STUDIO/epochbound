@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const ArsenalValidator = preload("res://src/content/arsenal_validator.gd")
 const ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")
@@ -50,8 +52,7 @@ func run_smoke_test() -> void:
 	check(runtime.has_method("update_projectiles"), "Runtime must expose deterministic projectile updates.")
 	check(runtime.has_method("capture_save_profile"), "Runtime must expose Arsenal-aware save capture.")
 	if not runtime.has_method("start_reload"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		finish()
 		return
 
@@ -142,8 +143,7 @@ func run_smoke_test() -> void:
 	check(int(dictionary_property(runtime, "loaded_ammo").get(WEAPON_ID, 0)) == 2, "Loaded magazine must restore exactly.")
 
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

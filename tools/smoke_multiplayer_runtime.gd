@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const CompleteValidator = preload("res://src/content/complete_content_validator.gd")
 const InventoryModel = preload("res://src/game/inventory_model.gd")
 const MultiplayerSessionModel = preload("res://src/game/multiplayer_session_model.gd")
@@ -33,7 +35,7 @@ func run_test() -> void:
 	check(save_guard != null, "Playable scene must include MultiplayerSaveGuard.")
 	check(multiplayer_overlay != null, "Playable scene must include MultiplayerOverlay.")
 	if session == null:
-		cleanup(runtime)
+		await cleanup(runtime)
 		finish()
 		return
 	check(bool(session.call("multiplayer_runtime_contract_ok")), "Multiplayer runtime must preserve host-only progression and session-only PvP rewards.")
@@ -126,9 +128,9 @@ func run_test() -> void:
 			check(str(client_runtime.get("current_era_id")) == "ashen", "Client snapshot must restore the host era.")
 			check((client_runtime.get("player") as Vector2).is_equal_approx((client_session.get("peers") as Dictionary).get(2, {}).get("position", Vector2.ZERO)), "Client camera actor must follow the local predicted peer.")
 			check(not bool(client_session.call("apply_world_snapshot", snapshot)), "Repeated snapshot sequences must be rejected as stale.")
-		cleanup(client_runtime)
+		await cleanup(client_runtime)
 
-	cleanup(runtime)
+	await cleanup(runtime)
 	finish()
 
 
@@ -156,8 +158,7 @@ func entity_index(entities: Array, placement_id: String) -> int:
 func cleanup(runtime: Node) -> void:
 	if runtime == null:
 		return
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func check(condition: bool, message: String) -> void:

@@ -194,6 +194,7 @@ require(
         'res://addons/epochbound_editor_common/editor_plugin_icon.gd',
         'res://addons/epochbound_sprite_animation_studio/plugin.gd',
         'res://tools/smoke_editor_plugin_icons.gd',
+        'res://tools/headless_runtime_cleanup.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
         'all seventeen editors',
     ],
@@ -252,6 +253,8 @@ require(
         'Smoke test warning-safe editor plugin icon resolution',
         'res://tools/smoke_editor_plugin_icons.gd',
         'Trying to access a non-existing editor theme icon',
+        'ObjectDB instances leaked at exit',
+        'leaked Godot ObjectDB instances during headless shutdown',
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
         'compile_player_settings_probe.gd',
@@ -310,6 +313,76 @@ require(
         'smoke_supply_regions.gd',
     ],
 )
+
+headless_cleanup = read("tools/headless_runtime_cleanup.gd")
+require(
+    "tools/headless_runtime_cleanup.gd",
+    headless_cleanup,
+    [
+        'extends RefCounted',
+        'AUDIO_PLAYER_NAMES := [&"Music", &"Ambience", &"SFX"]',
+        'AUDIO_SETTLE_FRAMES := 30',
+        'AUDIO_SETTLE_SECONDS := 0.25',
+        'player.stop()',
+        'player.stream_paused = true',
+        'player.stream = null',
+        'runtime.free()',
+        'await tree.process_frame',
+        'await tree.create_timer(AUDIO_SETTLE_SECONDS).timeout',
+    ],
+)
+forbid(
+    "tools/headless_runtime_cleanup.gd",
+    headless_cleanup,
+    [
+        'clear_buffer()',
+        'OS.delay',
+        'Time.get_ticks',
+    ],
+)
+
+runtime_cleanup_expectations = {
+    "tools/smoke_arsenal_runtime.gd": 2,
+    "tools/smoke_audio_mood_runtime.gd": 1,
+    "tools/smoke_boss_runtime.gd": 1,
+    "tools/smoke_canonical_journey.gd": 1,
+    "tools/smoke_cinematic_runtime.gd": 1,
+    "tools/smoke_combat_director.gd": 3,
+    "tools/smoke_combat_readability_overlay.gd": 2,
+    "tools/smoke_companion_director.gd": 2,
+    "tools/smoke_economy_runtime.gd": 1,
+    "tools/smoke_encounters.gd": 1,
+    "tools/smoke_environment_animation.gd": 2,
+    "tools/smoke_input_bindings.gd": 1,
+    "tools/smoke_item_forge.gd": 2,
+    "tools/smoke_loadout_runtime.gd": 2,
+    "tools/smoke_multiplayer_connection_profile.gd": 1,
+    "tools/smoke_multiplayer_runtime.gd": 1,
+    "tools/smoke_multiplayer_snapshot_transport.gd": 1,
+    "tools/smoke_player_settings.gd": 1,
+    "tools/smoke_player_settings_recovery_edges.gd": 1,
+    "tools/smoke_presentation_runtime.gd": 1,
+    "tools/smoke_runtime_scene_contract.gd": 1,
+    "tools/smoke_save_profiles.gd": 2,
+    "tools/smoke_sprite_animation_runtime.gd": 1,
+    "tools/smoke_story_studio.gd": 2,
+    "tools/smoke_supply_regions.gd": 1,
+}
+for relative_path, expected_count in runtime_cleanup_expectations.items():
+    runtime_test = read(relative_path)
+    require(
+        relative_path,
+        runtime_test,
+        [
+            'const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")',
+            'HeadlessRuntimeCleanup.release(self,',
+        ],
+    )
+    actual_count = runtime_test.count("HeadlessRuntimeCleanup.release(self,")
+    if actual_count != expected_count:
+        errors.append(
+            f"{relative_path}: expected {expected_count} bounded cleanup entrypoints, found {actual_count}"
+        )
 
 icon_resolver = read("addons/epochbound_editor_common/editor_plugin_icon.gd")
 require(
@@ -383,4 +456,5 @@ print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively s
 print("- inherited quest, companion, notice and system HUD paths remain available")
 print("- player-local settings, controls and Audio remain outside campaign saves and packages")
 print("- all seventeen editor plugins resolve semantic icons through a warning-safe shared fallback contract")
+print("- every full-scene headless test uses bounded Audio-aware runtime disposal before process shutdown")
 print("- primary unified and focused validation gates cover the executable composition")

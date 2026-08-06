@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 const PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
@@ -206,8 +208,7 @@ func test_runtime_controls() -> void:
 	runtime.set("player_settings_dirty", false)
 	check(bool(runtime.call("close_player_settings")), "Options must close without writing to the developer's real settings path during the regression.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func binding_row_value(value: Variant, action_id: String) -> String:

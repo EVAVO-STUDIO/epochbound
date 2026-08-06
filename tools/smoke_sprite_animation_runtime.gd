@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const SpriteAnimationCatalog = preload("res://src/content/sprite_animation_catalog.gd")
 const SpriteAnimationValidator = preload("res://src/content/sprite_animation_strict_validator.gd")
@@ -145,8 +147,7 @@ func run_test() -> void:
 		runtime.set("flow", 5)
 		check(bool(overlay.call("animation_should_freeze")), "Paused gameplay must freeze animation time.")
 		check(not bool(overlay.call("presentation_world_layers_allowed")), "Paused gameplay must not redraw world presentation above the pause panel.")
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

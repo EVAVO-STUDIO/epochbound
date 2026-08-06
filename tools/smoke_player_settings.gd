@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const PlayerSettings = preload("res://src/game/player_settings.gd")
 const PlayerSettingsStore = preload("res://src/game/player_settings_store.gd")
@@ -194,8 +196,7 @@ func test_runtime_integration() -> void:
 	check(bool(runtime.call("close_player_settings")), "Options must close cleanly when no write is pending.")
 	check(not bool(runtime.get("player_settings_open")), "Closing Options must restore the previous flow without changing campaign state.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func dictionary_field(source: Dictionary, key: String) -> Dictionary:

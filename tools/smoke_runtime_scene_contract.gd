@@ -1,6 +1,7 @@
 extends SceneTree
 
 const RuntimeSceneContract = preload("res://src/game/runtime_scene_contract.gd")
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
 const RUNTIME_SCENE := "res://src/app.tscn"
 const TEST_WEAPON_ID := "clockglass_dartcaster"
 const TEST_BOSS_PLACEMENT := "runtime_contract_boss"
@@ -102,8 +103,7 @@ func run_test() -> void:
 		check(bool(runtime.call("presentation_overlay_handles_combat_readability")), "Reattaching the overlay must restore presentation-owned combat rendering.")
 		check(bool(runtime.call("root_presentation_suppression_contract_ok")), "Reattaching the overlay must restore duplicate-render suppression.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

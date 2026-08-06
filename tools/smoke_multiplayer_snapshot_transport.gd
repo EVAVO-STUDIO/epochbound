@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const MultiplayerSessionModel = preload("res://src/game/multiplayer_session_model.gd")
 
 const RUNTIME_SCENE := "res://src/app.tscn"
@@ -270,9 +272,7 @@ func instantiate_runtime() -> Node:
 func cleanup(runtime: Node) -> void:
 	if runtime == null:
 		return
-	runtime.queue_free()
-	await process_frame
-	await process_frame
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func check(condition: bool, message: String) -> void:

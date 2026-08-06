@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const CinematicValidator = preload("res://src/content/cinematic_validator.gd")
 const CinematicCatalog = preload("res://src/content/cinematic_catalog.gd")
 
@@ -81,8 +83,7 @@ func run_smoke_test() -> void:
 	var fingerprint := str(runtime.call("durable_progress_fingerprint"))
 	check(fingerprint.contains("underworks:cinematic:archive_released"), "Cinematic completion must participate in the durable autosave fingerprint.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

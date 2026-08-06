@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const RUNTIME_SCENE := "res://src/app.tscn"
 
 var failures: Array[String] = []
@@ -21,8 +23,7 @@ func run_test() -> void:
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Runtime scene must include the environment animation overlay.")
 	if overlay == null:
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		finish()
 		return
 	var overlay_script: Script = overlay.get_script() as Script
@@ -102,8 +103,7 @@ func run_test() -> void:
 	check(int(overlay.call("environment_disturbance_count")) == 0, "Era changes must clear transient ground disturbances.")
 	check(str(overlay.call("terrain_effect_kind_at", Vector2(168, 104))) == "ash", "Ashen stone must resolve an ash disturbance instead of Verdant dust.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

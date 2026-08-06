@@ -1,4 +1,4 @@
-name: Temporary Audio Quiescence Probe
+name: Temporary Minimal Audio Leak Probe
 
 on:
   push:
@@ -35,22 +35,12 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
 
-      - name: Apply pre-free audio quiescence experiment
+      - name: Create isolated generator playback cleanup probe
         shell: python
         run: |
           from pathlib import Path
-          controller = Path("src/audio_mood_controller.gd")
-          source = controller.read_text(encoding="utf-8")
-          source += "\n\nfunc shutdown_audio_players() -> void:\n\tfor player in [music_player, ambience_player, sfx_player]:\n\t\tif player == null:\n\t\t\tcontinue\n\t\tplayer.stop()\n\t\tplayer.stream_paused = true\n\t\tplayer.stream = null\n\tmusic_player = null\n\tambience_player = null\n\tsfx_player = null\n\tsfx_voices.clear()\n"
-          controller.write_text(source, encoding="utf-8")
-
-          test = Path("tools/smoke_runtime_scene_contract.gd")
-          source = test.read_text(encoding="utf-8")
-          before = "\troot.remove_child(runtime)\n\truntime.free()\n\tfinish()\n"
-          after = "\tif audio != null and audio.has_method(\"shutdown_audio_players\"):\n\t\taudio.call(\"shutdown_audio_players\")\n\t\tawait process_frame\n\troot.remove_child(runtime)\n\truntime.free()\n\tawait process_frame\n\tfinish()\n"
-          if before not in source:
-              raise SystemExit("runtime cleanup anchor missing")
-          test.write_text(source.replace(before, after), encoding="utf-8")
+          source = "extends SceneTree\n\nfunc _initialize() -> void:\n\tcall_deferred(\"run_probe\")\n\nfunc run_probe() -> void:\n\tvar player := AudioStreamPlayer.new()\n\tplayer.name = \"Probe\"\n\tvar generator := AudioStreamGenerator.new()\n\tgenerator.mix_rate = 22050.0\n\tgenerator.buffer_length = 0.35\n\tplayer.stream = generator\n\troot.add_child(player)\n\tplayer.play()\n\tawait process_frame\n\tvar playback := player.get_stream_playback() as AudioStreamGeneratorPlayback\n\tif playback != null:\n\t\tplayback.push_frame(Vector2.ZERO)\n\t\tplayback.clear_buffer()\n\tplayback = null\n\tplayer.stop()\n\tplayer.stream_paused = true\n\tplayer.stream = null\n\troot.remove_child(player)\n\tplayer.free()\n\tplayer = null\n\tgenerator = null\n\tfor _frame_index in range(30):\n\t\tawait process_frame\n\tawait create_timer(0.25).timeout\n\tprint(\"Minimal generator cleanup probe passed.\")\n\tcall_deferred(\"quit\", 0)\n"
+          Path("tools/temp_audio_leak_probe.gd").write_text(source, encoding="utf-8")
 
       - name: Download and verify official Godot 4.6.2 editor
         shell: bash
@@ -71,15 +61,15 @@ jobs:
           chmod +x .godot-bin/godot
           [[ "$(.godot-bin/godot --version)" =~ ^4\.6\.2 ]]
 
-      - name: Prove pre-free audio quiescence removes the ObjectDB leak
+      - name: Classify the minimal AudioStreamGenerator cleanup
         shell: bash
         run: |
           set -euo pipefail
-          log="${RUNNER_TEMP}/runtime-contract-audio-quiescence.log"
+          log="${RUNNER_TEMP}/minimal-audio-leak.log"
           .godot-bin/godot --headless --verbose --path "$GITHUB_WORKSPACE" \
-            --script res://tools/smoke_runtime_scene_contract.gd 2>&1 | tee "${log}"
-          grep -F "Runtime scene contract smoke test passed" "${log}"
+            --script res://tools/temp_audio_leak_probe.gd 2>&1 | tee "${log}"
+          grep -F "Minimal generator cleanup probe passed" "${log}"
           if grep -F "ObjectDB instances leaked at exit" "${log}"; then
-            echo "Pre-free audio quiescence did not remove the ObjectDB leak" >&2
+            echo "Minimal Godot AudioStreamGenerator playback still leaks under the dummy backend" >&2
             exit 1
           fi

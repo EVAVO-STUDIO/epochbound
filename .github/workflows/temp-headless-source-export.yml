@@ -1,4 +1,4 @@
-name: Temporary Leak-Free Headless Validation
+name: Temporary Exact Headless Cleanup Validation
 
 on:
   push:
@@ -6,54 +6,34 @@ on:
       - agent/headless-cleanup
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: epochbound-temp-headless-cleanup-${{ github.ref }}
+  group: epochbound-temp-headless-final-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
-  validate-and-publish:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  validate-final-branch:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     env:
       GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
       GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
       GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
-      PATCH_SHA256: f4d9505a1d341ed7d895a7d5938e653b5236267f761ba52bcc62b3e4e76bef14
-      PATCH_XZ_SHA256: e9ff3f05fb9a4adc8df6b072da015182d4190f454a2e291daf5355d65fd081e4
-      TARGET_BRANCH: agent/headless-cleanup
-
     steps:
-      - name: Check out exact branch candidate
+      - name: Check out exact final branch candidate
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
-      - name: Verify exact clean candidate
+      - name: Verify exact clean final candidate
         shell: bash
         run: |
           set -euo pipefail
-          [[ "${GITHUB_REF_NAME}" == "${TARGET_BRANCH}" ]]
           [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
-
-      - name: Decode and apply exact headless cleanup patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive_path="${RUNNER_TEMP}/headless-cleanup.patch.xz"
-          patch_path="${RUNNER_TEMP}/headless-cleanup.patch"
-          cat .evavo/headless-cleanup.patch.xz.part* > "${archive_path}"
-          echo "${PATCH_XZ_SHA256}  ${archive_path}" | sha256sum --check --strict
-          xz --decompress --stdout "${archive_path}" > "${patch_path}"
-          echo "${PATCH_SHA256}  ${patch_path}" | sha256sum --check --strict
-          git apply --check "${patch_path}"
-          git apply "${patch_path}"
-          git diff --check
 
       - name: Run fail-closed source contracts
         shell: bash
@@ -101,6 +81,13 @@ jobs:
           command -v pwsh >/dev/null || { echo "PowerShell is required" >&2; exit 1; }
           rm -rf .godot-download
 
+      - name: Run all-map snapshot transport matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_multiplayer_snapshot_transport.gd
+
       - name: Run complete leak-free seventeen-system validation gate
         shell: pwsh
         run: |
@@ -116,64 +103,10 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
-      - name: Commit and push validated non-workflow files
+      - name: Confirm final validation did not modify tracked source
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .godot-bin .godot tools/__pycache__
-          find addons src tools -type f -name '*.gd.uid' -delete
-          git checkout -- .github/workflows/validate.yml
-          cat > "${RUNNER_TEMP}/expected-files.txt" <<'FILES'
-          README.md
-          docs/HEADLESS_RUNTIME_CLEANUP.md
-          scripts/validate.ps1
-          tools/check_release_workflow_policy.py
-          tools/check_runtime_scene_contract.py
-          tools/compile_probe.gd
-          tools/smoke_arsenal_runtime.gd
-          tools/smoke_audio_mood_runtime.gd
-          tools/smoke_boss_runtime.gd
-          tools/smoke_canonical_journey.gd
-          tools/smoke_cinematic_runtime.gd
-          tools/smoke_combat_director.gd
-          tools/smoke_combat_readability_overlay.gd
-          tools/smoke_companion_director.gd
-          tools/smoke_economy_runtime.gd
-          tools/smoke_encounters.gd
-          tools/smoke_environment_animation.gd
-          tools/smoke_input_bindings.gd
-          tools/smoke_item_forge.gd
-          tools/smoke_loadout_runtime.gd
-          tools/smoke_multiplayer_connection_profile.gd
-          tools/smoke_multiplayer_runtime.gd
-          tools/smoke_multiplayer_snapshot_transport.gd
-          tools/smoke_player_settings.gd
-          tools/smoke_player_settings_recovery_edges.gd
-          tools/smoke_presentation_runtime.gd
-          tools/smoke_save_profiles.gd
-          tools/smoke_sprite_animation_runtime.gd
-          tools/smoke_story_studio.gd
-          tools/smoke_supply_regions.gd
-          FILES
-          sort -o "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/expected-files.txt"
-          {
-            git diff --name-only
-            git ls-files --others --exclude-standard
-          } | sort -u > "${RUNNER_TEMP}/actual-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/actual-files.txt"
-          git diff --check
-
-          while IFS= read -r path; do
-            git add -- "$path"
-          done < "${RUNNER_TEMP}/expected-files.txt"
-          git diff --cached --name-only | sort > "${RUNNER_TEMP}/staged-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/staged-files.txt"
-          git diff --cached --check
-
-          git config user.name "EVAVO Release Agent"
-          git config user.email "evavo.studio@gmail.com"
-          git commit -m "test: enforce leak-free headless runtime cleanup [skip ci]"
-          git diff --name-only HEAD^ HEAD | sort > "${RUNNER_TEMP}/committed-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/committed-files.txt"
-          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
-          git push origin "HEAD:${TARGET_BRANCH}"
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]

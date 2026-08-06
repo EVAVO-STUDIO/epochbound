@@ -1,4 +1,4 @@
-name: Temporary Deferred Headless Exit Probe
+name: Temporary Audio Teardown Probe
 
 on:
   push:
@@ -35,14 +35,30 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
 
-      - name: Apply deferred-exit experiment
+      - name: Apply explicit audio teardown experiment
         shell: python
         run: |
           from pathlib import Path
-          path = Path("tools/smoke_runtime_scene_contract.gd")
+          path = Path("src/audio_mood_controller.gd")
           source = path.read_text(encoding="utf-8")
-          source = source.replace('\t\tquit(0)\n', '\t\tcall_deferred("quit", 0)\n')
-          source = source.replace('\tquit(1)\n', '\tcall_deferred("quit", 1)\n')
+          source += '''
+
+func _exit_tree() -> void:
+	shutdown_audio_players()
+
+
+func shutdown_audio_players() -> void:
+	for player in [music_player, ambience_player, sfx_player]:
+		if player == null:
+			continue
+		player.stop()
+		player.stream_paused = true
+		player.stream = null
+	music_player = null
+	ambience_player = null
+	sfx_player = null
+	sfx_voices.clear()
+'''
           path.write_text(source, encoding="utf-8")
 
       - name: Download and verify official Godot 4.6.2 editor
@@ -64,15 +80,15 @@ jobs:
           chmod +x .godot-bin/godot
           [[ "$(.godot-bin/godot --version)" =~ ^4\.6\.2 ]]
 
-      - name: Prove deferred exit removes the ObjectDB leak
+      - name: Prove explicit audio teardown removes the ObjectDB leak
         shell: bash
         run: |
           set -euo pipefail
-          log="${RUNNER_TEMP}/runtime-contract-deferred-exit.log"
+          log="${RUNNER_TEMP}/runtime-contract-audio-teardown.log"
           .godot-bin/godot --headless --verbose --path "$GITHUB_WORKSPACE" \
             --script res://tools/smoke_runtime_scene_contract.gd 2>&1 | tee "${log}"
           grep -F "Runtime scene contract smoke test passed" "${log}"
           if grep -F "ObjectDB instances leaked at exit" "${log}"; then
-            echo "Deferred exit did not remove the ObjectDB leak" >&2
+            echo "Explicit audio teardown did not remove the ObjectDB leak" >&2
             exit 1
           fi

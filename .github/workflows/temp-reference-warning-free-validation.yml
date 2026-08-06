@@ -144,7 +144,7 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
-      - name: Commit only permanent validated files
+      - name: Commit and push only validated non-workflow files
         shell: bash
         run: |
           set -euo pipefail
@@ -174,39 +174,22 @@ jobs:
           diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/actual-files.txt"
           git diff --check
 
-          rm -f .evavo/reference-warning-free.patch.xz.b64.part*
-          rm -f .evavo/reference-warning-free.patch.xz.part*
-          rm -f .github/workflows/temp-reference-warning-free-validation.yml
-
+          grep -v '^\.github/workflows/validate\.yml$' \
+            "${RUNNER_TEMP}/expected-files.txt" \
+            > "${RUNNER_TEMP}/publish-files.txt"
           while IFS= read -r path; do
             git add -- "$path"
-          done < "${RUNNER_TEMP}/expected-files.txt"
-          git add -u -- .evavo
-          git add -u -- .github/workflows/temp-reference-warning-free-validation.yml
-
-          cat "${RUNNER_TEMP}/expected-files.txt" > "${RUNNER_TEMP}/expected-staged-files.txt"
-          cat >> "${RUNNER_TEMP}/expected-staged-files.txt" <<'TEMP_FILES'
-          .evavo/reference-warning-free.patch.xz.b64.part00
-          .evavo/reference-warning-free.patch.xz.b64.part01
-          .evavo/reference-warning-free.patch.xz.b64.part02
-          .evavo/reference-warning-free.patch.xz.b64.part03
-          .evavo/reference-warning-free.patch.xz.part00
-          .evavo/reference-warning-free.patch.xz.part01
-          .evavo/reference-warning-free.patch.xz.part02
-          .evavo/reference-warning-free.patch.xz.part03
-          .github/workflows/temp-reference-warning-free-validation.yml
-          TEMP_FILES
-          sort -o "${RUNNER_TEMP}/expected-staged-files.txt" "${RUNNER_TEMP}/expected-staged-files.txt"
+          done < "${RUNNER_TEMP}/publish-files.txt"
           git diff --cached --name-only | sort > "${RUNNER_TEMP}/actual-staged-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-staged-files.txt" "${RUNNER_TEMP}/actual-staged-files.txt"
+          diff -u "${RUNNER_TEMP}/publish-files.txt" "${RUNNER_TEMP}/actual-staged-files.txt"
           git diff --cached --check
 
           git config user.name "EVAVO Release Agent"
           git config user.email "evavo.studio@gmail.com"
-          git commit -m "feat: enforce warning-free reference release readiness"
+          git commit -m "feat: enforce warning-free reference release readiness [skip ci]"
+          git diff --name-only HEAD^ HEAD | sort > "${RUNNER_TEMP}/commit-files.txt"
+          diff -u "${RUNNER_TEMP}/publish-files.txt" "${RUNNER_TEMP}/commit-files.txt"
 
-          git fetch origin main
-          git diff --name-only origin/main...HEAD | sort > "${RUNNER_TEMP}/final-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/final-files.txt"
+          git restore --source=HEAD -- .github/workflows/validate.yml
           [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]
           git push origin "HEAD:${TARGET_BRANCH}"

@@ -1,0 +1,42 @@
+name: Temporary Reference Warning-Free Validation
+
+on:
+  push:
+    branches:
+      - agent/reference-warning-free-release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-reference-warning-free-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  export-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Confirm exact clean branch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Upload exact repository source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: epochbound-source-${{ github.sha }}
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1

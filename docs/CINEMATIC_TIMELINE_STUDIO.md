@@ -196,16 +196,20 @@ Normal capability and Story Studio requirements are checked before playback.
 
 ### Boss introduction and conclusion
 
-Boss profiles may declare:
+A reusable boss profile may declare its cinematic IDs directly. A campaign may also keep the same references in a `boss_cinematics` fallback map keyed by reusable boss object ID:
 
 ```json
 {
-  "intro_cinematic_id":"underworks_sentinel_intro",
-  "defeat_cinematic_id":"underworks_sentinel_defeat"
+  "boss_cinematics": {
+    "underworks_sentinel": {
+      "intro_cinematic_id":"underworks_sentinel_intro",
+      "defeat_cinematic_id":"underworks_sentinel_defeat"
+    }
+  }
 }
 ```
 
-The introduction pauses the engaged arena without discarding boss state. The conclusion begins only after durable boss completion and rewards resolve.
+Validation resolves the reusable object, proves it is an enabled boss and checks both IDs against the cinematic catalog. These references count as real triggers, matching the runtime fallback path instead of producing false unreferenced-sequence warnings. The introduction pauses the engaged arena without discarding boss state. The conclusion begins only after durable boss completion and rewards resolve.
 
 ## Runtime safety
 

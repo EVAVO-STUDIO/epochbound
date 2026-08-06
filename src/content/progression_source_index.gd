@@ -233,7 +233,7 @@ static func collect_recipe_unlock_sources(
 			for recipe_value in unlocks_value:
 				add_recipe_unlock_source(output, str(recipe_value), {
 					"context": context,
-					"gated": true,
+					"gated": gated,
 					"gate_items": gate_items.duplicate(),
 					"gate_capabilities": gate_capabilities.duplicate()
 				})

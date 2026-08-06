@@ -474,6 +474,16 @@ static func _validate_interactions(
 		if float(interaction.get("radius", 0.0)) <= 0.0:
 			errors.append("%s/%s: radius must be positive." % [prefix, interaction_id])
 		_validate_available_eras(interaction, "%s/%s" % [prefix, interaction_id], era_ids, errors)
+		if (
+			interaction.has("progression_required")
+			and typeof(interaction.get("progression_required")) != TYPE_BOOL
+		):
+			errors.append(
+				"%s/%s: progression_required must be boolean." % [
+					prefix,
+					interaction_id
+				]
+			)
 		var dialogue: Variant = interaction.get("dialogue", "")
 		if typeof(dialogue) == TYPE_STRING and String(dialogue).strip_edges().is_empty():
 			warnings.append("%s/%s: interaction has no dialogue." % [prefix, interaction_id])

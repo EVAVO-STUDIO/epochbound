@@ -285,6 +285,7 @@ The gate performs:
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide eight-probe campaign production audit with progression, affordability and supply evidence;
+- a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
 - deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
@@ -319,7 +320,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 

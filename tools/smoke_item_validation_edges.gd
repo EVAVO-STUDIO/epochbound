@@ -8,7 +8,9 @@ var failures: Array[String] = []
 func _initialize() -> void:
 	var items: Dictionary = {
 		"brass_filings": {"id": "brass_filings"},
-		"ashen_resin": {"id": "ashen_resin"}
+		"ashen_resin": {"id": "ashen_resin"},
+		"archivist_lens": {"id": "archivist_lens"},
+		"archive_bolts": {"id": "archive_bolts"}
 	}
 	var recipes: Dictionary = {
 		"ember_salve_recipe": {"id": "ember_salve_recipe"},
@@ -97,6 +99,54 @@ func _initialize() -> void:
 	)
 	check(errors.is_empty(), "A valid recipe unlock must pass validation.")
 	check(bool(used_recipes.get("clockglass_lens_recipe", false)), "A valid unlock must mark its recipe as used.")
+
+	var authored_used_items: Dictionary = {}
+	var authored_used_recipes: Dictionary = {}
+	ItemValidator.collect_authored_item_and_recipe_uses(
+		{
+			"starting_equipment": {"tool": "archivist_lens"},
+			"quests": [{
+				"rewards": [{
+					"type": "grant_item",
+					"item_id": "archivist_lens",
+					"quantity": 1
+				}]
+			}],
+			"merchants": [{
+				"stock": [{"item_id": "archive_bolts", "quantity": 12}]
+			}],
+			"unlock_recipes": ["clockglass_lens_recipe"],
+			"effects": [{
+				"type": "unlock_recipe",
+				"recipe_id": "ember_salve_recipe"
+			}],
+			"unknown": {"item_id": "missing_item"}
+		},
+		items,
+		recipes,
+		authored_used_items,
+		authored_used_recipes
+	)
+	check(
+		bool(authored_used_items.get("archivist_lens", false)),
+		"Starting equipment and story rewards must count as authored item usage."
+	)
+	check(
+		bool(authored_used_items.get("archive_bolts", false)),
+		"Merchant stock must count as authored item usage."
+	)
+	check(
+		not authored_used_items.has("missing_item"),
+		"Unknown cross-domain references must not hide missing item definitions."
+	)
+	check(
+		bool(authored_used_recipes.get("clockglass_lens_recipe", false)),
+		"List-style discovery unlocks must count as authored recipe usage."
+	)
+	check(
+		bool(authored_used_recipes.get("ember_salve_recipe", false)),
+		"Typed cinematic and story unlock effects must count as recipe usage."
+	)
 
 	finish()
 

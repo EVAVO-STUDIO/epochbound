@@ -75,6 +75,21 @@ campaigns/my_campaign/
 
 Additional item or recipe files can be declared later. IDs must remain unique across all declared files of the same catalog type.
 
+
+## Cross-domain reference accounting
+
+The unused-item and never-unlocked-recipe review is repository-wide, not limited to Item Forge files. A known item or recipe counts as intentionally authored when it appears in:
+
+- starting inventory or starting equipment;
+- recipe ingredients or output;
+- reusable-object grants and boss outcomes;
+- companion rewards and recipe discoveries;
+- Story Studio conditions, effects and quest rewards;
+- merchant stock and refusal lists;
+- Cinematic effects.
+
+Each owning domain still validates the reference itself. Cross-domain accounting marks only IDs that already exist, so an unknown item in a story or merchant record cannot be hidden by the usage scanner. This separation prevents false unused-content warnings without weakening fail-closed reference validation.
+
 ## Item catalog contract
 
 An item catalog has a version and an `items` array:

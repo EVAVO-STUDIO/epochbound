@@ -8,6 +8,7 @@ const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const BossCatalog = preload("res://src/content/boss_catalog.gd")
 
 const MAX_STATE_KEY_LENGTH := 160
 const MAX_STEPS := 256
@@ -148,7 +149,16 @@ static func validate_cinematics_only(campaign_path: String) -> Dictionary:
 		cinematic_count += int(report.get("cinematic_count", 0))
 		step_count += int(report.get("step_count", 0))
 
-	var trigger_count := validate_triggers(campaign, maps, definitions, catalog_result, errors, warnings)
+	var object_result := ObjectCatalog.load_catalogs(campaign_path, campaign)
+	append_messages(errors, object_result.get("errors", []))
+	var trigger_count := validate_triggers(
+		campaign,
+		maps,
+		definitions,
+		object_result.get("definitions", {}),
+		errors,
+		warnings
+	)
 	return make_report(errors, warnings, cinematic_count, step_count, trigger_count)
 
 
@@ -414,7 +424,14 @@ static func validate_effects(value: Variant, prefix: String, items: Dictionary, 
 				pass
 
 
-static func validate_triggers(campaign: Dictionary, maps: Array, definitions: Dictionary, catalog_result: Dictionary, errors: Array[String], warnings: Array[String]) -> int:
+static func validate_triggers(
+	campaign: Dictionary,
+	maps: Array,
+	definitions: Dictionary,
+	object_definitions: Dictionary,
+	errors: Array[String],
+	warnings: Array[String]
+) -> int:
 	var trigger_count := 0
 	var referenced: Dictionary = {}
 	var intro_id := str(campaign.get("intro_cinematic_id", "")).strip_edges()
@@ -422,7 +439,12 @@ static func validate_triggers(campaign: Dictionary, maps: Array, definitions: Di
 		trigger_count += 1
 		referenced[intro_id] = true
 		if not definitions.has(intro_id):
-			errors.append("%s: intro_cinematic_id references unknown cinematic '%s'." % [campaign.get("id", "campaign"), intro_id])
+			errors.append(
+				"%s: intro_cinematic_id references unknown cinematic '%s'." % [
+					campaign.get("id", "campaign"),
+					intro_id
+				]
+			)
 	for map_value in maps:
 		if typeof(map_value) != TYPE_DICTIONARY:
 			continue
@@ -430,31 +452,90 @@ static func validate_triggers(campaign: Dictionary, maps: Array, definitions: Di
 		for interaction_value in map_data.get("interactions", []):
 			if typeof(interaction_value) != TYPE_DICTIONARY:
 				continue
-			var cinematic_id := str((interaction_value as Dictionary).get("cinematic_id", "")).strip_edges()
+			var interaction: Dictionary = interaction_value
+			var cinematic_id := str(interaction.get("cinematic_id", "")).strip_edges()
 			if cinematic_id.is_empty():
 				continue
 			trigger_count += 1
 			referenced[cinematic_id] = true
 			if not definitions.has(cinematic_id):
-				errors.append("%s/%s: cinematic_id references unknown cinematic '%s'." % [map_data.get("id", "map"), (interaction_value as Dictionary).get("id", "interaction"), cinematic_id])
-	var object_result := ObjectCatalog.load_catalogs(str(catalog_result.get("campaign_path", "")), campaign) if false else {}
-	# Boss cinematic references live in the already loaded reusable definitions from campaign object catalogs.
-	var campaign_path := str(catalog_result.get("campaign_path", ""))
-	if campaign_path.is_empty():
-		campaign_path = ""
-	# Load directly because load_catalogs intentionally returns only cinematic records.
-	var object_files_value: Variant = campaign.get("object_files", [])
-	if typeof(object_files_value) == TYPE_ARRAY:
-		for relative_value in object_files_value:
-			var relative_path := str(relative_value)
-			if not ObjectCatalog.safe_relative_json_path(relative_path):
-				continue
-			var path := str(campaign.get("_campaign_path", ""))
-			if path.is_empty():
-				continue
+				errors.append(
+					"%s/%s: cinematic_id references unknown cinematic '%s'." % [
+						map_data.get("id", "map"),
+						interaction.get("id", "interaction"),
+						cinematic_id
+					]
+				)
+	trigger_count += validate_boss_cinematic_triggers(
+		campaign,
+		definitions,
+		object_definitions,
+		referenced,
+		errors
+	)
 	for cinematic_id in definitions.keys():
 		if not referenced.has(cinematic_id):
 			warnings.append("Cinematic '%s' has no campaign or map trigger." % cinematic_id)
+	return trigger_count
+
+
+static func validate_boss_cinematic_triggers(
+	campaign: Dictionary,
+	definitions: Dictionary,
+	object_definitions: Dictionary,
+	referenced: Dictionary,
+	errors: Array[String]
+) -> int:
+	var campaign_id := str(campaign.get("id", "campaign"))
+	var mappings_value: Variant = campaign.get("boss_cinematics", {})
+	if typeof(mappings_value) != TYPE_DICTIONARY:
+		errors.append(
+			"%s: boss_cinematics must be an object keyed by boss object ID." %
+			campaign_id
+		)
+		return 0
+	var mappings: Dictionary = mappings_value
+	var object_ids := PackedStringArray()
+	for object_id_value in mappings.keys():
+		object_ids.append(str(object_id_value))
+	object_ids.sort()
+	var trigger_count := 0
+	for object_id in object_ids:
+		var prefix := "%s/boss_cinematics/%s" % [campaign_id, object_id]
+		var mapping_value: Variant = mappings.get(object_id, {})
+		if typeof(mapping_value) != TYPE_DICTIONARY:
+			errors.append("%s: mapping must be an object." % prefix)
+			continue
+		var mapping: Dictionary = mapping_value
+		if not object_definitions.has(object_id):
+			errors.append("%s: unknown reusable boss object '%s'." % [prefix, object_id])
+		elif not BossCatalog.is_boss(object_definitions.get(object_id, {})):
+			errors.append("%s: object '%s' is not an enabled boss." % [prefix, object_id])
+		var mapped_count := 0
+		for field in ["intro_cinematic_id", "defeat_cinematic_id"]:
+			if not mapping.has(field):
+				continue
+			if typeof(mapping.get(field)) != TYPE_STRING:
+				errors.append("%s/%s: value must be a cinematic ID string." % [prefix, field])
+				continue
+			var cinematic_id := str(mapping.get(field, "")).strip_edges()
+			if cinematic_id.is_empty():
+				continue
+			mapped_count += 1
+			trigger_count += 1
+			referenced[cinematic_id] = true
+			if not definitions.has(cinematic_id):
+				errors.append(
+					"%s/%s references unknown cinematic '%s'." % [
+						prefix,
+						field,
+						cinematic_id
+					]
+				)
+		if mapped_count == 0:
+			errors.append(
+				"%s: mapping must reference an intro or defeat cinematic." % prefix
+			)
 	return trigger_count
 
 

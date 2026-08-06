@@ -2,6 +2,8 @@
 extends EditorPlugin
 
 const AudioMoodStudio = preload("res://addons/epochbound_audio_mood_studio/audio_mood_studio_current.gd")
+const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")
+const ICON_CANDIDATES := ["AudioStreamPlayer", "AudioStreamPlayer2D"]
 
 var studio: Control
 
@@ -16,6 +18,7 @@ func _enter_tree() -> void:
 func _exit_tree() -> void:
 	if is_instance_valid(studio):
 		studio.queue_free()
+	studio = null
 
 
 func _has_main_screen() -> bool:
@@ -32,4 +35,4 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return get_editor_interface().get_base_control().get_theme_icon("AudioStreamPlayer", "EditorIcons")
+	return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)

@@ -1,4 +1,4 @@
-name: Temporary Audio Teardown Probe
+name: Temporary Audio Quiescence Probe
 
 on:
   push:
@@ -35,14 +35,22 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
 
-      - name: Apply explicit audio teardown experiment
+      - name: Apply pre-free audio quiescence experiment
         shell: python
         run: |
           from pathlib import Path
-          path = Path("src/audio_mood_controller.gd")
-          source = path.read_text(encoding="utf-8")
-          source += "\n\nfunc _exit_tree() -> void:\n\tshutdown_audio_players()\n\n\nfunc shutdown_audio_players() -> void:\n\tfor player in [music_player, ambience_player, sfx_player]:\n\t\tif player == null:\n\t\t\tcontinue\n\t\tplayer.stop()\n\t\tplayer.stream_paused = true\n\t\tplayer.stream = null\n\tmusic_player = null\n\tambience_player = null\n\tsfx_player = null\n\tsfx_voices.clear()\n"
-          path.write_text(source, encoding="utf-8")
+          controller = Path("src/audio_mood_controller.gd")
+          source = controller.read_text(encoding="utf-8")
+          source += "\n\nfunc shutdown_audio_players() -> void:\n\tfor player in [music_player, ambience_player, sfx_player]:\n\t\tif player == null:\n\t\t\tcontinue\n\t\tplayer.stop()\n\t\tplayer.stream_paused = true\n\t\tplayer.stream = null\n\tmusic_player = null\n\tambience_player = null\n\tsfx_player = null\n\tsfx_voices.clear()\n"
+          controller.write_text(source, encoding="utf-8")
+
+          test = Path("tools/smoke_runtime_scene_contract.gd")
+          source = test.read_text(encoding="utf-8")
+          before = "\troot.remove_child(runtime)\n\truntime.free()\n\tfinish()\n"
+          after = "\tif audio != null and audio.has_method(\"shutdown_audio_players\"):\n\t\taudio.call(\"shutdown_audio_players\")\n\t\tawait process_frame\n\troot.remove_child(runtime)\n\truntime.free()\n\tawait process_frame\n\tfinish()\n"
+          if before not in source:
+              raise SystemExit("runtime cleanup anchor missing")
+          test.write_text(source.replace(before, after), encoding="utf-8")
 
       - name: Download and verify official Godot 4.6.2 editor
         shell: bash
@@ -63,15 +71,15 @@ jobs:
           chmod +x .godot-bin/godot
           [[ "$(.godot-bin/godot --version)" =~ ^4\.6\.2 ]]
 
-      - name: Prove explicit audio teardown removes the ObjectDB leak
+      - name: Prove pre-free audio quiescence removes the ObjectDB leak
         shell: bash
         run: |
           set -euo pipefail
-          log="${RUNNER_TEMP}/runtime-contract-audio-teardown.log"
+          log="${RUNNER_TEMP}/runtime-contract-audio-quiescence.log"
           .godot-bin/godot --headless --verbose --path "$GITHUB_WORKSPACE" \
             --script res://tools/smoke_runtime_scene_contract.gd 2>&1 | tee "${log}"
           grep -F "Runtime scene contract smoke test passed" "${log}"
           if grep -F "ObjectDB instances leaked at exit" "${log}"; then
-            echo "Explicit audio teardown did not remove the ObjectDB leak" >&2
+            echo "Pre-free audio quiescence did not remove the ObjectDB leak" >&2
             exit 1
           fi

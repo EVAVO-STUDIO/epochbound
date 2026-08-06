@@ -2,6 +2,8 @@
 
 Epochbound’s multiplayer model and runtime regressions validate host authority, authored co-op and PvP rules, snapshot bounds and save isolation inside one Godot process. This gate adds the missing transport-level proof: three independent Godot processes communicate through real ENet UDP sockets on the loopback interface.
 
+The gate now also proves one complete recovery cycle. The ally completes an initial authoritative exchange, performs a host-acknowledged graceful leave, closes its first ENet client, reconnects from the same Godot process and resumes production input and snapshot flow while the original invader remains connected.
+
 ## What the gate launches
 
 The PowerShell harness starts:
@@ -20,9 +22,11 @@ The ally and invader then connect to `127.0.0.1` through the production `join_se
 
 ## Deterministic input evidence
 
-After the real join is accepted, each client driver sends bounded input retries through the production `_submit_input` RPC every 200 milliseconds until the host records a fresh monotonic sequence. This removes dependence on idle-frame timing while preserving the actual unreliable-ordered input channel and host validation path.
+After each real join is accepted, the client driver sends bounded input retries through the production `_submit_input` RPC every 200 milliseconds until the host records a fresh monotonic sequence. This removes dependence on idle-frame timing while preserving the actual unreliable-ordered input channel and host validation path.
 
-The driver does not create peers, inject peer state or call test-only registration helpers. The host receipt succeeds only after it records one real ally input stream and one real invader input stream.
+The initial phase is held for a bounded interval after the complete snapshot arrives, allowing repeated input evidence to reach host authority before the ally requests leave. The reconnect phase repeats that evidence after a fresh join and fresh authoritative snapshot.
+
+The driver does not create peers, inject peer state or call test-only registration helpers. The host receipt succeeds only after it records one current ally input stream and one persistent invader input stream following the ally’s acknowledged leave and reconnect.
 
 Client receipts are promoted atomically from temporary files, so the parent harness cannot mistake a partially written record for complete evidence.
 
@@ -35,6 +39,30 @@ Authoritative world snapshots use object-free Variant serialisation, Deflate com
 The host sends the compressed payload separately to each currently connected, registered peer. Snapshot requests in the same frame are coalesced and deferred so reliable role acceptance is queued before the first world snapshot.
 
 Runtime entity facing remains a bounded cardinal name on the wire. This preserves the inherited renderer’s authored `up`, `left`, `right` and `down` contract instead of introducing incompatible vector values on clients.
+
+## Host-acknowledged graceful leave
+
+A voluntary client leave no longer depends on closing the local socket before the host has observed the request.
+
+The client sends a reliable `_request_graceful_leave` RPC carrying a positive monotonic sequence and a bounded reason. The host validates the remote sender against the registered peer set, records bounded diagnostic history, removes that actor from authoritative simulation and returns `_graceful_leave_accepted` to that exact peer. Only the matching client sequence and peer ID can complete the acknowledgement.
+
+After the acknowledgement arrives, the client detaches the high-level `MultiplayerAPI`, closes the old ENet peer and returns to an isolated offline state. During the pending leave window, client input and snapshot application stop. A three-second fallback closes locally if a broken host never acknowledges, so the user cannot remain trapped in a pending state.
+
+The normal in-game **Leave Online Session** action uses this acknowledged path for connected clients. Connection failures, host-forced removals, join rejection and server loss remain immediate cleanup paths and do not attempt a second protocol exchange.
+
+## Same-process reconnect proof
+
+The ally’s driver records its first peer ID, first authoritative snapshot sequence and first production input sequence. It then requests the graceful leave and waits until the matching acknowledgement has returned and the session is offline.
+
+After a bounded settle interval, the same Godot process calls the production `join_session` path again. It must negotiate the ally role again, receive a new authoritative snapshot and send a later production input sequence. The host must simultaneously prove:
+
+- the acknowledged leave request referred to the original ally peer;
+- exactly one ally and one invader are present again;
+- both current remote actors have fresh input recorded by host authority;
+- the original invader remains connected throughout the ally cycle;
+- the final bounded snapshot contains the restored party, expected map, era and authored PvP area.
+
+The reconnect proof does not assume that a transport implementation must allocate a numerically different peer ID. It proves a completed leave acknowledgement, offline transition, second production join and second authoritative exchange in one process.
 
 ## All-map snapshot matrix
 
@@ -57,23 +85,27 @@ The matrix also rejects oversized payloads, bad wire magic, checksum mismatches 
 
 The host receipt must prove:
 
-- exactly one host, one ally and one invader are registered;
-- both remote peers sent monotonic input through the production unreliable-ordered input channel;
+- exactly one host, one ally and one invader are registered after reconnect;
+- both current remote peers sent monotonic input through the production unreliable-ordered input channel;
 - remote input reaches host authority;
-- the host built a protocol-versioned authoritative snapshot;
+- at least one valid graceful-leave request was accepted for the original ally;
+- the persistent invader peer remains the same actor during the ally cycle;
+- the host built a protocol-versioned authoritative snapshot after reconnect;
 - the compressed snapshot is greater than zero and no larger than 1,200 bytes;
 - the uncompressed snapshot is larger than the compressed payload;
 - the active map, era and PvP area are the expected authored records.
 
-Each client receipt must prove:
+The ally receipt must additionally prove:
 
-- the connection completed as the requested role;
-- the server assigned a real peer ID greater than one;
-- at least one bounded production input RPC was sent;
-- the client received a fresh authoritative snapshot;
-- authoritative snapshots reach both clients;
-- the snapshot restored all three transient actors;
-- the host map and era were applied through the production snapshot path.
+- the first connection completed as the ally role;
+- the first connection received an authoritative snapshot and sent bounded production input;
+- the host returned the matching positive graceful-leave acknowledgement;
+- the session became offline before the second join began;
+- the same Godot process reconnects through the production join path;
+- the second connection receives a later authoritative snapshot and sends a later input sequence;
+- the final map, era, role and complete party are restored.
+
+The invader receipt must prove its original connection remains alive and authoritative while the ally leaves and rejoins.
 
 ## Bounded orchestration
 
@@ -85,9 +117,9 @@ scripts/validate_multiplayer_loopback.ps1
 
 It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, staggers ally and invader startup, applies hard timeouts and rejects any child that exits or logs a parser, runtime or native crash before producing evidence.
 
-After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
+After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns final process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
 
-This division is deliberate: the gate validates the live transport exchange and does not validate graceful disconnect or Godot’s independent headless process-exit lifecycle. Those require a separate test boundary rather than being inferred from successful UDP communication.
+This division is deliberate. The ally itself has already exercised real client detach, ENet close and reconnect. The parent owns only the final termination of the three headless validation processes, so final process teardown is not confused with transport recovery evidence.
 
 ## Permanent source contract
 
@@ -97,7 +129,7 @@ Before Godot starts, the exact-main workflow runs:
 python3 tools/check_multiplayer_loopback_contract.py
 ```
 
-The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking authoritative snapshots, remove the SHA-256 envelope or 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
+The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking the acknowledged leave sequence, stop checking same-process reconnect, stop checking the persistent invader, stop checking authoritative snapshots, remove the SHA-256 envelope or 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
 
 The multiplayer compile probe also loads:
 
@@ -120,10 +152,14 @@ The governed exact-main receipt records:
 }
 ```
 
-A release is not considered multiplayer-transport validated if the static contract, all-map matrix, real loopback process exchange, bounded input and snapshot evidence, child-log review, clean-source verification or receipt field is absent.
+The meaning of this field includes the static transport contract, all-map matrix, initial live exchange, acknowledged ally leave, same-process reconnect, persistent-invader evidence, second input and snapshot exchange, child-log review and clean-source verification.
+
+A release is not considered multiplayer-transport validated if any of those boundaries or the receipt field is absent.
 
 ## What this gate does not prove
 
-Loopback proves that the production ENet server, client, RPC, input-channel and snapshot-channel paths work between independent processes on one machine. It does not prove public Internet reachability, router configuration, relay behaviour, NAT traversal, platform invitations, mobile permissions, graceful disconnect, host migration, reconnect policy, latency tolerance, packet-loss tolerance, anti-cheat or moderation.
+Loopback proves that the production ENet server, client, RPC, input-channel and snapshot-channel paths work between independent processes on one machine. It proves graceful client leave and a bounded same-process client reconnect against a still-running host.
 
-Those remain separate production boundaries and require real multi-machine and network-condition testing.
+It does not prove graceful host shutdown, independent headless process exit, host migration, automatic reconnect after an unexpected outage, reconnect across a restarted host, public Internet reachability, router configuration, relay behaviour, NAT traversal, platform invitations, mobile permissions, latency tolerance, packet-loss tolerance, anti-cheat or moderation.
+
+Those remain separate production boundaries and require dedicated lifecycle, multi-machine and network-condition testing. The gate does not prove public Internet reachability merely because loopback transport succeeds.

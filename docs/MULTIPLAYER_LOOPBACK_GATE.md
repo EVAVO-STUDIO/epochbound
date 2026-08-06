@@ -1,44 +1,52 @@
-# Real ENet Loopback Validation Gate
+# Real ENet Loopback and Reconnect Validation Gate
 
-Epochbound’s multiplayer model and runtime regressions validate host authority, authored co-op and PvP rules, snapshot bounds and save isolation inside one Godot process. This gate adds the missing transport-level proof: three independent Godot processes communicate through real ENet UDP sockets on the loopback interface.
+Epochbound’s in-process regressions validate host authority, authored co-op and PvP rules, save isolation and deterministic simulation. This gate adds transport evidence: three independent Godot processes communicate through real ENet UDP sockets on the loopback interface.
 
-## What the gate launches
+The gate launches one host, one co-op ally and one invader. Every process loads the canonical playable scene from `res://src/app.tscn`; none uses synthetic peer registration or a test-only multiplayer mode.
 
-The PowerShell harness starts:
+The host enters `clockwood_ashen_hunt` in Clockwood Edge’s Ashen era and opens a real ENet server on a bounded high UDP port. The ally and invader connect to `127.0.0.1` through the production `join_session` path, including the normal campaign-version, protocol-version, role-capacity and authored-area checks.
 
-```text
-one host process
-one co-op ally process
-one invader process
-```
+## Initial live exchange
 
-Each process loads the canonical playable scene from `res://src/app.tscn`. No synthetic peer registration or test-only session mode is used.
+After each accepted join, the drivers send bounded input retries through the production `_submit_input` RPC every 200 milliseconds. This avoids idle-frame timing assumptions while retaining the real unreliable-ordered input channel and validation path. The host receipt cannot complete until remote input reaches host authority for both remote roles.
 
-The host enters the authored `clockwood_ashen_hunt` region in Clockwood Edge’s Ashen era, opens a real ENet server on a bounded high UDP port and writes a readiness marker outside the repository.
+The gate proves that authoritative snapshots reach both clients before the recovery phase begins. Each client must restore the expected map, era, role and three-actor party from a fresh snapshot. Receipts are written atomically through a temporary file and promotion, so the parent cannot observe partially written evidence.
 
-The ally and invader then connect to `127.0.0.1` through the production `join_session` path. They use the same campaign-version negotiation, role-capacity checks and reliable join RPCs as a normal game session.
+## Bounded authenticated snapshots
 
-## Deterministic input evidence
+The canonical multiplayer node uses `res://src/multiplayer_transport_session.gd`. It extends the host-authoritative session without changing progression or save ownership.
 
-After the real join is accepted, each client driver sends bounded input retries through the production `_submit_input` RPC every 200 milliseconds until the host records a fresh monotonic sequence. This removes dependence on idle-frame timing while preserving the actual unreliable-ordered input channel and host validation path.
+World snapshots use object-free Variant serialisation, Deflate compression and a hard **1,200-byte** wire budget. Each packet contains an `EPB1` magic prefix and a SHA-256 wire envelope over the compressed bytes. A client rejects bad magic, bad length or a digest mismatch before decompression. Decoding is capped at 65,536 bytes and never enables network-driven object construction.
 
-The driver does not create peers, inject peer state or call test-only registration helpers. The host receipt succeeds only after it records one real ally input stream and one real invader input stream.
+The host sends the bounded payload only to connected peers that remain registered in authoritative state. Same-frame snapshot requests are coalesced and deferred so reliable join acceptance is queued first. Runtime entity facing stays within the authored `up`, `left`, `right` and `down` contract.
 
-Client receipts are promoted atomically from temporary files, so the parent harness cannot mistake a partially written record for complete evidence.
+## Host-acknowledged graceful leave
 
-## Bounded snapshot transport
+A voluntary client leave uses a reliable protocol exchange rather than closing locally before the host sees the request.
 
-The canonical `MultiplayerSession` uses `res://src/multiplayer_transport_session.gd`, which extends the host-authoritative base session without changing progression or save ownership.
+The client sends `_request_graceful_leave` with a positive monotonic sequence and bounded reason. The host verifies that the remote sender is a registered peer, records bounded diagnostic history, removes the actor from authoritative simulation and returns `_graceful_leave_accepted` to that exact peer. The client accepts only the matching sequence and local peer ID.
 
-Authoritative world snapshots use object-free Variant serialisation, Deflate compression and a hard **1,200-byte** compressed wire budget. Every payload has an `EPB1` magic prefix and a SHA-256 wire envelope over the compressed bytes. Clients reject the wrong magic, wrong length or checksum mismatch before decompression. Decoding is capped at 65,536 bytes and does not enable object construction from network data.
+While the leave is pending, the client stops sending gameplay input and stops applying world snapshots. After the acknowledgement, it detaches the high-level `MultiplayerAPI`, closes the old ENet peer and returns to a clean offline state. A three-second fallback performs local cleanup if a broken host never acknowledges.
 
-The host sends the compressed payload separately to each currently connected, registered peer. Snapshot requests in the same frame are coalesced and deferred so reliable role acceptance is queued before the first world snapshot.
+The normal **Leave Online Session** action takes this path for connected clients. Join rejection, connection failure, server loss and host-forced removal remain immediate cleanup paths and do not attempt another exchange.
 
-Runtime entity facing remains a bounded cardinal name on the wire. This preserves the inherited renderer’s authored `up`, `left`, `right` and `down` contract instead of introducing incompatible vector values on clients.
+## Same-process reconnect
+
+The ally records its first peer ID, first snapshot sequence and first production input sequence. It then completes the host-acknowledged graceful leave and waits until the local session is offline.
+
+After a bounded settle interval, the same Godot process reconnects through the production `join_session` path. It must negotiate the ally role again, receive a later authoritative snapshot and send a later production input sequence. The proof does not assume that a transport implementation must allocate a numerically different peer ID; the evidence is the acknowledged leave, offline transition, second join and second authoritative exchange.
+
+The host must simultaneously prove that:
+
+- the graceful-leave request referred to the original ally;
+- exactly one ally and one invader are registered again;
+- both current remote actors have fresh host-authoritative input;
+- the original invader remains connected throughout the ally cycle;
+- the final snapshot contains the restored party, expected map, era and PvP area.
 
 ## All-map snapshot matrix
 
-A focused regression builds maximum authored parties across all six reference map/era states:
+A separate focused regression covers all six reference map/era states:
 
 ```text
 Bellweather Crossing / Verdant
@@ -49,33 +57,15 @@ Museum Underworks / Verdant
 Museum Underworks / Ashen
 ```
 
-Co-op and sanctuary cases use the host plus two allies. Clockwood’s Ashen PvP case uses the host, two allies and one invader. Every state must encode, remain below 1,200 bytes, decode to the same map and era and preserve the complete allowed party.
+Co-op and sanctuary cases use the host plus two allies. Clockwood’s Ashen PvP case uses the host, two allies and one invader. Every state must encode below 1,200 bytes, decode to the same map and era and preserve the complete allowed party.
 
-The matrix also rejects oversized payloads, bad wire magic, checksum mismatches and deterministic incompressible state that exceeds the transport budget. These failures must occur before unsafe decompression or runtime mutation.
+The matrix also rejects oversized packets, malformed headers, digest mismatches and deterministic incompressible state that cannot fit the transport budget. Those failures occur before unsafe decompression or runtime mutation.
 
-## What must be proven
+## Receipt requirements
 
-The host receipt must prove:
+The host receipt proves current party counts, both current input streams, the original graceful-leave peer, the persistent invader, protocol version, map, era, authored area and bounded final snapshot.
 
-- exactly one host, one ally and one invader are registered;
-- both remote peers sent monotonic input through the production unreliable-ordered input channel;
-- remote input reaches host authority;
-- the host built a protocol-versioned authoritative snapshot;
-- the compressed snapshot is greater than zero and no larger than 1,200 bytes;
-- the uncompressed snapshot is larger than the compressed payload;
-- the active map, era and PvP area are the expected authored records.
-
-Each client receipt must prove:
-
-- the connection completed as the requested role;
-- the server assigned a real peer ID greater than one;
-- at least one bounded production input RPC was sent;
-- the client received a fresh authoritative snapshot;
-- authoritative snapshots reach both clients;
-- the snapshot restored all three transient actors;
-- the host map and era were applied through the production snapshot path.
-
-## Bounded orchestration
+The ally receipt proves the first join, first input and snapshot, positive leave acknowledgement, same-process reconnect generation, later input and later snapshot. The invader receipt proves that its original transport remains alive while the ally leaves and rejoins.
 
 The harness is:
 
@@ -83,36 +73,23 @@ The harness is:
 scripts/validate_multiplayer_loopback.ps1
 ```
 
-It uses a unique operating-system temporary directory for readiness markers, receipts and logs. It derives a bounded high UDP port from the parent validation process, waits for host readiness, staggers ally and invader startup, applies hard timeouts and rejects any child that exits or logs a parser, runtime or native crash before producing evidence.
+It creates isolated Godot user-data roots, readiness markers, logs and receipts under one unique operating-system temporary directory. It applies bounded startup and completion deadlines, rejects early child exit, and scans all child output for parser, runtime and native crash errors.
 
-After all three flushed receipts are present, the harness verifies that all processes are still alive, validates every receipt and log, then the parent harness owns process termination and removes all temporary files in `finally` cleanup. Tracked repository source is never used for receipts or coordination.
+The ally itself exercises a real client detach, close and reconnect. After all receipts are flushed and validated, the parent harness owns final process termination and removes the temporary directory in `finally` cleanup. Final headless process teardown is deliberately kept separate from reconnect evidence.
 
-This division is deliberate: the gate validates the live transport exchange and does not validate graceful disconnect or Godot’s independent headless process-exit lifecycle. Those require a separate test boundary rather than being inferred from successful UDP communication.
+## Permanent fail-closed contract
 
-## Permanent source contract
-
-Before Godot starts, the exact-main workflow runs:
+Before Godot starts, the governed workflow runs:
 
 ```text
 python3 tools/check_multiplayer_loopback_contract.py
 ```
 
-The checker rejects drift that would replace the real socket exchange with synthetic peer registration, remove host or client receipts, stop checking bounded input retries, stop checking authoritative snapshots, remove the SHA-256 envelope or 1,200-byte budget, enable object decoding, remove bounded cleanup or detach the gate from the production workflow.
+The checker rejects drift that removes real socket use, production input RPCs, the acknowledged leave sequence, same-process reconnect, persistent-invader evidence, bounded snapshot security, atomic receipts, clean-source checks or production workflow integration.
 
-The multiplayer compile probe also loads:
+The multiplayer compile probe loads the production transport, both loopback drivers and the snapshot-matrix regression, so parser and inheritance drift fail before process orchestration.
 
-```text
-res://src/multiplayer_transport_session.gd
-res://tools/multiplayer_loopback_peer.gd
-res://tools/multiplayer_loopback_peer_driver.gd
-res://tools/smoke_multiplayer_snapshot_transport.gd
-```
-
-so parser or inheritance drift fails before process orchestration begins.
-
-## Validation receipt
-
-The governed exact-main receipt records:
+The exact-main validation receipt records:
 
 ```json
 {
@@ -120,10 +97,10 @@ The governed exact-main receipt records:
 }
 ```
 
-A release is not considered multiplayer-transport validated if the static contract, all-map matrix, real loopback process exchange, bounded input and snapshot evidence, child-log review, clean-source verification or receipt field is absent.
+That field means the static contract, six-state matrix, initial real exchange, host-acknowledged leave, same-process reconnect, persistent invader, second input/snapshot exchange, log review and clean-source verification all passed.
 
-## What this gate does not prove
+## Remaining boundaries
 
-Loopback proves that the production ENet server, client, RPC, input-channel and snapshot-channel paths work between independent processes on one machine. It does not prove public Internet reachability, router configuration, relay behaviour, NAT traversal, platform invitations, mobile permissions, graceful disconnect, host migration, reconnect policy, latency tolerance, packet-loss tolerance, anti-cheat or moderation.
+This gate proves graceful client leave and bounded same-process reconnect against a still-running host. It does not prove graceful host shutdown, independent final process exit, host migration, reconnect after a host restart, automatic outage recovery, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
 
-Those remain separate production boundaries and require real multi-machine and network-condition testing.
+It does not prove public Internet reachability merely because loopback succeeds. Those boundaries require dedicated lifecycle, multi-machine and network-condition validation.

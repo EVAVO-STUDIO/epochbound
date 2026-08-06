@@ -200,7 +200,7 @@ $invaderReceiptPath = Join-Path $runRoot "invader.json"
 $peers = @()
 
 try {
-    Write-Host "`n==> Smoke test real ENet host ally and invader loopback on UDP $port"
+    Write-Host "`n==> Smoke test real ENet host ally and invader loopback with graceful ally reconnect on UDP $port"
     Write-Host "Isolated Godot user data: $isolatedUserRoot"
     $hostPeer = Start-LoopbackPeer `
         -Role "host" `
@@ -287,6 +287,12 @@ try {
         [int]$hostReceipt.ally_count -ne 1 -or
         [int]$hostReceipt.invader_count -ne 1 -or
         [int]$hostReceipt.input_peer_count -ne 2 -or
+        [int]$hostReceipt.graceful_leave_request_count -lt 1 -or
+        [int]$hostReceipt.initial_ally_peer_id -le 1 -or
+        [int]$hostReceipt.last_graceful_leave_peer_id -ne [int]$hostReceipt.initial_ally_peer_id -or
+        [int]$hostReceipt.reconnected_ally_peer_id -le 1 -or
+        [int]$hostReceipt.persistent_invader_peer_id -le 1 -or
+        -not [bool]$hostReceipt.same_process_reconnect_proved -or
         [int]$hostReceipt.protocol_version -ne 1 -or
         [int]$hostReceipt.snapshot_wire_bytes -le 0 -or
         [int]$hostReceipt.snapshot_wire_bytes -gt 1200 -or
@@ -295,7 +301,7 @@ try {
         [string]$hostReceipt.era_id -ne "ashen" -or
         [string]$hostReceipt.area_id -ne "clockwood_ashen_hunt"
     ) {
-        throw "Real ENet loopback host receipt did not prove the complete bounded authoritative exchange."
+        throw "Real ENet loopback host receipt did not prove the bounded authoritative reconnect exchange."
     }
 
     foreach ($receipt in @($allyReceipt, $invaderReceipt)) {
@@ -313,16 +319,37 @@ try {
         }
     }
 
+    if (
+        -not [bool]$allyReceipt.same_process_reconnect -or
+        [int]$allyReceipt.first_peer_id -le 1 -or
+        [int]$allyReceipt.first_snapshot_sequence -lt 0 -or
+        [int]$allyReceipt.first_input_sequence_sent -le 10000 -or
+        [int]$allyReceipt.graceful_leave_ack_sequence -le 0 -or
+        [int]$allyReceipt.reconnect_generation -ne 1 -or
+        [int]$allyReceipt.snapshot_sequence -le [int]$allyReceipt.first_snapshot_sequence -or
+        [int]$allyReceipt.input_sequence_sent -le [int]$allyReceipt.first_input_sequence_sent -or
+        [int]$hostReceipt.initial_ally_peer_id -ne [int]$allyReceipt.first_peer_id -or
+        [int]$hostReceipt.reconnected_ally_peer_id -ne [int]$allyReceipt.local_peer_id
+    ) {
+        throw "Real ENet loopback ally receipt did not prove host-acknowledged leave and same-process reconnect."
+    }
+
+    if ([int]$hostReceipt.persistent_invader_peer_id -ne [int]$invaderReceipt.local_peer_id) {
+        throw "Real ENet loopback did not prove that the original invader remained connected through the ally reconnect."
+    }
+
     Write-Host (
         "Real ENet loopback passed: host, ally and invader negotiated through UDP; " +
-        "both repeated production input RPCs reached host authority; both clients restored authoritative snapshots; " +
+        "the ally completed a host-acknowledged graceful leave and same-process reconnect while the invader remained online; " +
+        "both production input phases reached host authority; authoritative snapshots were restored after reconnect; " +
         "and the compressed snapshot stayed within the 1200-byte transport budget."
     )
 }
 finally {
-    # The parent harness deliberately owns termination after receipt validation.
-    # This gate validates transport exchange, not Godot's independent headless
-    # process-exit or graceful-disconnect lifecycle.
+    # The ally has already exercised a real client close and reconnect. The
+    # parent harness deliberately owns only final process-tree termination after
+    # receipt validation; host shutdown and independent headless process exit
+    # remain separate lifecycle boundaries.
     foreach ($peer in $peers) {
         Stop-LoopbackPeer $peer
     }

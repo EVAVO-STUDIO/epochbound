@@ -136,13 +136,38 @@ func run_host() -> void:
 	}):
 		finish_failure("Loopback host could not write its ready marker.")
 		return
+	var initial_ally_peer_id: int = -1
+	var initial_invader_peer_id: int = -1
 	var deadline_msec: int = Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
 	while Time.get_ticks_msec() < deadline_msec:
 		var peers_value: Variant = session.get("peers")
 		var peers: Dictionary = (
 			peers_value if typeof(peers_value) == TYPE_DICTIONARY else {}
 		)
-		if host_has_complete_exchange(peers):
+		if initial_ally_peer_id <= 1 and host_has_complete_exchange(peers):
+			initial_ally_peer_id = peer_id_for_role(
+				peers,
+				MultiplayerSessionModel.ROLE_ALLY
+			)
+			initial_invader_peer_id = peer_id_for_role(
+				peers,
+				MultiplayerSessionModel.ROLE_INVADER
+			)
+			print(
+				"LOOPBACK INITIAL EXCHANGE: ally %d invader %d" % [
+					initial_ally_peer_id,
+					initial_invader_peer_id
+				]
+			)
+		if host_has_reconnect_exchange(
+			peers,
+			initial_ally_peer_id,
+			initial_invader_peer_id
+		):
+			var reconnected_ally_peer_id: int = peer_id_for_role(
+				peers,
+				MultiplayerSessionModel.ROLE_ALLY
+			)
 			var snapshot_value: Variant = session.call("build_world_snapshot")
 			var snapshot: Dictionary = (
 				snapshot_value if typeof(snapshot_value) == TYPE_DICTIONARY else {}
@@ -156,6 +181,13 @@ func run_host() -> void:
 			if payload.is_empty():
 				finish_failure("Loopback host could not encode a bounded network snapshot.")
 				return
+			print(
+				"LOOPBACK RECONNECT EXCHANGE: first ally %d current ally %d invader %d" % [
+					initial_ally_peer_id,
+					reconnected_ally_peer_id,
+					initial_invader_peer_id
+				]
+			)
 			var receipt := {
 				"ok": true,
 				"role": MultiplayerSessionModel.ROLE_HOST,
@@ -170,6 +202,16 @@ func run_host() -> void:
 					MultiplayerSessionModel.ROLE_INVADER
 				),
 				"input_peer_count": remote_input_peer_count(peers),
+				"graceful_leave_request_count": int(
+					session.get("graceful_leave_request_count")
+				),
+				"last_graceful_leave_peer_id": int(
+					session.get("last_graceful_leave_peer_id")
+				),
+				"initial_ally_peer_id": initial_ally_peer_id,
+				"reconnected_ally_peer_id": reconnected_ally_peer_id,
+				"persistent_invader_peer_id": initial_invader_peer_id,
+				"same_process_reconnect_proved": true,
 				"snapshot_sequence": int(snapshot.get("sequence", -1)),
 				"protocol_version": int(snapshot.get("protocol_version", 0)),
 				"snapshot_wire_bytes": payload.size(),
@@ -187,7 +229,7 @@ func run_host() -> void:
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
-		"Loopback host timed out before ally and invader input reached host authority."
+		"Loopback host timed out before the ally completed acknowledged leave and reconnect while the invader remained online."
 	)
 
 
@@ -268,6 +310,42 @@ func host_has_complete_exchange(peers: Dictionary) -> bool:
 	)
 
 
+func host_has_reconnect_exchange(
+	peers: Dictionary,
+	initial_ally_peer_id: int,
+	initial_invader_peer_id: int
+) -> bool:
+	if initial_ally_peer_id <= 1 or initial_invader_peer_id <= 1:
+		return false
+	if not host_has_complete_exchange(peers):
+		return false
+	if int(session.get("graceful_leave_request_count")) < 1:
+		return false
+	if int(session.get("last_graceful_leave_peer_id")) != initial_ally_peer_id:
+		return false
+	return (
+		peer_id_for_role(peers, MultiplayerSessionModel.ROLE_ALLY) > 1
+		and peer_id_for_role(peers, MultiplayerSessionModel.ROLE_INVADER)
+		== initial_invader_peer_id
+	)
+
+
+func peer_id_for_role(peers: Dictionary, role: String) -> int:
+	var ids: Array[int] = []
+	for key in peers.keys():
+		if typeof(key) == TYPE_INT and int(key) > 1:
+			ids.append(int(key))
+	ids.sort()
+	for peer_id in ids:
+		var peer_value: Variant = peers.get(peer_id, {})
+		if (
+			typeof(peer_value) == TYPE_DICTIONARY
+			and str((peer_value as Dictionary).get("role", "")) == role
+		):
+			return peer_id
+	return -1
+
+
 func remote_input_peer_count(peers: Dictionary) -> int:
 	var count: int = 0
 	for key in peers.keys():
@@ -329,9 +407,10 @@ func write_json(path: String, payload: Dictionary) -> bool:
 
 
 func hold_after_receipt() -> void:
-	# The parent harness owns process-tree termination after all three receipts
-	# are validated. Keep the live ENet peers stable so transport evidence is not
-	# conflated with Godot's separate headless process-teardown behaviour.
+	# The parent harness owns final process-tree termination after all receipts
+	# are validated. The ally has already closed one ENet client and rejoined in
+	# this same process; keeping the final connections alive separates reconnect
+	# evidence from Godot's independent headless process-exit behaviour.
 	print("LOOPBACK RECEIPT READY: %s" % peer_role)
 	if runtime != null:
 		runtime.set_process(false)

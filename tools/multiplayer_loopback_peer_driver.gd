@@ -2,18 +2,23 @@ extends "res://tools/multiplayer_loopback_peer.gd"
 
 const LOOPBACK_INPUT_RETRY_MSEC := 200
 const LOOPBACK_INPUT_SEQUENCE_START := 10000
+const INITIAL_EXCHANGE_HOLD_MSEC := 650
+const RECONNECT_EXCHANGE_HOLD_MSEC := 450
+const RECONNECT_SETTLE_MSEC := 250
 
 var explicit_input_sequence := LOOPBACK_INPUT_SEQUENCE_START
 var next_input_retry_msec := 0
 var join_logged := false
 var snapshot_logged := false
 var first_input_logged := false
+var join_generation := 0
 
 
 # The production client normally sends input from its frame-rate accumulator.
-# A transport gate must not depend on idle-frame timing, so after the real join
-# is accepted this driver repeatedly uses the same production RPC surface until
-# host authority records a fresh sequence. No peer or state is registered here.
+# A transport gate must not depend on idle-frame timing, so after each real join
+# this driver repeatedly uses the same production RPC surface until host
+# authority records a fresh sequence. The ally then uses the production
+# graceful-leave protocol and reconnects inside this same Godot process.
 func run_client() -> void:
 	session.set(
 		"local_name",
@@ -21,15 +26,15 @@ func run_client() -> void:
 		if peer_role == MultiplayerSessionModel.ROLE_INVADER
 		else "LOOPBACK ALLY"
 	)
-	if not bool(session.call("join_session", HOST_ADDRESS, peer_role, port)):
-		finish_failure(
-			"Loopback %s could not start ENet connection: %s" % [
-				peer_role,
-				str(session.get("session_notice"))
-			]
-		)
+	if not start_join("LOOPBACK CONNECT STARTED"):
 		return
-	print("LOOPBACK CONNECT STARTED: %s -> %s:%d" % [peer_role, HOST_ADDRESS, port])
+	var first_peer_id: int = -1
+	var first_snapshot_sequence: int = -1
+	var first_input_sequence_sent: int = -1
+	var initial_complete_since_msec: int = -1
+	var reconnect_complete_since_msec: int = -1
+	var graceful_leave_requested := false
+	var reconnect_started := false
 	var deadline_msec: int = Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
 	while Time.get_ticks_msec() < deadline_msec:
 		var mode: String = str(session.get("mode"))
@@ -38,28 +43,93 @@ func run_client() -> void:
 			notice.begins_with("JOIN REJECTED")
 			or notice.contains("CONNECTION FAILED")
 			or notice.contains("HOST DISCONNECTED")
+			or notice.contains("HOST ACK TIMEOUT")
 		):
 			finish_failure("Loopback %s failed: %s" % [peer_role, notice])
 			return
 		if mode == MultiplayerSessionModel.MODE_CLIENT:
-			if not join_logged:
-				join_logged = true
-				print(
-					"LOOPBACK JOIN ACCEPTED: %s peer %d" % [
-						peer_role,
-						int(session.get("local_peer_id"))
-					]
-				)
+			log_join_if_needed()
 			send_explicit_input_if_due()
-		if int(session.get("last_snapshot_sequence")) >= 0 and not snapshot_logged:
-			snapshot_logged = true
-			print(
-				"LOOPBACK SNAPSHOT RECEIVED: %s sequence %d" % [
-					peer_role,
-					int(session.get("last_snapshot_sequence"))
-				]
-			)
-		if client_has_complete_exchange():
+		log_snapshot_if_needed()
+
+		var complete_exchange: bool = client_has_complete_exchange()
+		if peer_role == MultiplayerSessionModel.ROLE_ALLY:
+			if not graceful_leave_requested:
+				if complete_exchange:
+					if initial_complete_since_msec < 0:
+						initial_complete_since_msec = Time.get_ticks_msec()
+					if (
+						Time.get_ticks_msec() - initial_complete_since_msec
+						>= INITIAL_EXCHANGE_HOLD_MSEC
+						and explicit_input_sequence >= LOOPBACK_INPUT_SEQUENCE_START + 3
+					):
+						first_peer_id = int(session.get("local_peer_id"))
+						first_snapshot_sequence = int(
+							session.get("last_snapshot_sequence")
+						)
+						first_input_sequence_sent = explicit_input_sequence
+						if not bool(session.call(
+							"request_graceful_leave",
+							"LOOPBACK ALLY RECONNECT"
+						)):
+							finish_failure(
+								"Loopback ally could not request a graceful leave."
+							)
+							return
+						graceful_leave_requested = true
+						print(
+							"LOOPBACK GRACEFUL LEAVE REQUESTED: ally peer %d sequence %d" % [
+								first_peer_id,
+								int(session.get("graceful_leave_sequence"))
+							]
+						)
+				else:
+					initial_complete_since_msec = -1
+			elif not reconnect_started:
+				if (
+					mode == MultiplayerSessionModel.MODE_OFFLINE
+					and int(session.get("last_graceful_leave_ack_sequence")) > 0
+				):
+					print(
+						"LOOPBACK GRACEFUL LEAVE ACKNOWLEDGED: sequence %d" %
+						int(session.get("last_graceful_leave_ack_sequence"))
+					)
+					await create_timer(float(RECONNECT_SETTLE_MSEC) / 1000.0).timeout
+					join_generation = 1
+					join_logged = false
+					snapshot_logged = false
+					first_input_logged = false
+					next_input_retry_msec = 0
+					if not start_join("LOOPBACK RECONNECT STARTED"):
+						return
+					reconnect_started = true
+			elif complete_exchange:
+				if reconnect_complete_since_msec < 0:
+					reconnect_complete_since_msec = Time.get_ticks_msec()
+				if (
+					Time.get_ticks_msec() - reconnect_complete_since_msec
+					>= RECONNECT_EXCHANGE_HOLD_MSEC
+					and explicit_input_sequence > first_input_sequence_sent
+				):
+					var receipt: Dictionary = client_receipt()
+					receipt["same_process_reconnect"] = true
+					receipt["first_peer_id"] = first_peer_id
+					receipt["first_snapshot_sequence"] = first_snapshot_sequence
+					receipt["first_input_sequence_sent"] = first_input_sequence_sent
+					receipt["graceful_leave_ack_sequence"] = int(
+						session.get("last_graceful_leave_ack_sequence")
+					)
+					receipt["reconnect_generation"] = join_generation
+					if not write_json(receipt_path, receipt):
+						finish_failure(
+							"Loopback ally could not write its reconnect receipt."
+						)
+						return
+					await hold_after_receipt()
+					return
+			else:
+				reconnect_complete_since_msec = -1
+		elif complete_exchange:
 			var receipt: Dictionary = client_receipt()
 			if not write_json(receipt_path, receipt):
 				finish_failure(
@@ -70,13 +140,58 @@ func run_client() -> void:
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
-		"Loopback %s timed out: mode=%s peer=%d snapshot=%d input_sequence=%d notice=%s" % [
+		"Loopback %s timed out: mode=%s peer=%d snapshot=%d input_sequence=%d ack=%d reconnect=%s notice=%s" % [
 			peer_role,
 			str(session.get("mode")),
 			int(session.get("local_peer_id")),
 			int(session.get("last_snapshot_sequence")),
 			explicit_input_sequence,
+			int(session.get("last_graceful_leave_ack_sequence")),
+			str(reconnect_started),
 			str(session.get("session_notice"))
+		]
+	)
+
+
+func start_join(log_prefix: String) -> bool:
+	if not bool(session.call("join_session", HOST_ADDRESS, peer_role, port)):
+		finish_failure(
+			"Loopback %s could not start ENet connection: %s" % [
+				peer_role,
+				str(session.get("session_notice"))
+			]
+		)
+		return false
+	print("%s: %s -> %s:%d" % [log_prefix, peer_role, HOST_ADDRESS, port])
+	return true
+
+
+func log_join_if_needed() -> void:
+	if join_logged:
+		return
+	join_logged = true
+	print(
+		"%s: %s peer %d" % [
+			"LOOPBACK REJOIN ACCEPTED"
+			if join_generation > 0
+			else "LOOPBACK JOIN ACCEPTED",
+			peer_role,
+			int(session.get("local_peer_id"))
+		]
+	)
+
+
+func log_snapshot_if_needed() -> void:
+	if int(session.get("last_snapshot_sequence")) < 0 or snapshot_logged:
+		return
+	snapshot_logged = true
+	print(
+		"%s: %s sequence %d" % [
+			"LOOPBACK RECONNECT SNAPSHOT RECEIVED"
+			if join_generation > 0
+			else "LOOPBACK SNAPSHOT RECEIVED",
+			peer_role,
+			int(session.get("last_snapshot_sequence"))
 		]
 	)
 
@@ -99,7 +214,10 @@ func send_explicit_input_if_due() -> void:
 	if not first_input_logged:
 		first_input_logged = true
 		print(
-			"LOOPBACK INPUT SENT: %s sequence %d" % [
+			"%s: %s sequence %d" % [
+				"LOOPBACK RECONNECT INPUT SENT"
+				if join_generation > 0
+				else "LOOPBACK INPUT SENT",
 				peer_role,
 				explicit_input_sequence
 			]

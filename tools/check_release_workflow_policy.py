@@ -214,6 +214,9 @@ require(
         "smoke_player_settings.gd",
         "smoke_player_settings_recovery_edges.gd",
         "smoke_input_bindings.gd",
+        "Smoke test warning-safe editor plugin icon resolution",
+        "smoke_editor_plugin_icons.gd",
+        "Trying to access a non-existing editor theme icon",
         "Smoke test persistent keyboard and controller remapping",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
@@ -648,5 +651,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

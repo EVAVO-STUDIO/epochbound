@@ -2,6 +2,8 @@
 extends EditorPlugin
 
 const StoryStudio = preload("res://addons/epochbound_story_studio/story_studio.gd")
+const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")
+const ICON_CANDIDATES := ["Script", "Node"]
 
 var studio
 
@@ -33,4 +35,4 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return EditorInterface.get_editor_theme().get_icon("Script", "EditorIcons")
+	return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)

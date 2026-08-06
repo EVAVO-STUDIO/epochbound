@@ -23,6 +23,12 @@ def require(relative_path: str, source: str, tokens: list[str]) -> None:
             errors.append(f"{relative_path}: missing {token}")
 
 
+def forbid(relative_path: str, source: str, tokens: list[str]) -> None:
+    for token in tokens:
+        if token in source:
+            errors.append(f"{relative_path}: contains forbidden {token}")
+
+
 scene = read("src/app.tscn")
 require(
     "src/app.tscn",
@@ -185,7 +191,9 @@ require(
         'res://src/game/runtime_scene_contract.gd',
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
+        'res://addons/epochbound_editor_common/editor_plugin_icon.gd',
         'res://addons/epochbound_sprite_animation_studio/plugin.gd',
+        'res://tools/smoke_editor_plugin_icons.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
         'all seventeen editors',
     ],
@@ -241,6 +249,9 @@ require(
     "scripts/validate.ps1",
     local_gate,
     [
+        'Smoke test warning-safe editor plugin icon resolution',
+        'res://tools/smoke_editor_plugin_icons.gd',
+        'Trying to access a non-existing editor theme icon',
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
         'compile_player_settings_probe.gd',
@@ -300,6 +311,65 @@ require(
     ],
 )
 
+icon_resolver = read("addons/epochbound_editor_common/editor_plugin_icon.gd")
+require(
+    "addons/epochbound_editor_common/editor_plugin_icon.gd",
+    icon_resolver,
+    [
+        '@tool',
+        'extends RefCounted',
+        'EDITOR_ICON_THEME_TYPE := "EditorIcons"',
+        'FALLBACK_ICON := "Node"',
+        'resolve(editor_interface: EditorInterface, candidates: Array)',
+        'resolve_from_theme(theme: Theme, candidates: Array)',
+        'theme.has_icon(candidate, EDITOR_ICON_THEME_TYPE)',
+        'theme.has_icon(FALLBACK_ICON, EDITOR_ICON_THEME_TYPE)',
+    ],
+)
+
+icon_smoke = read("tools/smoke_editor_plugin_icons.gd")
+require(
+    "tools/smoke_editor_plugin_icons.gd",
+    icon_smoke,
+    [
+        'EditorPluginIcon.resolve_from_theme',
+        'theme.set_icon("SemanticIcon"',
+        'The resolver must select the first available semantic candidate',
+        'An empty candidate list must still resolve the stable editor fallback',
+        'A missing editor theme must fail quietly',
+    ],
+)
+
+project = read("project.godot")
+plugin_paths = sorted((ROOT / "addons").glob("epochbound_*/plugin.gd"))
+if len(plugin_paths) != 17:
+    errors.append(f"addons: expected 17 editor plugins, found {len(plugin_paths)}")
+for plugin_path in plugin_paths:
+    relative_path = plugin_path.relative_to(ROOT).as_posix()
+    plugin_source = plugin_path.read_text(encoding="utf-8")
+    require(
+        relative_path,
+        plugin_source,
+        [
+            'extends EditorPlugin',
+            'const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")',
+            'const ICON_CANDIDATES := [',
+            'return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)',
+            'studio = null',
+        ],
+    )
+    forbid(
+        relative_path,
+        plugin_source,
+        [
+            '.get_icon(',
+            '.get_theme_icon(',
+        ],
+    )
+    plugin_config = relative_path.removesuffix("plugin.gd") + "plugin.cfg"
+    if f'"res://{plugin_config}"' not in project:
+        errors.append(f"project.godot: editor plugin is not enabled: {plugin_config}")
+
 if errors:
     print("Epochbound runtime scene contract failed:\n")
     for error in errors:
@@ -312,4 +382,5 @@ print("- persistent InputMap bindings, bounded prompt caches and durable regiona
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
 print("- player-local settings, controls and Audio remain outside campaign saves and packages")
+print("- all seventeen editor plugins resolve semantic icons through a warning-safe shared fallback contract")
 print("- primary unified and focused validation gates cover the executable composition")

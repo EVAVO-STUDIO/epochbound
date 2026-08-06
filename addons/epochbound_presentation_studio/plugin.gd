@@ -2,6 +2,8 @@
 extends EditorPlugin
 
 const PresentationStudio = preload("res://addons/epochbound_presentation_studio/presentation_studio.gd")
+const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")
+const ICON_CANDIDATES := ["CanvasItem", "Control"]
 
 var studio: Control
 
@@ -33,4 +35,4 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return EditorInterface.get_editor_theme().get_icon("CanvasItem", "EditorIcons")
+	return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)

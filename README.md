@@ -281,6 +281,7 @@ Set-Location C:\GitRepos\epochbound
 The gate performs:
 
 - direct compilation of runtime, resources, validators, all seventeen editor plugins and every smoke test;
+- warning-safe semantic editor-tab icon resolution with a checked shared fallback across all seventeen plugins;
 - focused player-settings, persistent-control and regional-supply compile probes;
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
@@ -293,7 +294,7 @@ The gate performs:
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
 - projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions.
 
-Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero.
+Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. A missing editor-theme icon warning also fails validation, preventing unchecked plugin tab icons from returning to the supported Godot editor.
 
 ## Governed GitHub validation
 
@@ -346,6 +347,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 ### Player accessibility and controls
 
 - [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
+- [`docs/EDITOR_PLUGIN_RELIABILITY.md`](docs/EDITOR_PLUGIN_RELIABILITY.md)
 
 ### Combat, bosses and cinematics
 
@@ -387,6 +389,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - Visible timing before unexplained damage
 - Stable IDs before scene-tree serialization
 - Data-driven authoring before hidden runtime exceptions
+- Checked editor-theme lookups before unchecked visual fallbacks
 - Atomic transactions before partial mutation
 - Fixed recovery controls before unrestricted remapping
 - Deterministic active-play clocks before wall-clock rewards

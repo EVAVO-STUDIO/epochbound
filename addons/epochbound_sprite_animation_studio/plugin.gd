@@ -1,5 +1,7 @@
 @tool
 extends EditorPlugin
+const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")
+const ICON_CANDIDATES := ["AnimatedSprite2D", "Sprite2D"]
 
 var studio: Control
 
@@ -31,4 +33,4 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return get_editor_interface().get_base_control().get_theme_icon("AnimatedSprite2D", "EditorIcons")
+	return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)

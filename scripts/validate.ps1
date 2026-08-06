@@ -50,12 +50,16 @@ function Invoke-GodotStep {
     if ($combined -match "SCRIPT ERROR:" -or $combined -match "(?m)^ERROR:") {
         throw "$Description emitted a Godot parser or runtime error despite returning exit code 0."
     }
+    if ($combined -match "Trying to access a non-existing editor theme icon") {
+        throw "$Description requested an editor icon that does not exist in the active Godot theme."
+    }
 }
 
 Push-Location $ProjectRoot
 try {
     $Tests = @(
         @("Compile runtime scenes and editor plugins", "res://tools/compile_probe.gd"),
+        @("Smoke test warning-safe editor plugin icon resolution", "res://tools/smoke_editor_plugin_icons.gd"),
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Compile player settings controls storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
@@ -133,7 +137,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

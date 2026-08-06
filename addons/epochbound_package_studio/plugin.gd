@@ -2,6 +2,8 @@
 extends EditorPlugin
 
 const PackageStudio = preload("res://addons/epochbound_package_studio/package_studio_supply.gd")
+const EditorPluginIcon = preload("res://addons/epochbound_editor_common/editor_plugin_icon.gd")
+const ICON_CANDIDATES := ["PackedScene", "Resource"]
 
 var studio
 
@@ -33,4 +35,4 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return EditorInterface.get_editor_theme().get_icon("PackedScene", "EditorIcons")
+	return EditorPluginIcon.resolve(get_editor_interface(), ICON_CANDIDATES)

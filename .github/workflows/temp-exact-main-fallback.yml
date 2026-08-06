@@ -1,0 +1,160 @@
+name: Temporary Exact Main Fallback Validation
+
+on:
+  push:
+    branches:
+      - agent/headless-cleanup
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-exact-main-fallback-922d72f8fc1e0ca4a76747ce5e11c941e5ff85ca
+  cancel-in-progress: false
+
+jobs:
+  validate-exact-main:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      EXACT_SHA: 922d72f8fc1e0ca4a76747ce5e11c941e5ff85ca
+      GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+      GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+      GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
+    steps:
+      - name: Check out exact production SHA
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: 922d72f8fc1e0ca4a76747ce5e11c941e5ff85ca
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact production candidate and clean source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${EXACT_SHA}" ]]
+          git show-ref --verify --quiet refs/remotes/origin/main
+          git merge-base --is-ancestor "${EXACT_SHA}" origin/main
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Run fail-closed source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/*.py
+          rm -rf tools/__pycache__
+          python3 tools/check_release_workflow_policy.py
+          python3 tools/check_runtime_scene_contract.py
+          python3 tools/check_player_settings_contract.py
+          python3 tools/check_supply_region_contract.py
+          python3 tools/check_canonical_journey_contract.py
+          python3 tools/check_multiplayer_contract.py
+          python3 tools/check_multiplayer_connection_contract.py
+          python3 tools/check_multiplayer_loopback_contract.py
+          python3 tools/check_sprite_animation_contract.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for path in sorted(Path("campaigns").rglob("*.json")):
+              with path.open("r", encoding="utf-8") as handle:
+                  json.load(handle)
+          print("all_campaign_json_parsed")
+          PY
+
+      - name: Download and verify official Godot 4.6.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt \
+            > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
+          chmod +x .godot-bin/godot
+          version="$(.godot-bin/godot --version)"
+          [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
+          command -v pwsh >/dev/null || { echo "PowerShell is required" >&2; exit 1; }
+          rm -rf .godot-download
+
+      - name: Run all-map snapshot transport matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_multiplayer_snapshot_transport.gd
+
+      - name: Run complete leak-free seventeen-system validation gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot"
+
+      - name: Run real ENet graceful reconnect gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_loopback.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE"
+
+      - name: Confirm validation did not modify tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]
+
+      - name: Write schema-2.1 exact-main fallback receipt
+        if: success()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          payload = {
+              "schemaVersion": "2.1",
+              "repository": "EVAVO-STUDIO/epochbound",
+              "candidateSha": os.environ["EXACT_SHA"],
+              "godotVersion": "4.6.2",
+              "workflow": "exact-main-fallback",
+              "runtimeCompositionValidation": "passed",
+              "playerSettingsValidation": "passed",
+              "supplyRegionValidation": "passed",
+              "canonicalJourneyValidation": "passed",
+              "multiplayerValidation": "passed",
+              "multiplayerConnectionValidation": "passed",
+              "multiplayerLoopbackValidation": "passed",
+              "campaignAudit": "passed",
+              "referenceContentWarnings": 0,
+              "referenceAuditWarnings": 0,
+              "referenceReleaseReadinessValidation": "passed",
+              "headlessCleanupValidation": "passed",
+              "presentationValidation": "passed",
+              "audioMoodValidation": "passed",
+              "spriteAnimationValidation": "passed",
+              "regressionSuite": "passed",
+              "deployment": "disabled",
+          }
+          path = Path(os.environ["RUNNER_TEMP"]) / "epochbound-validation-receipt.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload exact-main fallback evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-exact-main-fallback-922d72f8fc1e0ca4a76747ce5e11c941e5ff85ca
+          path: ${{ runner.temp }}/epochbound-validation-receipt.json
+          if-no-files-found: warn
+          retention-days: 1

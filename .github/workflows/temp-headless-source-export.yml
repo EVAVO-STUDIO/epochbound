@@ -1,0 +1,43 @@
+name: Temporary Headless Cleanup Source Export
+
+on:
+  push:
+    branches:
+      - agent/headless-cleanup
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-headless-source-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  export-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch source
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Confirm exact clean source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Upload exact repository source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-headless-source-${{ github.sha }}
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1

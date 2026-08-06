@@ -167,11 +167,29 @@ jobs:
           tools/smoke_editor_plugin_icons.gd
           FILES
           sort -o "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/expected-files.txt"
-          {
-            git diff --name-only
-            git ls-files --others --exclude-standard
-          } | sort -u > "${RUNNER_TEMP}/actual-files.txt"
-          diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/actual-files.txt"
+
+          git diff --name-only | sort -u > "${RUNNER_TEMP}/tracked-files.txt"
+          comm -23 \
+            "${RUNNER_TEMP}/tracked-files.txt" \
+            "${RUNNER_TEMP}/expected-files.txt" \
+            > "${RUNNER_TEMP}/unexpected-tracked-files.txt"
+          if [[ -s "${RUNNER_TEMP}/unexpected-tracked-files.txt" ]]; then
+            echo "Unexpected tracked changes were produced:" >&2
+            cat "${RUNNER_TEMP}/unexpected-tracked-files.txt" >&2
+            exit 1
+          fi
+
+          while IFS= read -r path; do
+            if git ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+              if git diff --quiet -- "$path"; then
+                echo "Expected tracked file is unchanged: ${path}" >&2
+                exit 1
+              fi
+            elif [[ ! -f "$path" ]]; then
+              echo "Expected new file is missing: ${path}" >&2
+              exit 1
+            fi
+          done < "${RUNNER_TEMP}/expected-files.txt"
           git diff --check
 
           while IFS= read -r path; do

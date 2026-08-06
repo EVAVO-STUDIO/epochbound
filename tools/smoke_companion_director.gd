@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const Validator = preload("res://src/content/companion_validator.gd")
 const CompanionModel = preload("res://src/game/companion_model.gd")
@@ -37,7 +39,7 @@ func run_smoke_test() -> void:
 	var nearest := CompanionModel.nearest_unresolved_cue(bell, "verdant", {}, Vector2(270, 230), 300.0)
 	check(str(nearest.get("id", "")) == "well_name_scent", "Morrow must select the nearest valid Verdant scent cue.")
 
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -69,8 +71,7 @@ func probe_runtime_scene() -> void:
 	check(runtime.has_method("recall_companion"), "Runtime must expose explicit recall.")
 	check(runtime.has_method("reveal_companion_cue"), "Runtime must expose authored companion discovery.")
 	if not runtime.has_method("set_companion_command"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		return
 
 	runtime.set("companion", Vector2(270, 230))
@@ -116,8 +117,7 @@ func probe_runtime_scene() -> void:
 		check((recalled_value as Vector2).distance_to(Vector2(312, 220)) < 180.0, "Recall must recover the companion near the player.")
 	check(str(runtime.get("companion_command")) == "follow", "Recall must restore follow mode.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func finish() -> void:

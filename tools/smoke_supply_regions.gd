@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const EconomyModel = preload("res://src/game/economy_model.gd")
@@ -166,8 +168,7 @@ func test_runtime_persistence() -> void:
 	for node_value in [runtime, restored, legacy]:
 		if node_value is Node:
 			var node := node_value as Node
-			root.remove_child(node)
-			node.free()
+			await HeadlessRuntimeCleanup.release(self, node)
 
 
 func stock_quantity(stock: Dictionary, merchant_id: String, item_id: String) -> int:

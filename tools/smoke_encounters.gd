@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const Validator = preload("res://src/content/epochbound_validator.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
@@ -62,7 +64,7 @@ func run_smoke_test() -> void:
 	var collected_entities := EncounterModel.instantiate_entities(bell, definitions, "verdant", session_state)
 	check(collected_entities.size() == 3, "Collected pickups must not respawn while persistent merchant NPCs remain.")
 
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -115,8 +117,7 @@ func probe_runtime_scene() -> void:
 			var after_entities: Array = after_value if typeof(after_value) == TYPE_ARRAY else []
 			var health_after := int((after_entities[runtime_hound] as Dictionary).get("health", 0)) if runtime_hound < after_entities.size() else health_before
 			check(health_after == health_before - expected_damage, "Player attack must apply the active combat runtime's derived damage.")
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func has_property(object: Object, property_name: String) -> bool:

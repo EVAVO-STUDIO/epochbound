@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const BossValidator = preload("res://src/content/boss_validator.gd")
 const BossCatalog = preload("res://src/content/boss_catalog.gd")
@@ -69,7 +71,7 @@ func run_smoke_test() -> void:
 	var boss_index := entity_index(entities, BOSS_PLACEMENT)
 	check(boss_index >= 0, "Underworks boss placement must resolve in the runtime.")
 	if boss_index < 0:
-		cleanup(runtime)
+		await cleanup(runtime)
 		finish()
 		return
 	var boss_before: Dictionary = entities[boss_index]
@@ -125,7 +127,7 @@ func run_smoke_test() -> void:
 		check(str(runtime.get("active_cinematic_id")).is_empty(), "Completing the conclusion must restore gameplay control.")
 	check(bool(runtime.call("can_open_save_overlay")), "Saving must become available after durable arena completion and its conclusion.")
 
-	cleanup(runtime)
+	await cleanup(runtime)
 	finish()
 
 
@@ -154,8 +156,7 @@ func array_property(object: Object, property_name: String) -> Array:
 
 
 func cleanup(runtime: Node) -> void:
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func finish() -> void:

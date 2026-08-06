@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const SaveProfile = preload("res://src/content/save_profile.gd")
 const SaveProfileStore = preload("res://src/content/save_profile_store.gd")
@@ -45,8 +47,7 @@ func run_smoke_test() -> void:
 	check(runtime.has_method("load_profile_from_slot"), "Runtime must expose slot restoration.")
 	check(runtime.has_method("activate_save_slot"), "Runtime must expose guarded slot activation.")
 	if not runtime.has_method("capture_save_profile"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		finish()
 		return
 
@@ -154,8 +155,7 @@ func run_smoke_test() -> void:
 	check(is_equal_approx(float(runtime.get("play_time_seconds")), 3723.5), "Load must restore accumulated play time.")
 	check(str(runtime.get("current_save_slot")) == SLOT_ID, "Runtime must remember the active manual slot.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	finish()
 

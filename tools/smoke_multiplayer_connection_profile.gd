@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const MultiplayerConnectionProfile = preload("res://src/game/multiplayer_connection_profile.gd")
 const MultiplayerConnectionProfileStore = preload("res://src/game/multiplayer_connection_profile_store.gd")
 
@@ -364,7 +366,7 @@ func run_test() -> void:
 				) == "lan-host.example.test",
 				"Panel writes must remain readable through the player-local store."
 			)
-		cleanup(runtime)
+		await cleanup(runtime)
 
 	var deleted := MultiplayerConnectionProfileStore.delete_profile(
 		TEST_ROOT
@@ -403,8 +405,7 @@ func instantiate_runtime() -> Node:
 func cleanup(runtime: Node) -> void:
 	if runtime == null:
 		return
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func check(condition: bool, message: String) -> void:

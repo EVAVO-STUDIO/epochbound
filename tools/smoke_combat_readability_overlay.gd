@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const ArsenalCatalog = preload("res://src/content/arsenal_catalog.gd")
 const RUNTIME_SCENE := "res://src/app.tscn"
 
@@ -26,8 +28,7 @@ func run_test() -> void:
 	var overlay: Node = runtime.get_node_or_null("PresentationLayer/PresentationOverlay")
 	check(overlay != null, "Playable scene must include the combat readability overlay.")
 	if overlay == null:
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		finish()
 		return
 	check(str(overlay.get_script().resource_path) == "res://src/combat_readability_overlay.gd", "Playable scene must bind the combat readability overlay.")
@@ -119,8 +120,7 @@ func run_test() -> void:
 	runtime.set("flow", 5)
 	check(not bool(overlay.call("presentation_world_layers_allowed")), "Paused gameplay must not redraw world layers above the root pause panel.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	finish()
 
 

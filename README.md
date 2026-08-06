@@ -282,6 +282,7 @@ The gate performs:
 
 - direct compilation of runtime, resources, validators, all seventeen editor plugins and every smoke test;
 - warning-safe semantic editor-tab icon resolution with a checked shared fallback across all seventeen plugins;
+- bounded headless runtime disposal that drains procedural Audio playback before every full-scene test exits;
 - focused player-settings, persistent-control and regional-supply compile probes;
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
@@ -294,7 +295,7 @@ The gate performs:
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
 - projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions.
 
-Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. A missing editor-theme icon warning also fails validation, preventing unchecked plugin tab icons from returning to the supported Godot editor.
+Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. Missing editor-theme icons and `ObjectDB instances leaked at exit` also fail validation, preventing unchecked editor resources or incomplete runtime teardown from returning to the supported Godot editor.
 
 ## Governed GitHub validation
 
@@ -348,6 +349,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 - [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
 - [`docs/EDITOR_PLUGIN_RELIABILITY.md`](docs/EDITOR_PLUGIN_RELIABILITY.md)
+- [`docs/HEADLESS_RUNTIME_CLEANUP.md`](docs/HEADLESS_RUNTIME_CLEANUP.md)
 
 ### Combat, bosses and cinematics
 

@@ -115,10 +115,11 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.0"',
+        '"schemaVersion": "2.1"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
+        '"headlessCleanupValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
@@ -217,6 +218,8 @@ require(
         "Smoke test warning-safe editor plugin icon resolution",
         "smoke_editor_plugin_icons.gd",
         "Trying to access a non-existing editor theme icon",
+        "ObjectDB instances leaked at exit",
+        "leak-free headless shutdown",
         "Smoke test persistent keyboard and controller remapping",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
@@ -235,6 +238,27 @@ require(
     ],
 )
 
+
+
+headless_cleanup = read("headless_cleanup", ROOT / "tools/headless_runtime_cleanup.gd")
+require(
+    "headless_cleanup",
+    headless_cleanup,
+    [
+        'AUDIO_SETTLE_FRAMES := 30',
+        'AUDIO_SETTLE_SECONDS := 0.25',
+        'player.stream = null',
+        'await tree.create_timer(AUDIO_SETTLE_SECONDS).timeout',
+    ],
+)
+forbid(
+    "headless_cleanup",
+    headless_cleanup,
+    [
+        'clear_buffer()',
+        'OS.delay',
+    ],
+)
 
 reference_gate = read("reference_gate", ROOT / "tools/smoke_campaign_audit.gd")
 require(
@@ -651,5 +675,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

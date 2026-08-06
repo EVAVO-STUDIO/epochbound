@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const EquipmentCatalog = preload("res://src/content/equipment_catalog.gd")
 const EquipmentValidator = preload("res://src/content/equipment_validator.gd")
@@ -59,8 +61,7 @@ func run_smoke_test() -> void:
 	check(runtime.has_method("cycle_equipment_slot"), "Runtime must expose deterministic slot cycling.")
 	check(runtime.has_method("capture_save_profile"), "Runtime must expose equipment-aware profile capture.")
 	if not runtime.has_method("active_capabilities"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		finish()
 		return
 
@@ -135,8 +136,7 @@ func run_smoke_test() -> void:
 	check(int(runtime.call("actor_health", "player", 32)) == 36, "Loading must rebuild maximum health from restored body equipment.")
 	check((runtime.call("active_capabilities") as PackedStringArray).has("clockglass_sight"), "Loading must rebuild active capabilities from restored gear.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 	SaveProfileStore.delete_profile(CAMPAIGN_ID, SLOT_ID)
 	finish()
 

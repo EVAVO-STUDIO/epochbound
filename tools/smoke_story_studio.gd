@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const Validator = preload("res://src/content/story_validator.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
@@ -35,7 +37,7 @@ func run_smoke_test() -> void:
 	var missing_hour := StoryCatalog.quest(quests, "the_missing_hour")
 	check(StoryCatalog.stages(missing_hour).size() == 3, "The Missing Hour must retain three stages.")
 
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -61,8 +63,7 @@ func probe_runtime_scene() -> void:
 	check(runtime.has_method("evaluate_story_progress"), "Runtime must expose deterministic quest evaluation.")
 	check(runtime.has_method("open_story_journal"), "Runtime must expose the quest journal.")
 	if not runtime.has_method("start_conversation"):
-		root.remove_child(runtime)
-		runtime.free()
+		await HeadlessRuntimeCleanup.release(self, runtime)
 		return
 
 	var runtime_conversations: Variant = runtime.get("conversation_definitions")
@@ -137,8 +138,7 @@ func probe_runtime_scene() -> void:
 	var completed := StoryModel.completed_quest_ids(progress, runtime_dictionary(runtime, "quest_definitions"))
 	check(completed.size() == 2, "Journal model must expose both completed quests.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func find_choice(choices: Array, choice_id: String) -> Dictionary:

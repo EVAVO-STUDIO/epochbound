@@ -115,6 +115,7 @@ const TARGETS := [
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio.gd",
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd",
 	"res://addons/epochbound_sprite_animation_studio/plugin.gd",
+	"res://tools/headless_runtime_cleanup.gd",
 	"res://tools/validate_content.gd",
 	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_runtime_scene_contract.gd",

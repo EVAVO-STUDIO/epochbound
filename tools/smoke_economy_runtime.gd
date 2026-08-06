@@ -1,5 +1,7 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
+
 const Repository = preload("res://src/content/campaign_repository.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const EconomyValidator = preload("res://src/content/economy_validator.gd")
@@ -41,7 +43,7 @@ func run_smoke_test() -> void:
 	check(EconomyCatalog.merchant(merchants, "bellweather_provisions").get("display_name") == "Bellweather Provisions", "Bellweather merchant must resolve.")
 
 	test_atomic_model(currencies, merchants, items)
-	probe_runtime_scene()
+	await probe_runtime_scene()
 	finish()
 
 
@@ -196,8 +198,7 @@ func probe_runtime_scene() -> void:
 	check(EconomyModel.balance(runtime_dictionary(runtime, "currency_balances"), "archive_chits") == before_reward + 7, "Profile load must restore the exact wallet balance.")
 	check(EconomyModel.stock_quantity(runtime_dictionary(runtime, "merchant_stock"), "bellweather_provisions", "museum_tonic") == 3, "Profile load must restore the exact merchant stock.")
 
-	root.remove_child(runtime)
-	runtime.free()
+	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
 func runtime_dictionary(runtime: Object, property_name: String) -> Dictionary:

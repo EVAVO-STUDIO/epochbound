@@ -1,4 +1,4 @@
-name: Temporary Headless Cleanup Source Export
+name: Temporary Deferred Headless Exit Probe
 
 on:
   push:
@@ -9,13 +9,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: epochbound-temp-headless-source-${{ github.sha }}
+  group: epochbound-temp-headless-probe-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  export-source:
+  probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+      GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+      GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
     steps:
       - name: Check out exact branch source
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
@@ -31,13 +35,44 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "${GITHUB_SHA}" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
 
-      - name: Upload exact repository source
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: epochbound-headless-source-${{ github.sha }}
-          path: |
-            .
-            !.git/**
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 1
+      - name: Apply deferred-exit experiment
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("tools/smoke_runtime_scene_contract.gd")
+          source = path.read_text(encoding="utf-8")
+          source = source.replace('\t\tquit(0)\n', '\t\tcall_deferred("quit", 0)\n')
+          source = source.replace('\tquit(1)\n', '\tcall_deferred("quit", 1)\n')
+          path.write_text(source, encoding="utf-8")
+
+      - name: Download and verify official Godot 4.6.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt \
+            > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
+          chmod +x .godot-bin/godot
+          [[ "$(.godot-bin/godot --version)" =~ ^4\.6\.2 ]]
+
+      - name: Prove deferred exit removes the ObjectDB leak
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="${RUNNER_TEMP}/runtime-contract-deferred-exit.log"
+          .godot-bin/godot --headless --verbose --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_runtime_scene_contract.gd 2>&1 | tee "${log}"
+          grep -F "Runtime scene contract smoke test passed" "${log}"
+          if grep -F "ObjectDB instances leaked at exit" "${log}"; then
+            echo "Deferred exit did not remove the ObjectDB leak" >&2
+            exit 1
+          fi

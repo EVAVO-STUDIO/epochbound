@@ -10,7 +10,7 @@ The host enters `clockwood_ashen_hunt` in Clockwood Edge’s Ashen era and opens
 
 After each accepted join, the drivers send bounded input retries through the production `_submit_input` RPC every 200 milliseconds. This avoids idle-frame timing assumptions while retaining the real unreliable-ordered input channel and validation path. The host receipt cannot complete until remote input reaches host authority for both remote roles.
 
-Authoritative snapshots reach both clients before the recovery phase begins. Each client must restore the expected map, era, role and three-actor party from a fresh snapshot. Receipts are written atomically through a temporary file and promotion, so the parent cannot observe partially written evidence.
+The gate proves that authoritative snapshots reach both clients before the recovery phase begins. Each client must restore the expected map, era, role and three-actor party from a fresh snapshot. Receipts are written atomically through a temporary file and promotion, so the parent cannot observe partially written evidence.
 
 ## Bounded authenticated snapshots
 

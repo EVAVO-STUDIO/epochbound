@@ -106,7 +106,7 @@ try {
         @("Smoke test Package and Release Studio editor state", "res://tools/smoke_package_studio.gd"),
         @("Smoke test malformed archive paths scripts and hashes", "res://tools/smoke_package_validation_edges.gd"),
         @("Smoke test hash-valid packages with invalid current content", "res://tools/smoke_package_current_validation.gd"),
-        @("Smoke test deterministic campaign production audit", "res://tools/smoke_campaign_audit.gd"),
+        @("Smoke test warning-free reference campaign release readiness", "res://tools/smoke_campaign_audit.gd"),
         @("Smoke test Campaign Audit Studio editor state and export", "res://tools/smoke_campaign_audit_studio.gd"),
         @("Smoke test campaign audit blocker and warning detection", "res://tools/smoke_campaign_audit_edges.gd"),
         @("Smoke test multi-source progression affordability planning", "res://tools/smoke_progression_affordability.gd"),
@@ -133,7 +133,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

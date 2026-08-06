@@ -8,6 +8,7 @@ var failures: Array[String] = []
 
 func _initialize() -> void:
 	run_validation_edges()
+	run_boss_trigger_edges()
 	finish()
 
 
@@ -94,6 +95,103 @@ func run_validation_edges() -> void:
 	)
 	check(contains_fragment(errors, "duplicate cinematic id"), "Duplicate cinematic IDs must be rejected.")
 	check(contains_fragment(errors, "also used"), "Duplicate completion-state keys must be rejected.")
+
+
+func run_boss_trigger_edges() -> void:
+	var definitions := {
+		"boss_intro": {"id": "boss_intro"},
+		"boss_defeat": {"id": "boss_defeat"}
+	}
+	var objects := {
+		"sentinel": {"id": "sentinel", "boss": {"enabled": true}},
+		"archivist": {"id": "archivist", "kind": "npc"}
+	}
+	var referenced: Dictionary = {}
+	var errors: Array[String] = []
+	var count := CinematicValidator.validate_boss_cinematic_triggers(
+		{
+			"id": "boss_trigger_edge",
+			"boss_cinematics": {
+				"sentinel": {
+					"intro_cinematic_id": "boss_intro",
+					"defeat_cinematic_id": "boss_defeat"
+				}
+			}
+		},
+		definitions,
+		objects,
+		referenced,
+		errors
+	)
+	check(errors.is_empty(), "Valid boss cinematic mappings must pass validation.")
+	check(count == 2, "Intro and defeat boss mappings must both count as triggers.")
+	check(
+		bool(referenced.get("boss_intro", false))
+		and bool(referenced.get("boss_defeat", false)),
+		"Boss mappings must suppress false unreferenced-cinematic warnings."
+	)
+
+	errors.clear()
+	referenced.clear()
+	CinematicValidator.validate_boss_cinematic_triggers(
+		{"id": "edge", "boss_cinematics": []},
+		definitions,
+		objects,
+		referenced,
+		errors
+	)
+	check(
+		contains_fragment(errors, "must be an object keyed by boss object ID"),
+		"Non-object boss trigger maps must be rejected."
+	)
+
+	errors.clear()
+	referenced.clear()
+	CinematicValidator.validate_boss_cinematic_triggers(
+		{
+			"id": "edge",
+			"boss_cinematics": {
+				"missing_boss": {"intro_cinematic_id": "boss_intro"},
+				"archivist": {"defeat_cinematic_id": "boss_defeat"},
+				"sentinel": {"intro_cinematic_id": "missing_cinematic"}
+			}
+		},
+		definitions,
+		objects,
+		referenced,
+		errors
+	)
+	check(
+		contains_fragment(errors, "unknown reusable boss object"),
+		"Mappings to missing reusable boss objects must be rejected."
+	)
+	check(
+		contains_fragment(errors, "is not an enabled boss"),
+		"Mappings to ordinary reusable objects must be rejected."
+	)
+	check(
+		contains_fragment(errors, "references unknown cinematic"),
+		"Mappings to missing cinematic IDs must be rejected."
+	)
+
+	errors.clear()
+	referenced.clear()
+	CinematicValidator.validate_boss_cinematic_triggers(
+		{
+			"id": "edge",
+			"boss_cinematics": {
+				"sentinel": {}
+			}
+		},
+		definitions,
+		objects,
+		referenced,
+		errors
+	)
+	check(
+		contains_fragment(errors, "must reference an intro or defeat cinematic"),
+		"Empty boss mappings must be rejected."
+	)
 
 
 func contains_fragment(messages: Variant, fragment: String) -> bool:

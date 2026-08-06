@@ -115,7 +115,10 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "1.8"',
+        '"schemaVersion": "2.0"',
+        '"referenceContentWarnings": 0',
+        '"referenceAuditWarnings": 0',
+        '"referenceReleaseReadinessValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
@@ -216,6 +219,8 @@ require(
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
         "Smoke test multi-source progression affordability planning",
+        "Smoke test warning-free reference campaign release readiness",
+        "smoke_campaign_audit.gd",
         "smoke_multiplayer_session_model.gd",
         "smoke_multiplayer_connection_profile.gd",
         "Smoke test player-local multiplayer connection setup and recovery",
@@ -224,6 +229,92 @@ require(
         "host-authoritative co-op",
         "authored PvP invasions",
         "smoke_canonical_journey.gd",
+    ],
+)
+
+
+reference_gate = read("reference_gate", ROOT / "tools/smoke_campaign_audit.gd")
+require(
+    "reference_gate",
+    reference_gate,
+    [
+        "CompleteValidator.validate_campaign_path",
+        "Reference content validation must remain warning-free",
+        "Reference campaign audit must remain warning-free",
+        'metrics.get("optional_capability_count", 0)',
+        'metrics.get("progression_source_risk_count", -1)) == 0',
+        "zero blockers, errors or warnings",
+    ],
+)
+
+item_validator = read("item_validator", ROOT / "src/content/item_validator.gd")
+require(
+    "item_validator",
+    item_validator,
+    [
+        "collect_authored_item_and_recipe_uses",
+        "collect_declared_file_uses",
+        '["story_files", "economy_files", "cinematic_files"]',
+        '"item_id", "ammo_item_id"',
+        '"unlock_recipes", "starting_recipes"',
+        '"starting_equipment"',
+    ],
+)
+
+cinematic_validator = read("cinematic_validator", ROOT / "src/content/cinematic_validator.gd")
+require(
+    "cinematic_validator",
+    cinematic_validator,
+    [
+        'BossCatalog = preload("res://src/content/boss_catalog.gd")',
+        "validate_boss_cinematic_triggers",
+        'campaign.get("boss_cinematics", {})',
+        "BossCatalog.is_boss",
+        '"intro_cinematic_id", "defeat_cinematic_id"',
+    ],
+)
+forbid(
+    "cinematic_validator",
+    cinematic_validator,
+    [
+        "ObjectCatalog.load_catalogs(str(catalog_result.get",
+        "if false else {}",
+    ],
+)
+
+campaign_audit = read("campaign_audit", ROOT / "src/content/campaign_audit.gd")
+require(
+    "campaign_audit",
+    campaign_audit,
+    [
+        '"optional_capability_count": 0',
+        "collect_map_capability_requirements",
+        'interaction.get("progression_required", false)',
+        'progression_map.erase("interactions")',
+    ],
+)
+
+campaign_validator = read("campaign_validator", ROOT / "src/content/campaign_validator.gd")
+require(
+    "campaign_validator",
+    campaign_validator,
+    [
+        'interaction.has("progression_required")',
+        "progression_required must be boolean",
+    ],
+)
+
+progression_source_index = read(
+    "progression_source_index",
+    ROOT / "src/content/progression_source_index.gd",
+)
+require(
+    "progression_source_index",
+    progression_source_index,
+    [
+        "collect_recipe_unlock_sources",
+        '"unlock_recipes"',
+        '"gated": gated',
     ],
 )
 
@@ -557,5 +648,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

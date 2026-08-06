@@ -107,6 +107,13 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 
 	validate_starting_inventory(campaign, campaign_id, items, used_items, errors, warnings)
 	validate_starting_recipes(campaign, campaign_id, recipes, used_recipes, errors)
+	collect_authored_item_and_recipe_uses(
+		campaign,
+		items,
+		recipes,
+		used_items,
+		used_recipes
+	)
 
 	var object_result := ObjectCatalog.load_catalogs(campaign_path, campaign)
 	append_messages(errors, object_result.get("errors", []))
@@ -124,6 +131,13 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 			used_items,
 			errors
 		)
+		collect_authored_item_and_recipe_uses(
+			object_data,
+			items,
+			recipes,
+			used_items,
+			used_recipes
+		)
 
 	var map_files_value: Variant = campaign.get("map_files", [])
 	if typeof(map_files_value) == TYPE_ARRAY:
@@ -137,6 +151,24 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 				continue
 			var map_data: Dictionary = map_result.get("data", {})
 			validate_map_item_rewards(map_data, items, recipes, used_items, used_recipes, errors)
+			collect_authored_item_and_recipe_uses(
+				map_data,
+				items,
+				recipes,
+				used_items,
+				used_recipes
+			)
+
+	for field in ["story_files", "economy_files", "cinematic_files"]:
+		collect_declared_file_uses(
+			campaign_path,
+			campaign,
+			field,
+			items,
+			recipes,
+			used_items,
+			used_recipes
+		)
 
 	for item_id in items.keys():
 		if not used_items.has(item_id):
@@ -455,6 +487,105 @@ static func validate_recipe_unlocks(
 		else:
 			seen[recipe_id] = true
 			used_recipes[recipe_id] = true
+
+
+static func collect_declared_file_uses(
+	campaign_path: String,
+	campaign: Dictionary,
+	field: String,
+	items: Dictionary,
+	recipes: Dictionary,
+	used_items: Dictionary,
+	used_recipes: Dictionary
+) -> void:
+	var files_value: Variant = campaign.get(field, [])
+	if typeof(files_value) != TYPE_ARRAY:
+		return
+	for relative_value in files_value as Array:
+		var relative_path := str(relative_value)
+		if not ObjectCatalog.safe_relative_json_path(relative_path):
+			continue
+		var result := Repository.read_json(
+			campaign_path.get_base_dir().path_join(relative_path)
+		)
+		if not bool(result.get("ok", false)):
+			continue
+		collect_authored_item_and_recipe_uses(
+			result.get("data", {}),
+			items,
+			recipes,
+			used_items,
+			used_recipes
+		)
+
+
+# Usage warnings are cross-domain. A stock entry, story condition, cinematic
+# reward or starting loadout reference is just as intentional as a recipe
+# ingredient. Other domain validators remain responsible for rejecting bad IDs.
+static func collect_authored_item_and_recipe_uses(
+	value: Variant,
+	items: Dictionary,
+	recipes: Dictionary,
+	used_items: Dictionary,
+	used_recipes: Dictionary
+) -> void:
+	if typeof(value) == TYPE_DICTIONARY:
+		var data: Dictionary = value
+		for key_value in data.keys():
+			var key := str(key_value)
+			var child: Variant = data.get(key_value)
+			match key:
+				"item_id", "ammo_item_id":
+					mark_known_reference(str(child), items, used_items)
+				"recipe_id":
+					mark_known_reference(str(child), recipes, used_recipes)
+				"refused_items":
+					mark_known_array_references(child, items, used_items)
+				"unlock_recipes", "starting_recipes":
+					mark_known_array_references(child, recipes, used_recipes)
+				"starting_equipment":
+					if typeof(child) == TYPE_DICTIONARY:
+						for item_value in (child as Dictionary).values():
+							mark_known_reference(str(item_value), items, used_items)
+				_:
+					pass
+			collect_authored_item_and_recipe_uses(
+				child,
+				items,
+				recipes,
+				used_items,
+				used_recipes
+			)
+	elif typeof(value) == TYPE_ARRAY:
+		for child_value in value as Array:
+			collect_authored_item_and_recipe_uses(
+				child_value,
+				items,
+				recipes,
+				used_items,
+				used_recipes
+			)
+
+
+static func mark_known_array_references(
+	value: Variant,
+	definitions: Dictionary,
+	used: Dictionary
+) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		return
+	for item_value in value as Array:
+		mark_known_reference(str(item_value), definitions, used)
+
+
+static func mark_known_reference(
+	identifier: String,
+	definitions: Dictionary,
+	used: Dictionary
+) -> void:
+	var clean := identifier.strip_edges()
+	if not clean.is_empty() and definitions.has(clean):
+		used[clean] = true
 
 
 static func make_report(

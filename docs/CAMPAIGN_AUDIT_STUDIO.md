@@ -13,6 +13,8 @@ Every finding contains:
 
 Reports are sorted deterministically by severity, code, context and message. Identical campaign input must produce byte-equivalent JSON output.
 
+Epochbound's built-in reference campaign has a stricter release contract: complete content validation and all eight audit probes must publish zero errors, blockers and warnings. The normal audit API still distinguishes blockers from review warnings for external campaigns.
+
 The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression and affordability risks. These counts are evidence and triage aids, not balance scores.
 
 ## Eight permanent probes
@@ -40,14 +42,16 @@ One-way story transitions remain possible, but authors must review the warning a
 
 ### 3. Capability-definition coverage
 
-Required capabilities are collected recursively from maps, story conditions and merchant conditions. Definitions are collected from campaign base capabilities and equipment records.
+Journey-critical capabilities are collected from map connections, story conditions, merchant conditions and any map interaction explicitly marked `progression_required: true`. Ordinary map interactions remain optional exploration surfaces. Their capability IDs are retained in the `optional_capability_count` metric but do not become softlock requirements merely because they reveal lore or an optional reward.
+
+All other map records continue to be scanned conservatively. Definitions are collected from campaign base capabilities and equipment records. The validator requires `progression_required`, when present, to be a strict boolean.
 
 Findings:
 
 - `capability.no_source` — blocker
 - `capability.late_source` — warning
 
-A late-source warning means the capability is defined but is not present in the starting loadout. Probe 7 then checks whether the granting equipment itself has a usable acquisition route.
+A late-source warning means a journey-critical capability is defined but is not present in the starting loadout. Probe 7 then checks whether the granting equipment itself has a usable acquisition route. Optional interaction gates remain visible for review without producing a false mandatory-progression warning.
 
 ### 4. Economy and recovery
 
@@ -173,7 +177,8 @@ Maintenance bots should treat:
 - warnings as required review items;
 - stable finding codes as the durable automation interface;
 - finding messages as human-readable context, not parsing keys;
-- metric counts as bounded triage data, not permission to rewrite campaign design.
+- metric counts as bounded triage data, not permission to rewrite campaign design;
+- the built-in reference campaign's zero-warning gate as a release invariant rather than a reason to weaken audit rules.
 
 Bots must never silence a warning by deleting content, loosening a gate, making every stock entry unlimited, lowering prices or granting items without proving the intended player journey remains intact.
 

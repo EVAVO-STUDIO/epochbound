@@ -94,6 +94,7 @@ static func audit_loaded(
 		"map_count": maps.size(),
 		"reachable_map_count": 0,
 		"required_capability_count": 0,
+		"optional_capability_count": 0,
 		"quest_count": 0,
 		"restorative_source_count": 0,
 		"progression_item_count": 0,
@@ -106,8 +107,18 @@ static func audit_loaded(
 	var reachable := probe_map_reachability(campaign, maps, graph, findings)
 	metrics["reachable_map_count"] = reachable.size()
 	probe_return_routes(campaign, maps, graph, findings)
-	var required_capabilities := probe_capability_sources(campaign, maps, items, story, economy, findings)
+	var optional_capabilities: Dictionary = {}
+	var required_capabilities := probe_capability_sources(
+		campaign,
+		maps,
+		items,
+		story,
+		economy,
+		optional_capabilities,
+		findings
+	)
 	metrics["required_capability_count"] = required_capabilities.size()
+	metrics["optional_capability_count"] = optional_capabilities.size()
 	metrics["restorative_source_count"] = probe_economy_recovery(campaign, items, economy, findings)
 	metrics["quest_count"] = probe_quest_startability(campaign, story, findings)
 	probe_save_policy(campaign, findings)
@@ -236,13 +247,15 @@ static func probe_capability_sources(
 	items: Dictionary,
 	story: Dictionary,
 	economy: Dictionary,
+	optional: Dictionary,
 	findings: Array[Dictionary]
 ) -> Dictionary:
 	var required: Dictionary = {}
-	for map_value in maps.values():
-		collect_required_capabilities(map_value, required)
+	collect_map_capability_requirements(maps, required, optional)
 	collect_required_capabilities(story, required)
 	collect_required_capabilities(economy, required)
+	for capability_id in required.keys():
+		optional.erase(capability_id)
 	var all_sources: Dictionary = {}
 	var starting_sources: Dictionary = {}
 	for capability_value in campaign.get("base_capabilities", []):
@@ -276,6 +289,32 @@ static func probe_capability_sources(
 		elif not starting_sources.has(capability_id):
 			add_finding(findings, "warning", "capability.late_source", "Required capability '%s' is available only after acquiring alternate equipment." % capability_id, capability_id)
 	return required
+
+
+# Connections, story and economy can block the authored journey. Map
+# interactions are exploratory unless an author explicitly marks one as
+# progression_required, so optional lore does not inflate softlock demand.
+static func collect_map_capability_requirements(
+	maps: Dictionary,
+	required: Dictionary,
+	optional: Dictionary
+) -> void:
+	for map_id in sorted_dictionary_keys(maps):
+		var map_data: Dictionary = maps.get(map_id, {})
+		var progression_map := map_data.duplicate(true)
+		progression_map.erase("interactions")
+		collect_required_capabilities(progression_map, required)
+		var interactions_value: Variant = map_data.get("interactions", [])
+		if typeof(interactions_value) != TYPE_ARRAY:
+			continue
+		for interaction_value in interactions_value as Array:
+			if typeof(interaction_value) != TYPE_DICTIONARY:
+				continue
+			var interaction: Dictionary = interaction_value
+			if bool(interaction.get("progression_required", false)):
+				collect_required_capabilities(interaction, required)
+			else:
+				collect_required_capabilities(interaction, optional)
 
 
 static func collect_required_capabilities(value: Variant, output: Dictionary) -> void:

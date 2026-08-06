@@ -160,6 +160,23 @@ An empty array means every era. A non-empty array restricts the record:
 
 A global cell and an era-specific cell may occupy the same coordinate. The era-specific cell wins in that era. Duplicate cells with the same coordinate and the same era scope are rejected.
 
+
+## Interaction progression classification
+
+Interactions are optional exploration surfaces by default. Capability gates on them remain visible in audit metrics but do not automatically become mandatory journey requirements.
+
+Use a strict boolean only when an interaction is genuinely required for the authored progression route:
+
+```json
+{
+  "id": "release_archive_lock",
+  "progression_required": true,
+  "required_capabilities": ["clockglass_sight"]
+}
+```
+
+Map connections, story conditions and merchant conditions remain progression-critical without this flag. This distinction prevents optional lore from inflating softlock demand while preserving an explicit path for required interaction gates.
+
 ## Terrain palette
 
 Terrain definitions separate visual identity from painted cells:

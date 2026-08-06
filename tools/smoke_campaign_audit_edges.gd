@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CampaignAudit = preload("res://src/content/campaign_audit.gd")
+const CampaignValidator = preload("res://src/content/campaign_validator.gd")
 const ProgressionSourceIndex = preload("res://src/content/progression_source_index.gd")
 
 var failures: Array[String] = []
@@ -11,6 +12,29 @@ func _initialize() -> void:
 
 
 func run_test() -> void:
+	var interaction_errors: Array[String] = []
+	var interaction_warnings: Array[String] = []
+	CampaignValidator._validate_interactions(
+		[{
+			"id": "bad_progression_flag",
+			"position": {"x": 20, "y": 20},
+			"radius": 12,
+			"available_eras": [],
+			"dialogue": "A valid interaction with one malformed classification flag.",
+			"progression_required": "yes"
+		}],
+		"audit_edge_map",
+		100,
+		100,
+		{"verdant": true},
+		interaction_errors,
+		interaction_warnings
+	)
+	check(
+		has_message(interaction_errors, "progression_required must be boolean"),
+		"Interaction progression classification must fail closed on non-boolean data."
+	)
+
 	var campaign: Dictionary = {
 		"id": "audit_edge",
 		"start_map": "start",
@@ -46,6 +70,7 @@ func run_test() -> void:
 				{"id": "unbound_gate", "conditions": [{"type": "has_item", "item_id": "unbound_pass", "quantity": 1}]},
 				{"id": "missing_gate", "conditions": [{"type": "has_item", "item_id": "missing_relic", "quantity": 1}]},
 				{"id": "starter_gate", "conditions": [{"type": "has_item", "item_id": "starter_tool", "quantity": 2}]},
+				{"id": "optional_capability_gate", "required_capabilities": ["optional_sight"]},
 				{"id": "boss_reward_gate", "conditions": [{"type": "has_item", "item_id": "boss_relic", "quantity": 1}]},
 				{"id": "formula_gate", "conditions": [{"type": "has_item", "item_id": "locked_formula", "quantity": 1}]}
 			],
@@ -168,6 +193,66 @@ func run_test() -> void:
 		"A recipe with no default, starting or authored unlock route must remain unusable."
 	)
 
+	var unlock_index := ProgressionSourceIndex.build_item_source_index(
+		{
+			"starting_inventory": [{"item_id": "unlock_seed", "quantity": 1}],
+			"starting_equipment": {},
+			"starting_recipes": []
+		},
+		{
+			"start": {
+				"id": "start",
+				"object_placements": [],
+				"companion_cues": [
+					{
+						"id": "open_discovery",
+						"unlock_recipes": ["open_recipe"]
+					},
+					{
+						"id": "gated_discovery",
+						"conditions": [{
+							"type": "has_item",
+							"item_id": "unlock_seed",
+							"quantity": 1
+						}],
+						"unlock_recipes": ["gated_recipe"]
+					}
+				]
+			}
+		},
+		{
+			"unlock_seed": {"id": "unlock_seed"},
+			"open_output": {"id": "open_output"},
+			"gated_output": {"id": "gated_output"}
+		},
+		{
+			"open_recipe": {
+				"id": "open_recipe",
+				"ingredients": [{"item_id": "unlock_seed", "quantity": 1}],
+				"output": {"item_id": "open_output", "quantity": 1},
+				"unlocked_by_default": false
+			},
+			"gated_recipe": {
+				"id": "gated_recipe",
+				"ingredients": [{"item_id": "unlock_seed", "quantity": 1}],
+				"output": {"item_id": "gated_output", "quantity": 1},
+				"unlocked_by_default": false
+			}
+		},
+		{},
+		{},
+		{},
+		{}
+	)
+	check(
+		has_recipe_source_gate(unlock_index, "open_output", false),
+		"Ungated exploration discoveries must publish an ungated recipe source."
+	)
+	check(
+		has_recipe_source_gate(unlock_index, "gated_output", true),
+		"Conditional discoveries must retain their authored recipe gate."
+	)
+
 	var report: Dictionary = CampaignAudit.audit_loaded(campaign, maps, items, story, economy, recipes, objects)
 	check(int(report.get("probe_count", 0)) == 8, "Synthetic audit must execute all eight probes.")
 	check(int(report.get("blocker_count", 0)) >= 12, "Synthetic audit must surface multiple independent blockers.")
@@ -193,9 +278,37 @@ func run_test() -> void:
 		"Synthetic audit must trace the nine explicit mandatory item gates without inflating demand through a never-unlocked recipe."
 	)
 	check(int(metrics.get("progression_capability_count", 0)) == 2, "Synthetic audit must trace both required capabilities.")
+	check(
+		int(metrics.get("optional_capability_count", 0)) == 1,
+		"Optional map interactions must remain visible without becoming progression requirements."
+	)
 	check(int(metrics.get("merchant_only_progression_count", 0)) >= 3, "Synthetic audit must identify merchant-only item and capability routes.")
 	check(int(metrics.get("affordability_risk_count", 0)) >= 3, "Synthetic audit must count item and capability affordability findings.")
 	finish()
+
+
+func has_message(messages: Array[String], fragment: String) -> bool:
+	for message in messages:
+		if message.contains(fragment):
+			return true
+	return false
+
+
+func has_recipe_source_gate(
+	source_index: Dictionary,
+	item_id: String,
+	expected_gated: bool
+) -> bool:
+	for source_value in ProgressionSourceIndex.source_array(source_index.get(item_id, [])):
+		if typeof(source_value) != TYPE_DICTIONARY:
+			continue
+		var source: Dictionary = source_value
+		if (
+			str(source.get("kind", "")) == "recipe"
+			and bool(source.get("gated", true)) == expected_gated
+		):
+			return true
+	return false
 
 
 func has_source_context(source_index: Dictionary, item_id: String, context: String) -> bool:

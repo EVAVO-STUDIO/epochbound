@@ -24,6 +24,7 @@ jobs:
       PATCH_SHA256: f4d9505a1d341ed7d895a7d5938e653b5236267f761ba52bcc62b3e4e76bef14
       PATCH_XZ_SHA256: e9ff3f05fb9a4adc8df6b072da015182d4190f454a2e291daf5355d65fd081e4
       TARGET_BRANCH: agent/headless-cleanup
+
     steps:
       - name: Check out exact branch candidate
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
@@ -119,7 +120,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .godot-bin tools/__pycache__
+          rm -rf .godot-bin .godot tools/__pycache__
+          find addons src tools -type f -name '*.gd.uid' -delete
           cat > "${RUNNER_TEMP}/expected-files.txt" <<'FILES'
           .github/workflows/validate.yml
           README.md
@@ -157,7 +159,7 @@ jobs:
           {
             git diff --name-only
             git ls-files --others --exclude-standard
-          } | grep -v '^\.godot' | sort -u > "${RUNNER_TEMP}/actual-files.txt"
+          } | sort -u > "${RUNNER_TEMP}/actual-files.txt"
           diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/actual-files.txt"
           git diff --check
 
@@ -173,5 +175,5 @@ jobs:
           git commit -m "test: enforce leak-free headless runtime cleanup [skip ci]"
           git diff --name-only HEAD^ HEAD | sort > "${RUNNER_TEMP}/committed-files.txt"
           diff -u "${RUNNER_TEMP}/expected-files.txt" "${RUNNER_TEMP}/committed-files.txt"
-          [[ -z "$(git status --porcelain=v1 --untracked-files=no)" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
           git push origin "HEAD:${TARGET_BRANCH}"

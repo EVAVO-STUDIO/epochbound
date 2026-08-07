@@ -25,7 +25,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 13. Skippable, progression-equivalent cinematic timelines
 14. Versioned save profiles, migrations, checksums, autosave, manual slots, backup recovery and Continue
 15. Deterministic campaign packages with manifests, SHA-256 verification, complete staged validation and safe installation
-16. Repository-wide campaign audits for reachability, capability definitions, progression sources, recipe unlocks and cycles, finite supply, merchant bindings, affordability, regional supply evidence, quest starts and save safety
+16. Repository-wide campaign audits with nine deterministic production probes for reachability, return safety, capability definitions, recovery, quest starts, save safety, progression sources, affordability and meaningful temporal-shift consequences, plus regional supply evidence
 17. Original map and era presentation profiles with camera feel, atmosphere, restrained screen texture and framed HUD
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
@@ -115,7 +115,7 @@ Authors release metadata and exports or imports data-only `.epochbound.zip` camp
 
 ### Audit
 
-Runs eight deterministic production probes covering structural reachability, recovery, progression-source softlocks and merchant-only affordability, then adds regional supply evidence and exports machine-readable blocker and warning reports.
+Runs nine deterministic production probes covering structural reachability, recovery, progression-source softlocks, merchant-only affordability and meaningful temporal-shift consequences, then adds regional supply evidence and exports machine-readable blocker and warning reports.
 
 ### Presentation
 
@@ -286,7 +286,7 @@ The gate performs:
 - focused player-settings, persistent-control and regional-supply compile probes;
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
-- repository-wide eight-probe campaign production audit with progression, affordability and supply evidence;
+- repository-wide nine-probe campaign production audit with progression, affordability, meaningful temporal-shift consequences and supply evidence;
 - a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
@@ -322,7 +322,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings, passed meaningful temporal-shift validation and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -395,6 +395,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - Atomic transactions before partial mutation
 - Fixed recovery controls before unrestricted remapping
 - Deterministic active-play clocks before wall-clock rewards
+- Meaningful era consequences before palette-only shifts
 - Bounded recovery supply without erasing progression scarcity
 - Skippable presentation with progression-equivalent outcomes
 - Campaign portability with strict validation and safe installation

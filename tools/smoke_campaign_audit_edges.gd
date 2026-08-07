@@ -80,7 +80,13 @@ func run_test() -> void:
 			]
 		},
 		"locked": {"id": "locked", "connections": [], "interactions": [], "object_placements": []},
-		"orphan": {"id": "orphan", "connections": [], "interactions": [], "object_placements": []}
+		"orphan": {
+			"id": "orphan",
+			"eras": [{"id": "verdant"}, {"id": "ashen"}],
+			"connections": [],
+			"interactions": [],
+			"object_placements": []
+		}
 	}
 	var items: Dictionary = {
 		"gate_key": {"id": "gate_key", "kind": "key", "stack_limit": 9, "value": 5},
@@ -254,7 +260,7 @@ func run_test() -> void:
 	)
 
 	var report: Dictionary = CampaignAudit.audit_loaded(campaign, maps, items, story, economy, recipes, objects)
-	check(int(report.get("probe_count", 0)) == 8, "Synthetic audit must execute all eight probes.")
+	check(int(report.get("probe_count", 0)) == 9, "Synthetic audit must execute all nine probes.")
 	check(int(report.get("blocker_count", 0)) >= 12, "Synthetic audit must surface multiple independent blockers.")
 	check(has_code(report, "map.unreachable"), "Unreachable maps must be reported.")
 	check(has_code(report, "travel.no_exit"), "Maps without exits must be reported.")
@@ -262,6 +268,7 @@ func run_test() -> void:
 	check(has_code(report, "economy.no_restorative_source"), "Campaigns without healing recovery must be reported.")
 	check(has_code(report, "quest.no_start_path"), "Quests without a start path must be reported.")
 	check(has_code(report, "save.no_path"), "Campaigns without any save path must be reported.")
+	check(has_code_context(report, "temporal.palette_only", "orphan"), "Multi-era maps with palette-only differences must be reported for temporal review.")
 	check(has_code(report, "progression.recipe_cycle"), "Circular recipe dependencies must be reported.")
 	check(has_code(report, "progression.recipe_never_unlocked"), "Required recipe outputs without an unlock route must be reported.")
 	check(has_code(report, "progression.item_no_source"), "Progression items with no viable source must be reported.")

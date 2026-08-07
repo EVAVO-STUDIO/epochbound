@@ -7,7 +7,7 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Run the same audit twice without editing source.
 - Confirm both JSON exports are identical.
 - Confirm all findings use stable severity, code, context and message fields.
-- Confirm the report exposes all eight probes and the progression, merchant-only and affordability metrics.
+- Confirm the report exposes all nine probes and the progression, merchant-only and affordability metrics.
 - Confirm there are no blockers before release.
 - Record an owner and rationale for every accepted warning.
 
@@ -18,6 +18,17 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Verify gated connections explain what is missing.
 - Confirm every destination map has an intentional exit, defeat recovery or irreversible-transition design.
 - Verify one-way transitions cannot invalidate active quests or strand required equipment.
+
+## Temporal shift consequences
+
+- Confirm **Temporal maps** reports every map with at least two declared eras.
+- For each multi-era map, verify at least one route, threat, information, relationship or resource consequence is reachable in normal play.
+- Confirm palette, lighting and landmark styling alone do not satisfy the automated probe.
+- Review every `temporal.palette_only` warning and either author a meaningful consequence or remove the unsupported era state.
+- Test both directions of each useful shift and confirm the player can understand what changed.
+- Verify era-scoped routes preserve recovery anchors, companion recall and a valid return path.
+- Verify era-scoped enemies and boss phases remain readable and cannot appear outside their authored era.
+- Verify era-specific NPCs, clues, merchants and pickups preserve durable state when the player shifts away and back.
 
 ## Capability ordering
 
@@ -97,5 +108,5 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Export the campaign twice and compare package SHA-256 values.
 - Inspect the manifest before installation.
 - Install into a clean user campaign directory.
-- Confirm the installed campaign produces the same eight-probe audit report as its source.
+- Confirm the installed campaign produces the same nine-probe audit report as its source.
 - Preserve the audit JSON beside the distributed package.

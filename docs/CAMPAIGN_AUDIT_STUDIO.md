@@ -13,11 +13,11 @@ Every finding contains:
 
 Reports are sorted deterministically by severity, code, context and message. Identical campaign input must produce byte-equivalent JSON output.
 
-Epochbound's built-in reference campaign has a stricter release contract: complete content validation and all eight audit probes must publish zero errors, blockers and warnings. The normal audit API still distinguishes blockers from review warnings for external campaigns.
+Epochbound's built-in reference campaign has a stricter release contract: complete content validation and all nine audit probes must publish zero errors, blockers and warnings. The normal audit API still distinguishes blockers from review warnings for external campaigns.
 
-The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression and affordability risks. These counts are evidence and triage aids, not balance scores.
+The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression, affordability risks and meaningful temporal-shift evidence. These counts are evidence and triage aids, not balance scores.
 
-## Eight permanent probes
+## Nine permanent probes
 
 ### 1. Map reachability
 
@@ -158,12 +158,32 @@ A price or aggregate review total above the starting balance is a warning, not a
 
 The probe does not assume all optional upgrades must be affordable at campaign start. It evaluates only items and capabilities already identified as progression requirements.
 
+### 9. Temporal shift consequence
+
+Every map with at least two declared eras must publish evidence that shifting changes the authored journey. The deterministic probe recognises five outcome categories:
+
+- **route** — era-scoped terrain, collision, navigation, entries, connections or recovery anchors;
+- **threat** — era-scoped enemies, encounter zones or boss phases;
+- **information** — era-scoped interactions, companion cues or dialogue that differs between declared eras;
+- **relationship** — era-scoped NPC or companion presence;
+- **resource** — era-scoped pickups, merchants or companion rewards.
+
+An `available_eras` list counts only when it includes at least one, but not every, declared era. Records available in every declared era are neutral and do not prove a shift consequence.
+
+Finding:
+
+- `temporal.palette_only` — warning
+
+A warning means a multi-era map has no static evidence for a route, threat, information, relationship or resource consequence. Palette and landmark styling do not count as evidence. They remain important presentation layers, but they cannot satisfy the gameplay contract by themselves.
+
+The category and evidence counts are intentionally bounded. They prove authored records exist; they do not claim that the shift is surprising, balanced or emotionally effective. Authors must still play the transition, verify that the consequence is reachable in the intended order and confirm the player can understand why shifting mattered.
+
 ## Editor workflow
 
 1. Open the **Audit** main-screen tab.
 2. Select a built-in or installed campaign.
 3. Select **Run Audit**.
-4. Review the two-line metrics summary, including progression and affordability counts.
+4. Review the metrics summary, including progression, affordability and temporal consequence counts.
 5. Resolve every blocker.
 6. Review and either resolve or document every warning.
 7. Export the deterministic JSON report into `user://audit_reports`.
@@ -193,4 +213,4 @@ Campaign Audit Studio does not simulate every possible player action. It does no
 - long-form save/load soak tests;
 - human assessment of story quality and encounter fairness.
 
-The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, exchange rates, optional spending, all recipe alternatives, every capability-equipment choice or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.
+The temporal probe measures authored evidence rather than experiential quality; a category count does not prove that a shift is obvious, fair or memorable. The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, exchange rates, optional spending, all recipe alternatives, every capability-equipment choice or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.

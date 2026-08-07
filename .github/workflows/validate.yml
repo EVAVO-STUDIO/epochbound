@@ -77,6 +77,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate temporal shift consequence contract
+        run: python3 tools/check_temporal_shift_contract.py
+
       - name: Validate canonical runtime composition contract
         run: python3 tools/check_runtime_scene_contract.py
 
@@ -165,9 +168,9 @@ jobs:
           import os
           from pathlib import Path
 
-          # Receipt schema migrated from: "schemaVersion": "2.0"
+          # Receipt schema migrated from: "schemaVersion": "2.1"
           payload = {
-              "schemaVersion": "2.1",
+              "schemaVersion": "2.2",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -184,6 +187,7 @@ jobs:
               "referenceAuditWarnings": 0,
               "referenceReleaseReadinessValidation": "passed",
               "headlessCleanupValidation": "passed",
+              "temporalShiftValidation": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",
               "spriteAnimationValidation": "passed",

@@ -73,6 +73,7 @@ try {
         @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
+        @("Smoke test meaningful temporal shift consequences", "res://tools/smoke_temporal_shift_audit.gd"),
         @("Smoke test deterministic co-op and invasion session model", "res://tools/smoke_multiplayer_session_model.gd"),
         @("Smoke test player-local multiplayer connection setup and recovery", "res://tools/smoke_multiplayer_connection_profile.gd"),
         @("Smoke test bounded multiplayer snapshot transport across every map and era", "res://tools/smoke_multiplayer_snapshot_transport.gd"),
@@ -140,7 +141,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

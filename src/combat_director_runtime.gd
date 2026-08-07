@@ -100,6 +100,7 @@ func sync_runtime_entities(preserve_existing: bool) -> void:
 		entity["mode"] = str(old.get("mode", "idle"))
 		entity["stagger_timer"] = float(old.get("stagger_timer", 0.0))
 		entity["attack_windup"] = float(old.get("attack_windup", 0.0))
+		entity["attack_target_id"] = str(old.get("attack_target_id", ""))
 		entity["target_memory"] = float(old.get("target_memory", 0.0))
 		entity["patrol_step"] = int(old.get("patrol_step", 0))
 		entity["patrol_wait"] = float(old.get("patrol_wait", 0.0))
@@ -157,19 +158,35 @@ func update_directed_enemy(index: int, entity: Dictionary, delta: float) -> void
 
 	var attack_windup := maxf(0.0, float(entity.get("attack_windup", 0.0)) - delta)
 	if float(entity.get("attack_windup", 0.0)) > 0.0:
+		var locked_target_id := str(entity.get("attack_target_id", ""))
+		if not attack_target_is_available(locked_target_id):
+			entity["attack_windup"] = 0.0
+			entity["attack_target_id"] = ""
+			entity["mode"] = "chase"
+			runtime_entities[index] = entity
+			return
+		var locked_target_position := attack_target_position(locked_target_id)
+		var locked_target_inside_leash := EncounterZoneModel.target_is_inside_leash(
+			zone,
+			spawn_position,
+			locked_target_position,
+			leash
+		)
 		entity["attack_windup"] = attack_windup
 		entity["mode"] = "windup"
-		EncounterModel.update_facing(entity, position.direction_to(target_position))
+		EncounterModel.update_facing(entity, position.direction_to(locked_target_position))
 		if attack_windup <= 0.0:
-			if position.distance_to(target_position) <= attack_range + 6.0 and target_inside_leash:
+			if position.distance_to(locked_target_position) <= attack_range + 6.0 and locked_target_inside_leash:
 				var attacker_context := definition_data.duplicate(true)
 				attacker_context["_position"] = position
-				damage_actor(target_name, int(definition_data.get("attack_damage", 1)), attacker_context)
+				damage_actor(locked_target_id, int(definition_data.get("attack_damage", 1)), attacker_context)
 			entity["attack_cooldown"] = float(definition_data.get("attack_cooldown", 1.0))
+			entity["attack_target_id"] = ""
 			entity["mode"] = "chase"
 		runtime_entities[index] = entity
 		return
 
+	entity["attack_target_id"] = ""
 	var outside_leash := spawn_position.distance_to(position) > leash
 	if outside_leash or not target_inside_leash:
 		mode = "return"
@@ -193,6 +210,7 @@ func update_directed_enemy(index: int, entity: Dictionary, delta: float) -> void
 	if mode == "chase":
 		if distance <= attack_range and float(entity.get("attack_cooldown", 0.0)) <= 0.0:
 			entity["attack_windup"] = maxf(0.05, float(definition_data.get("attack_windup", DEFAULT_ATTACK_WINDUP)))
+			entity["attack_target_id"] = target_name
 			entity["mode"] = "windup"
 			EncounterModel.update_facing(entity, position.direction_to(target_position))
 		else:
@@ -203,6 +221,20 @@ func update_directed_enemy(index: int, entity: Dictionary, delta: float) -> void
 
 	entity = update_patrol(index, entity, spawn_position, definition_data, delta)
 	runtime_entities[index] = entity
+
+
+func attack_target_is_available(actor_id: String) -> bool:
+	match actor_id:
+		"player":
+			return player_health > 0
+		"companion":
+			return companion_enabled() and companion_health > 0
+		_:
+			return false
+
+
+func attack_target_position(actor_id: String) -> Vector2:
+	return companion if actor_id == "companion" else player
 
 
 func update_patrol(
@@ -278,6 +310,8 @@ func damage_entity(index: int, amount: int, source_name: String) -> void:
 		direction = facing
 	var stagger := maxf(0.05, float(definition_data.get("stagger_duration", DEFAULT_STAGGER)))
 	var distance := maxf(0.0, float(definition_data.get("knockback_distance", DEFAULT_KNOCKBACK_DISTANCE)))
+	entity["attack_windup"] = 0.0
+	entity["attack_target_id"] = ""
 	entity["stagger_timer"] = stagger
 	entity["knockback_velocity"] = direction.normalized() * distance / stagger
 	entity["mode"] = "staggered"

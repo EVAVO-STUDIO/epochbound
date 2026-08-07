@@ -173,6 +173,8 @@ Use an override sparingly. Zone-based leashes make groups easier to reason about
 
 `attack_windup` is the telegraph between entering range and applying damage. During windup the enemy faces its target and displays a visible timing ring.
 
+Target identity is locked when windup begins. A different actor becoming closer cannot inherit the pending attack. The enemy may continue tracking the locked actor's current position, but damage can resolve only against that actor. If the locked actor becomes unavailable, the telegraph cancels instead of transferring silently.
+
 A readable attack should give the player enough information to:
 
 - recognise that damage is imminent;
@@ -185,6 +187,8 @@ Instant contact damage is not the default combat language.
 ### Stagger duration
 
 `stagger_duration` determines how long a damaged enemy stops its current behaviour. Stagger creates tactical confirmation and prevents every successful attack from feeling ignored.
+
+A successful stagger cancels an in-progress windup and clears its locked target. When the enemy recovers, it must begin a fresh full windup before later damage can resolve. A paused pre-hit telegraph never resumes after the interrupt.
 
 Very long stagger values can remove threat entirely. Very short values make hits feel weightless. The value belongs to the enemy definition so different enemy families can have distinct resistance.
 
@@ -224,11 +228,11 @@ The zone is active, the target is valid and inside the leash, and the enemy is n
 
 ### Windup
 
-The enemy has reached attack range and is telegraphing. Damage is applied only when the windup completes and the target remains close enough.
+The enemy has reached attack range and is telegraphing. The selected actor identity remains locked until resolution or cancellation. Damage is applied only when the windup completes and that locked target remains available, close enough and inside the leash.
 
 ### Staggered
 
-The enemy has been hit. It pauses its attack logic and resolves authored knockback.
+The enemy has been hit. It cancels any pending windup and target lock, then resolves authored knockback. Any later attack must start a new telegraph.
 
 ### Return
 
@@ -307,6 +311,8 @@ A production encounter should pass all of these gates.
 ### Fairness
 
 - Damage follows a telegraphed action rather than arbitrary contact.
+- A telegraph cannot silently transfer from Eli to Morrow, or from Morrow to Eli, because another actor becomes closer.
+- A successful stagger cancels the pending hit instead of pausing it until recovery.
 - Leash boundaries do not cause enemies to reset in the middle of normal combat.
 - Entry points do not place the player inside attack range.
 - Era shifting does not spawn an enemy directly on an actor.
@@ -366,7 +372,7 @@ The strict Godot 4.6.2 gate now covers:
 3. complete campaign, map, catalog, placement and encounter-zone validation;
 4. world traversal and cross-map smoke tests;
 5. reusable object and base-combat smoke tests;
-6. Combat Director smoke tests for activation, windup, damage, stagger, knockback, leash return and zone clearing.
+6. Combat Director smoke tests for activation, target locking and stagger interruption, windup, damage, knockback, leash return and zone clearing.
 
 Run the same gate from Windows PowerShell:
 

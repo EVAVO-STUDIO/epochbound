@@ -57,6 +57,7 @@ func run_test() -> void:
 						"verdant": "The marker names a year that has not happened.",
 						"ashen": "The same year has been burned out of the stone."
 					}
+				}
 			],
 			"companion_cues": [],
 			"object_placements": [

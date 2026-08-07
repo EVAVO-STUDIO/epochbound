@@ -51,6 +51,8 @@ require(
         "collect_encounter_evidence",
         "dialogue_varies",
         'record.get("available_eras", [])',
+        "declared_available_count",
+        "declared_available_count > 0 and declared_available_count < era_ids.size()",
         'object_definition.get("boss", {})',
         'boss_value as Dictionary).get("phases", [])',
     ],
@@ -90,11 +92,13 @@ require(
         '"palette_only"',
         '"authored_shift"',
         '"temporal.palette_only"',
+        '"available_eras": ["verdant", "ashen"]',
         '"temporal_route_count"',
         '"temporal_threat_count"',
         '"temporal_information_count"',
         '"temporal_relationship_count"',
         '"temporal_resource_count"',
+        "Records available in every declared era must not count as route consequences",
         "Repeated temporal audits must produce deterministic evidence and findings",
     ],
 )
@@ -182,6 +186,7 @@ require(
         "### 9. Temporal shift consequence",
         "`temporal.palette_only`",
         "route, threat, information, relationship or resource",
+        "Records available in every declared era are neutral",
         "Palette and landmark styling do not count as evidence",
     ],
 )
@@ -243,5 +248,5 @@ if errors:
 
 print("epochbound_temporal_shift_contract_passed")
 print("- every multi-era map is measured against route, threat, information, relationship and resource evidence")
-print("- palette and landmark styling cannot satisfy the meaningful-shift release probe")
+print("- all-era records, palette and landmark styling cannot satisfy the meaningful-shift release probe")
 print("- reference, edge, editor, local and exact-main gates pin deterministic temporal evidence")

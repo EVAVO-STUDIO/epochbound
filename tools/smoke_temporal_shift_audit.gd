@@ -17,7 +17,14 @@ func run_test() -> void:
 				{"id": "verdant", "palette": {"ground": "446644"}},
 				{"id": "ashen", "palette": {"ground": "55443f"}}
 			],
-			"terrain_cells": [],
+			"terrain_cells": [
+				{
+					"x": 0,
+					"y": 0,
+					"tile": "common_floor",
+					"available_eras": ["verdant", "ashen"]
+				}
+			],
 			"collision_cells": [],
 			"navigation_cells": [],
 			"entry_points": [],
@@ -50,7 +57,6 @@ func run_test() -> void:
 						"verdant": "The marker names a year that has not happened.",
 						"ashen": "The same year has been burned out of the stone."
 					}
-				}
 			],
 			"companion_cues": [],
 			"object_placements": [
@@ -77,14 +83,14 @@ func run_test() -> void:
 	var first_metrics := TemporalShiftAudit.audit(maps, objects, first_findings)
 	check(int(first_metrics.get("multi_era_map_count", 0)) == 2, "Both synthetic maps must be recognised as multi-era maps.")
 	check(int(first_metrics.get("meaningful_shift_map_count", 0)) == 1, "Only the map with authored consequences must pass the meaningful-shift probe.")
-	check(int(first_metrics.get("temporal_route_count", 0)) >= 1, "Era-scoped traversal data must count as a route consequence.")
+	check(int(first_metrics.get("temporal_route_count", 0)) == 1, "Records available in every declared era must not count as route consequences.")
 	check(int(first_metrics.get("temporal_threat_count", 0)) >= 1, "Era-scoped enemies or encounter zones must count as a threat consequence.")
 	check(int(first_metrics.get("temporal_information_count", 0)) >= 1, "Distinct era dialogue must count as an information consequence.")
 	check(int(first_metrics.get("temporal_relationship_count", 0)) >= 1, "Era-scoped NPC presence must count as a relationship consequence.")
 	check(int(first_metrics.get("temporal_resource_count", 0)) >= 1, "Era-scoped pickups must count as a resource consequence.")
 	check(
 		has_code_context(first_findings, "temporal.palette_only", "palette_only"),
-		"A multi-era map with palette changes only must publish the stable temporal.palette_only warning."
+		"A multi-era map with palette changes and all-era records only must publish the stable temporal.palette_only warning."
 	)
 	check(
 		not has_code_context(first_findings, "temporal.palette_only", "authored_shift"),
@@ -115,7 +121,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Temporal shift audit smoke test passed: palette-only maps warn while route, threat, information, relationship and resource consequences remain deterministic.")
+		print("Temporal shift audit smoke test passed: palette-only maps and all-era records warn while genuine route, threat, information, relationship and resource consequences remain deterministic.")
 		quit(0)
 		return
 	for failure in failures:

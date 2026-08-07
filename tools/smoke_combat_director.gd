@@ -116,26 +116,58 @@ func probe_runtime_scene() -> void:
 	hound = entities[hound_index]
 	check(str(hound.get("mode", "")) == "windup", "Enemy must enter windup before dealing contact damage.")
 	check(float(hound.get("attack_windup", 0.0)) > 0.0, "Enemy windup timer must be active.")
+	check(str(hound.get("attack_target_id", "")) == "player", "Windup must lock the selected target identity.")
 	check(int(runtime.get("player_health")) == player_health_before, "Windup must not damage the player early.")
+	var companion_health_before := int(runtime.get("companion_health"))
+	runtime.set("companion", Vector2(398, 216))
 	runtime.call("update_runtime_entities", 0.35)
 	check(int(runtime.get("player_health")) == player_health_before - expected_player_damage, "Completed windup must apply authored attack damage after active defence.")
+	check(int(runtime.get("companion_health")) == companion_health_before, "A closer companion must not inherit the player's active telegraph.")
+	entities = runtime_entities(runtime)
+	hound = entities[hound_index]
+	check(str(hound.get("attack_target_id", "")) == "", "Resolved windup must clear its target lock.")
 
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
-	hound["position"] = Vector2(416, 216)
+	hound["position"] = Vector2(400, 216)
 	hound["attack_windup"] = 0.0
+	hound["attack_target_id"] = ""
 	hound["stagger_timer"] = 0.0
+	hound["knockback_velocity"] = Vector2.ZERO
+	hound["attack_cooldown"] = 0.0
+	hound["mode"] = "chase"
 	entities[hound_index] = hound
 	runtime.set("runtime_entities", entities)
 	runtime.set("player", Vector2(380, 216))
-	runtime.call("damage_entity", hound_index, 4, "ELI")
+	runtime.set("companion", Vector2(270, 230))
+	runtime.set("player_hurt_lock", 0.0)
+	runtime.call("update_runtime_entities", 0.01)
+	entities = runtime_entities(runtime)
+	hound = entities[hound_index]
+	check(str(hound.get("mode", "")) == "windup", "Interrupt fixture must begin from an active enemy windup.")
+	check(str(hound.get("attack_target_id", "")) == "player", "Interrupt fixture must retain the selected player target.")
+	var player_health_before_interrupt := int(runtime.get("player_health"))
+	runtime.call("damage_entity", hound_index, 1, "ELI")
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
 	check(str(hound.get("mode", "")) == "staggered", "Damaged enemy must enter staggered mode.")
 	check(float(hound.get("stagger_timer", 0.0)) > 0.0, "Damaged enemy must receive stagger time.")
+	check(float(hound.get("attack_windup", -1.0)) == 0.0, "Stagger must cancel the pending attack windup.")
+	check(str(hound.get("attack_target_id", "missing")) == "", "Stagger must clear the pending attack target.")
 	var knockback_value: Variant = hound.get("knockback_velocity", Vector2.ZERO)
 	check(knockback_value is Vector2 and (knockback_value as Vector2).length_squared() > 0.0, "Damaged enemy must receive knockback velocity.")
 	check(int(runtime.get("combo_count")) >= 1, "Successful hit must advance the combat chain.")
+	var stagger_remaining := float(hound.get("stagger_timer", 0.0))
+	hound["knockback_velocity"] = Vector2.ZERO
+	entities[hound_index] = hound
+	runtime.set("runtime_entities", entities)
+	runtime.call("update_runtime_entities", stagger_remaining + 0.01)
+	check(int(runtime.get("player_health")) == player_health_before_interrupt, "Interrupted windup must not deal deferred damage after stagger.")
+	entities = runtime_entities(runtime)
+	hound = entities[hound_index]
+	check(str(hound.get("mode", "")) == "windup", "A post-stagger attack must begin a fresh telegraph.")
+	check(float(hound.get("attack_windup", 0.0)) > 0.0, "Fresh post-stagger telegraph must restore the full authored windup.")
+	check(str(hound.get("attack_target_id", "")) == "player", "Fresh post-stagger telegraph must acquire its own target lock.")
 
 	entities = runtime_entities(runtime)
 	hound = entities[hound_index]
@@ -143,6 +175,7 @@ func probe_runtime_scene() -> void:
 	hound["stagger_timer"] = 0.0
 	hound["knockback_velocity"] = Vector2.ZERO
 	hound["attack_windup"] = 0.0
+	hound["attack_target_id"] = ""
 	hound["mode"] = "chase"
 	entities[hound_index] = hound
 	runtime.set("runtime_entities", entities)
@@ -183,7 +216,7 @@ func enemy_index(entities: Array, placement_id: String) -> int:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Combat Director smoke test passed: zones, windup, derived damage, stagger, leash return and persistent clearing are coherent.")
+		print("Combat Director smoke test passed: zones, target locking, interruptible windup, derived damage, stagger, leash return and persistent clearing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -108,6 +108,7 @@ require(
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_temporal_shift_contract.py",
+        "python3 tools/check_combat_fairness_contract.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
@@ -116,12 +117,13 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.2"',
+        '"schemaVersion": "2.3"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
         '"headlessCleanupValidation": "passed"',
         '"temporalShiftValidation": "passed"',
+        '"combatFairnessValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
@@ -231,6 +233,10 @@ require(
         "smoke_campaign_audit.gd",
         "smoke_temporal_shift_audit.gd",
         "meaningful temporal shifts",
+        "Smoke test Combat Director target locking and stagger interrupts",
+        "smoke_combat_director.gd",
+        "locked combat telegraphs",
+        "stagger interrupts",
         "smoke_multiplayer_session_model.gd",
         "smoke_multiplayer_connection_profile.gd",
         "Smoke test player-local multiplayer connection setup and recovery",
@@ -642,6 +648,42 @@ require(
     ],
 )
 
+combat_fairness_contract = read(
+    "combat_fairness_contract",
+    ROOT / "tools/check_combat_fairness_contract.py",
+)
+require(
+    "combat_fairness_contract",
+    combat_fairness_contract,
+    [
+        "epochbound_combat_fairness_contract_passed",
+        "attack_target_id",
+        "Stagger must cancel the pending attack windup",
+        "Interrupted windup must not deal deferred damage after stagger",
+        '"combatFairnessValidation": "passed"',
+    ],
+)
+
+combat_fairness_runtime = read(
+    "combat_fairness_runtime",
+    ROOT / "src/combat_director_runtime.gd",
+)
+require(
+    "combat_fairness_runtime",
+    combat_fairness_runtime,
+    [
+        'entity["attack_target_id"] = target_name',
+        "damage_actor(locked_target_id",
+        'entity["attack_windup"] = 0.0',
+        'entity["attack_target_id"] = ""',
+    ],
+)
+forbid(
+    "combat_fairness_runtime",
+    combat_fairness_runtime,
+    ["damage_actor(target_name"],
+)
+
 multiplayer_session = read("multiplayer_session", ROOT / "src/multiplayer_session.gd")
 require(
     "multiplayer_session",
@@ -685,5 +727,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

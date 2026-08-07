@@ -110,6 +110,8 @@ jobs:
           set -euo pipefail
           git diff --check
           git diff --name-only > "${RUNNER_TEMP}/changed-files.txt"
+          grep -v '^\.github/workflows/validate\.yml$' "${RUNNER_TEMP}/changed-files.txt" \
+            > "${RUNNER_TEMP}/publish-files.txt"
           python3 - <<'PY'
           import os
           import re
@@ -123,14 +125,21 @@ jobs:
               "tools/check_release_workflow_policy.py",
               "tools/smoke_combat_director.gd",
           }
-          changed_path = Path(os.environ["RUNNER_TEMP"]) / "changed-files.txt"
+          root = Path(os.environ["RUNNER_TEMP"])
           changed = [
               line.strip()
-              for line in changed_path.read_text(encoding="utf-8").splitlines()
+              for line in (root / "changed-files.txt").read_text(encoding="utf-8").splitlines()
               if line.strip()
           ]
-          if not changed:
-              raise SystemExit("combat fairness applicator produced no source changes")
+          publish = [
+              line.strip()
+              for line in (root / "publish-files.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          if not changed or not publish:
+              raise SystemExit("combat fairness applicator produced no publishable source changes")
+          if ".github/workflows/validate.yml" not in changed:
+              raise SystemExit("validated exact-main workflow update is missing")
           unexpected = [
               path
               for path in changed
@@ -142,8 +151,12 @@ jobs:
           print("validated permanent changes:")
           for path in changed:
               print(f"- {path}")
+          print("publishing source files through Actions:")
+          for path in publish:
+              print(f"- {path}")
+          print("publishing protected workflow separately through the GitHub connector")
           PY
-          git add --pathspec-from-file="${RUNNER_TEMP}/changed-files.txt"
+          git add --pathspec-from-file="${RUNNER_TEMP}/publish-files.txt"
           git diff --cached --check
           git config user.name "EVAVO Release Agent"
           git config user.email "evavo.studio@gmail.com"

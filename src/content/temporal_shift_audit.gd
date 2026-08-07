@@ -262,10 +262,13 @@ static func is_era_scoped(record: Dictionary, era_ids: PackedStringArray) -> boo
 	var available_value: Variant = record.get("available_eras", [])
 	if typeof(available_value) != TYPE_ARRAY:
 		return false
+	var declared_available: Dictionary = {}
 	for era_value in available_value as Array:
-		if era_ids.has(str(era_value)):
-			return true
-	return false
+		var era_id := str(era_value)
+		if era_ids.has(era_id):
+			declared_available[era_id] = true
+	var declared_available_count := declared_available.size()
+	return declared_available_count > 0 and declared_available_count < era_ids.size()
 
 
 static func dialogue_varies(value: Variant, era_ids: PackedStringArray) -> bool:

@@ -146,6 +146,19 @@ func render_report(report: Dictionary) -> void:
 			int(metrics.get("affordability_risk_count", 0))
 		]
 	)
+	metrics_label.text += (
+		"\nTemporal maps %d/%d authored   •   Temporal outcomes %d   •   Route %d   •   Threat %d   •   Information %d   •   Relationship %d   •   Resource %d"
+		% [
+			int(metrics.get("meaningful_shift_map_count", 0)),
+			int(metrics.get("multi_era_map_count", 0)),
+			int(metrics.get("temporal_outcome_count", 0)),
+			int(metrics.get("temporal_route_count", 0)),
+			int(metrics.get("temporal_threat_count", 0)),
+			int(metrics.get("temporal_information_count", 0)),
+			int(metrics.get("temporal_relationship_count", 0)),
+			int(metrics.get("temporal_resource_count", 0))
+		]
+	)
 	for finding_value in report.get("findings", []):
 		if typeof(finding_value) != TYPE_DICTIONARY:
 			continue

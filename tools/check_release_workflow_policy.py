@@ -107,6 +107,7 @@ require(
         "SHA512-SUMS.txt",
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_temporal_shift_contract.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
@@ -115,11 +116,12 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.1"',
+        '"schemaVersion": "2.2"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
         '"headlessCleanupValidation": "passed"',
+        '"temporalShiftValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
@@ -227,6 +229,8 @@ require(
         "Smoke test multi-source progression affordability planning",
         "Smoke test warning-free reference campaign release readiness",
         "smoke_campaign_audit.gd",
+        "smoke_temporal_shift_audit.gd",
+        "meaningful temporal shifts",
         "smoke_multiplayer_session_model.gd",
         "smoke_multiplayer_connection_profile.gd",
         "Smoke test player-local multiplayer connection setup and recovery",
@@ -270,6 +274,9 @@ require(
         "Reference campaign audit must remain warning-free",
         'metrics.get("optional_capability_count", 0)',
         'metrics.get("progression_source_risk_count", -1)) == 0',
+        'metrics.get("multi_era_map_count", 0)',
+        'metrics.get("meaningful_shift_map_count", 0)',
+        "all nine production probes",
         "zero blockers, errors or warnings",
     ],
 )
@@ -318,6 +325,9 @@ require(
         "collect_map_capability_requirements",
         'interaction.get("progression_required", false)',
         'progression_map.erase("interactions")',
+        'TemporalShiftAudit = preload("res://src/content/temporal_shift_audit.gd")',
+        "PROBE_COUNT := 9",
+        'TemporalShiftAudit.audit(maps, objects, findings)',
     ],
 )
 
@@ -675,5 +685,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

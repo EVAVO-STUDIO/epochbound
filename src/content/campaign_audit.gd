@@ -9,8 +9,9 @@ const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const ProgressionSourceAudit = preload("res://src/content/progression_source_audit.gd")
 const ProgressionAffordabilityAudit = preload("res://src/content/progression_affordability_audit.gd")
+const TemporalShiftAudit = preload("res://src/content/temporal_shift_audit.gd")
 
-const PROBE_COUNT := 8
+const PROBE_COUNT := 9
 const SEVERITY_RANK := {"blocker": 0, "warning": 1, "info": 2}
 
 static func audit_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
@@ -97,6 +98,14 @@ static func audit_loaded(
 		"optional_capability_count": 0,
 		"quest_count": 0,
 		"restorative_source_count": 0,
+		"multi_era_map_count": 0,
+		"meaningful_shift_map_count": 0,
+		"temporal_outcome_count": 0,
+		"temporal_route_count": 0,
+		"temporal_threat_count": 0,
+		"temporal_information_count": 0,
+		"temporal_relationship_count": 0,
+		"temporal_resource_count": 0,
 		"progression_item_count": 0,
 		"progression_capability_count": 0,
 		"progression_source_risk_count": 0,
@@ -122,6 +131,19 @@ static func audit_loaded(
 	metrics["restorative_source_count"] = probe_economy_recovery(campaign, items, economy, findings)
 	metrics["quest_count"] = probe_quest_startability(campaign, story, findings)
 	probe_save_policy(campaign, findings)
+
+	var temporal_metrics := TemporalShiftAudit.audit(maps, objects, findings)
+	for metric_name in [
+		"multi_era_map_count",
+		"meaningful_shift_map_count",
+		"temporal_outcome_count",
+		"temporal_route_count",
+		"temporal_threat_count",
+		"temporal_information_count",
+		"temporal_relationship_count",
+		"temporal_resource_count"
+	]:
+		metrics[metric_name] = int(temporal_metrics.get(metric_name, 0))
 
 	var source_finding_start := findings.size()
 	var progression := ProgressionSourceAudit.audit(

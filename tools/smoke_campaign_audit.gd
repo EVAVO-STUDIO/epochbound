@@ -25,7 +25,7 @@ func run_test() -> void:
 
 	var first: Dictionary = CampaignAudit.audit_campaign_path(CAMPAIGN_PATH)
 	var second: Dictionary = CampaignAudit.audit_campaign_path(CAMPAIGN_PATH)
-	check(int(first.get("probe_count", 0)) == 8, "Reference audit must execute all eight production probes.")
+	check(int(first.get("probe_count", 0)) == 9, "Reference audit must execute all nine production probes.")
 	check(int(first.get("blocker_count", -1)) == 0, "Reference campaign must have no audit blockers.")
 	check(int(first.get("warning_count", -1)) == 0, "Reference campaign audit must remain warning-free.")
 	var metrics: Dictionary = first.get("metrics", {})
@@ -42,6 +42,14 @@ func run_test() -> void:
 		int(metrics.get("optional_capability_count", 0)) == 2,
 		"Reference audit must retain the two optional Underworks exploration gates."
 	)
+	check(int(metrics.get("multi_era_map_count", 0)) == 3, "Reference audit must inspect all three multi-era maps.")
+	check(int(metrics.get("meaningful_shift_map_count", 0)) == 3, "Every reference map must author at least one meaningful temporal consequence.")
+	check(int(metrics.get("temporal_outcome_count", 0)) >= 8, "Reference maps must publish bounded temporal consequence evidence.")
+	check(int(metrics.get("temporal_route_count", 0)) >= 2, "Reference shifts must alter traversal in Bellweather and Clockwood.")
+	check(int(metrics.get("temporal_threat_count", 0)) >= 3, "Reference shifts must alter threats across all three maps.")
+	check(int(metrics.get("temporal_information_count", 0)) >= 3, "Reference shifts must expose different information across all three maps.")
+	check(int(metrics.get("temporal_relationship_count", 0)) >= 2, "Reference shifts must alter NPC presence in Bellweather and Clockwood.")
+	check(int(metrics.get("temporal_resource_count", 0)) >= 1, "Reference shifts must alter at least one authored resource source.")
 	check(
 		int(metrics.get("progression_capability_count", 0)) == 1,
 		"Progression-source analysis must not promote optional lore gates."
@@ -87,7 +95,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Reference release readiness smoke test passed: complete content and all eight campaign probes are deterministic with zero blockers, errors or warnings.")
+		print("Reference release readiness smoke test passed: complete content and all nine campaign probes, including meaningful temporal shifts, are deterministic with zero blockers, errors or warnings.")
 		quit(0)
 		return
 	for failure in failures:

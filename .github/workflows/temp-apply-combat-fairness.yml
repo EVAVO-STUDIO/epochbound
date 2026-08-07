@@ -35,6 +35,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/temp_apply_combat_fairness.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/check_combat_fairness_contract.py")
+          source = path.read_text(encoding="utf-8")
+          old = '# Receipt schema migrated from: "schemaVersion": "2.3"'
+          new = '# Receipt schema migrated from: "schemaVersion": "2.2"'
+          if source.count(old) != 1:
+              raise SystemExit("combat fairness checker migration token drifted")
+          path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
           git diff --check
 
       - name: Run all fail-closed source contracts
@@ -92,6 +103,7 @@ jobs:
           git diff --check
           git diff --name-only > "${RUNNER_TEMP}/changed-files.txt"
           python3 - <<'PY'
+          import os
           import re
           from pathlib import Path
 
@@ -103,9 +115,10 @@ jobs:
               "tools/check_release_workflow_policy.py",
               "tools/smoke_combat_director.gd",
           }
+          changed_path = Path(os.environ["RUNNER_TEMP"]) / "changed-files.txt"
           changed = [
               line.strip()
-              for line in Path("${RUNNER_TEMP}/changed-files.txt").read_text(encoding="utf-8").splitlines()
+              for line in changed_path.read_text(encoding="utf-8").splitlines()
               if line.strip()
           ]
           if not changed:

@@ -168,6 +168,8 @@ Every map with at least two declared eras must publish evidence that shifting ch
 - **relationship** — era-scoped NPC or companion presence;
 - **resource** — era-scoped pickups, merchants or companion rewards.
 
+An `available_eras` list counts only when it includes at least one, but not every, declared era. Records available in every declared era are neutral and do not prove a shift consequence.
+
 Finding:
 
 - `temporal.palette_only` — warning

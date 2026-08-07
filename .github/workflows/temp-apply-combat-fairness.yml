@@ -38,13 +38,21 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path("tools/check_combat_fairness_contract.py")
-          source = path.read_text(encoding="utf-8")
           old = '# Receipt schema migrated from: "schemaVersion": "2.3"'
           new = '# Receipt schema migrated from: "schemaVersion": "2.2"'
-          if source.count(old) != 1:
-              raise SystemExit("combat fairness checker migration token drifted")
-          path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          changed = []
+          for path in sorted(Path("tools").glob("check_*_contract.py")):
+              source = path.read_text(encoding="utf-8")
+              updated = source.replace(old, new)
+              if updated == source:
+                  continue
+              path.write_text(updated, encoding="utf-8")
+              changed.append(path.as_posix())
+          if not changed:
+              raise SystemExit("no schema-aware checker migration tokens were restored")
+          print("restored prior-schema markers:")
+          for path in changed:
+              print(f"- {path}")
           PY
           git diff --check
 

@@ -61,13 +61,15 @@ transport_contract_addition = (
     transport_contract_anchor
     + "        '_host_shutdown_committed.rpc(',\n"
     + "        'or host_shutdown_pending',\n"
+    + "        'close_session_immediately(reason, true)',\n"
+    + "        'close_peer_before_detach',\n"
 )
-if "        '_host_shutdown_committed.rpc(',\n" not in loopback_contract:
+if "        'close_peer_before_detach',\n" not in loopback_contract:
     loopback_contract = replace_once(
         loopback_contract,
         transport_contract_anchor,
         transport_contract_addition,
-        "loopback transport send-order contract",
+        "loopback transport shutdown-order contract",
     )
 loopback_contract_path.write_text(
     loopback_contract.rstrip() + "\n",
@@ -107,6 +109,8 @@ transport_guard = (
     '        "_host_shutdown_committed",\n'
     '        "_host_shutdown_committed.rpc(",\n'
     '        "or host_shutdown_pending",\n'
+    '        "close_session_immediately(reason, true)",\n'
+    '        "close_peer_before_detach",\n'
     '        "last_host_shutdown_ack_count",\n'
     '        "last_host_shutdown_forced",\n'
     '    ],\n'
@@ -119,17 +123,21 @@ if 'multiplayer_transport_session = read(' not in policy:
     policy = policy.replace(anchor, transport_guard + anchor, 1)
 else:
     existing_guard_anchor = '        "_host_shutdown_committed",\n'
-    existing_guard_addition = (
-        existing_guard_anchor
-        + '        "_host_shutdown_committed.rpc(",\n'
-        + '        "or host_shutdown_pending",\n'
-    )
-    if '        "_host_shutdown_committed.rpc(",\n' not in policy:
+    additions = ''
+    for token in [
+        '        "_host_shutdown_committed.rpc(",\n',
+        '        "or host_shutdown_pending",\n',
+        '        "close_session_immediately(reason, true)",\n',
+        '        "close_peer_before_detach",\n',
+    ]:
+        if token not in policy:
+            additions += token
+    if additions:
         policy = replace_once(
             policy,
             existing_guard_anchor,
-            existing_guard_addition,
-            "release-policy host send-order guard",
+            existing_guard_anchor + additions,
+            "release-policy host shutdown-order guard",
         )
 policy_path.write_text(policy.rstrip() + "\n", encoding="utf-8")
 
@@ -181,6 +189,69 @@ if commit_send_new not in transport:
         commit_send_old,
         commit_send_new,
         "atomic host-shutdown commit broadcast",
+    )
+commit_grace_old = '''\t\tif host_shutdown_remote_connections_closed() or host_shutdown_commit_remaining <= 0.0:
+\t\t\tfinish_host_shutdown()
+'''
+commit_grace_new = '''\t\t# Keep the ENet server attached for the full commit grace. Closing as soon
+\t\t# as clients disappear can race Godot's deferred reliable packet flush.
+\t\tif host_shutdown_commit_remaining <= 0.0:
+\t\t\tfinish_host_shutdown()
+'''
+if commit_grace_new not in transport:
+    transport = replace_once(
+        transport,
+        commit_grace_old,
+        commit_grace_new,
+        "full host commit grace",
+    )
+finish_old = '''\treset_host_shutdown_tracking(false)
+\tclose_session_immediately(reason)
+'''
+finish_new = '''\treset_host_shutdown_tracking(false)
+\tclose_session_immediately(reason, true)
+'''
+if finish_new not in transport:
+    transport = replace_once(
+        transport,
+        finish_old,
+        finish_new,
+        "host close-before-detach dispatch",
+    )
+signature_old = 'func close_session_immediately(reason: String) -> void:\n'
+signature_new = '''func close_session_immediately(
+\treason: String,
+\tclose_peer_before_detach: bool = false
+) -> void:
+'''
+if signature_new not in transport:
+    transport = replace_once(
+        transport,
+        signature_old,
+        signature_new,
+        "ordered transport close signature",
+    )
+close_order_old = '''\tnetwork_peer = null
+\tmultiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+\tif closing_peer != null:
+\t\tclosing_peer.close()
+'''
+close_order_new = '''\tnetwork_peer = null
+\tif close_peer_before_detach and closing_peer != null:
+\t\t# The server path closes while still attached so replacing MultiplayerAPI
+\t\t# cannot be followed by a second send through a zero-channel ENet peer.
+\t\tclosing_peer.close()
+\tmultiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+\tif not close_peer_before_detach and closing_peer != null:
+\t\t# Clients retain the proven detach-first order required for reconnect.
+\t\tclosing_peer.close()
+'''
+if close_order_new not in transport:
+    transport = replace_once(
+        transport,
+        close_order_old,
+        close_order_new,
+        "server close-before-detach ordering",
     )
 transport_path.write_text(transport.rstrip() + "\n", encoding="utf-8")
 

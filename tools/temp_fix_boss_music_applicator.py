@@ -56,10 +56,20 @@ redundant_block = '''replace_once(
 if source.count(redundant_block) != 1:
     raise SystemExit("temporary applicator redundant final-return block drifted")
 source = source.replace(redundant_block, "", 1)
-old_marker = '    "\\n\\nstatic func validate_audio_integrity_only(\\n",\n'
-new_marker = '    "\\n\\nstatic func validate_audio_integrity_only(campaign_path: String) -> Dictionary:\\n",\n'
-if source.count(old_marker) != 1:
-    raise SystemExit("temporary applicator strict-validator marker drifted")
-source = source.replace(old_marker, new_marker, 1)
+for old_marker, new_marker, label in (
+    (
+        '    "\\n\\nstatic func validate_audio_integrity_only(\\n",\n',
+        '    "\\n\\nstatic func validate_audio_integrity_only(campaign_path: String) -> Dictionary:\\n",\n',
+        "strict-validator",
+    ),
+    (
+        '    "\\n\\nstatic func validate_integral_number(\\n",\n',
+        '    "\\n\\nstatic func validate_integral_number(value: Variant, label: String, errors: Array[String]) -> void:\\n",\n',
+        "strict-integral",
+    ),
+):
+    if source.count(old_marker) != 1:
+        raise SystemExit(f"temporary applicator {label} marker drifted")
+    source = source.replace(old_marker, new_marker, 1)
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

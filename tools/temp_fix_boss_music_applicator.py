@@ -5,10 +5,22 @@ from pathlib import Path
 
 path = Path("tools/temp_apply_boss_music_stems.py")
 source = path.read_text(encoding="utf-8")
-helper_anchor = '''def append_before(path: str, marker: str, addition: str) -> None:
+
+
+def patch_once(label: str, old: str, new: str) -> None:
+    global source
+    count = source.count(old)
+    if count != 1:
+        raise SystemExit(f"temporary applicator {label} drifted: expected 1, found {count}")
+    source = source.replace(old, new, 1)
+
+
+patch_once(
+    "helper",
+    '''def append_before(path: str, marker: str, addition: str) -> None:
     replace_once(path, marker, addition + marker)
-'''
-helper_replacement = '''def replace_count(path: str, old: str, new: str, expected: int) -> None:
+''',
+    '''def replace_count(path: str, old: str, new: str, expected: int) -> None:
     file_path = Path(path)
     source = file_path.read_text(encoding="utf-8")
     count = source.count(old)
@@ -21,11 +33,11 @@ helper_replacement = '''def replace_count(path: str, old: str, new: str, expecte
 
 def append_before(path: str, marker: str, addition: str) -> None:
     replace_once(path, marker, addition + marker)
-'''
-if source.count(helper_anchor) != 1:
-    raise SystemExit("temporary applicator helper anchor drifted")
-source = source.replace(helper_anchor, helper_replacement, 1)
-old_block = '''replace_once(
+''',
+)
+patch_once(
+    "repeated catalogue returns",
+    '''replace_once(
     "src/content/audio_mood_catalog.gd",
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)',
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)',
@@ -36,55 +48,55 @@ replace_once(
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)',
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)',
 )
-'''
-new_block = '''replace_count(
+''',
+    '''replace_count(
     "src/content/audio_mood_catalog.gd",
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)',
     'return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)',
     3,
 )
-'''
-if source.count(old_block) != 1:
-    raise SystemExit("temporary applicator repeated-return block drifted")
-source = source.replace(old_block, new_block, 1)
-redundant_block = '''replace_once(
-    "src/content/audio_mood_catalog.gd",
-    '\\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)\\n\\n\\nstatic func merge_profile(',
-    '\\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)\\n\\n\\nstatic func merge_profile(',
+''',
 )
-'''
-if source.count(redundant_block) != 1:
-    raise SystemExit("temporary applicator redundant final-return block drifted")
-source = source.replace(redundant_block, "", 1)
-for old_marker, new_marker, label in (
-    (
-        '    "\\n\\nstatic func validate_audio_integrity_only(\\n",\n',
-        '    "\\n\\nstatic func validate_audio_integrity_only(campaign_path: String) -> Dictionary:\\n",\n',
-        "strict-validator",
-    ),
-    (
-        '    "\\n\\nstatic func validate_integral_number(\\n",\n',
-        '    "\\n\\nstatic func validate_integral_number(value: Variant, label: String, errors: Array[String]) -> void:\\n",\n',
-        "strict-integral",
-    ),
-):
-    if source.count(old_marker) != 1:
-        raise SystemExit(f"temporary applicator {label} marker drifted")
-    source = source.replace(old_marker, new_marker, 1)
-controller_old = '''    '''\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
-\\t\\tbindings.clear()''',
-    '''\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
-\\t\\tboss_stems.clear()
-\\t\\tbindings.clear()''',
-'''
-controller_new = '''    '''\\t\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
-\\t\\t\\tbindings.clear()''',
-    '''\\t\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
-\\t\\t\\tboss_stems.clear()
-\\t\\t\\tbindings.clear()''',
-'''
-if source.count(controller_old) != 1:
-    raise SystemExit("temporary applicator nested Audio fallback anchor drifted")
-source = source.replace(controller_old, controller_new, 1)
+patch_once(
+    "redundant final catalogue return",
+    r'''replace_once(
+    "src/content/audio_mood_catalog.gd",
+    '\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)\n\n\nstatic func merge_profile(',
+    '\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)\n\n\nstatic func merge_profile(',
+)
+''',
+    "",
+)
+patch_once(
+    "strict validator signature",
+    r'''    "\n\nstatic func validate_audio_integrity_only(\n",
+''',
+    r'''    "\n\nstatic func validate_audio_integrity_only(campaign_path: String) -> Dictionary:\n",
+''',
+)
+patch_once(
+    "strict integral signature",
+    r'''    "\n\nstatic func validate_integral_number(\n",
+''',
+    r'''    "\n\nstatic func validate_integral_number(value: Variant, label: String, errors: Array[String]) -> void:\n",
+''',
+)
+patch_once(
+    "nested controller fallback",
+    r'''\t\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\t\tbindings.clear()''',
+    r'''\t\t\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\t\t\tbindings.clear()''',
+)
+patch_once(
+    "nested controller replacement",
+    r'''\t\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\t\tboss_stems.clear()
+\t\tbindings.clear()''',
+    r'''\t\t\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\t\t\tboss_stems.clear()
+\t\t\tbindings.clear()''',
+)
+
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

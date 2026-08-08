@@ -13,6 +13,7 @@ static func default_catalog() -> Dictionary:
 		"schema_version": SUPPORTED_SCHEMA,
 		"title_profile_id": DEFAULT_PROFILE_ID,
 		"profiles": [default_profile()],
+		"boss_stems": [],
 		"bindings": []
 	}
 
@@ -63,16 +64,18 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 	var definitions: Dictionary = {}
 	var bindings: Array[Dictionary] = []
 	var sources: Dictionary = {}
+	var boss_stems: Dictionary = {}
+	var boss_stem_sources: Dictionary = {}
 	var title_profile_id := DEFAULT_PROFILE_ID
 	var value: Variant = campaign.get("audio_files", [])
 	if typeof(value) != TYPE_ARRAY:
 		errors.append("%s: audio_files must be an array." % campaign.get("id", campaign_path))
-		return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)
+		return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)
 	var relative_files: Array = value as Array
 	if relative_files.is_empty():
 		warnings.append("%s: no audio catalogue is declared; the built-in audio profile will be used." % campaign.get("id", campaign_path))
 		merge_profile(default_profile(), "built-in default", definitions, sources, errors)
-		return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)
+		return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)
 	for relative_value in relative_files:
 		var relative_path := str(relative_value)
 		if not safe_relative_json_path(relative_path):
@@ -100,6 +103,21 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 					errors.append("%s: every audio profile must be an object." % path)
 					continue
 				merge_profile(profile_value as Dictionary, path, definitions, sources, errors)
+		var stems_value: Variant = data.get("boss_stems", [])
+		if typeof(stems_value) != TYPE_ARRAY:
+			errors.append("%s: boss_stems must be an array." % path)
+		else:
+			for stem_value in stems_value as Array:
+				if typeof(stem_value) != TYPE_DICTIONARY:
+					errors.append("%s: every boss stem must be an object." % path)
+					continue
+				merge_boss_stem(
+					stem_value as Dictionary,
+					path,
+					boss_stems,
+					boss_stem_sources,
+					errors
+				)
 		var bindings_value: Variant = data.get("bindings", [])
 		if typeof(bindings_value) != TYPE_ARRAY:
 			errors.append("%s: bindings must be an array." % path)
@@ -117,7 +135,7 @@ static func load_catalogs(campaign_path: String, campaign: Dictionary) -> Dictio
 	if not definitions.has(title_profile_id):
 		warnings.append("Title audio profile '%s' is unavailable; the default profile will be used." % title_profile_id)
 		title_profile_id = DEFAULT_PROFILE_ID
-	return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)
+	return make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)
 
 
 static func merge_profile(
@@ -138,6 +156,59 @@ static func merge_profile(
 	sources[profile_id] = source
 
 
+static func boss_stem_key(boss_id: String, phase_id: String) -> String:
+	return "%s|%s" % [boss_id.strip_edges(), phase_id.strip_edges()]
+
+
+static func merge_boss_stem(
+	stem_data: Dictionary,
+	source: String,
+	definitions: Dictionary,
+	sources: Dictionary,
+	errors: Array[String]
+) -> void:
+	var boss_id := str(stem_data.get("boss_id", "")).strip_edges()
+	var phase_id := str(stem_data.get("phase_id", "")).strip_edges()
+	var key := boss_stem_key(boss_id, phase_id)
+	if boss_id.is_empty() or phase_id.is_empty():
+		errors.append("%s: boss stem requires boss_id and phase_id." % source)
+		return
+	if definitions.has(key):
+		errors.append("%s: boss stem '%s' is also declared by %s." % [source, key, sources.get(key, "another catalogue")])
+		return
+	definitions[key] = stem_data.duplicate(true)
+	sources[key] = source
+
+
+static func boss_stem(definitions: Dictionary, boss_id: String, phase_id: String) -> Dictionary:
+	var value: Variant = definitions.get(boss_stem_key(boss_id, phase_id), {})
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
+
+
+static func boss_stem_number(stem_data: Dictionary, key: String, fallback: float) -> float:
+	return float(stem_data.get(key, fallback))
+
+
+static func boss_stem_text(stem_data: Dictionary, key: String, fallback: String) -> String:
+	return str(stem_data.get(key, fallback))
+
+
+static func boss_stem_integer_array(
+	stem_data: Dictionary,
+	key: String,
+	fallback: Array[int]
+) -> Array[int]:
+	var output: Array[int] = []
+	var value: Variant = stem_data.get(key, [])
+	if typeof(value) == TYPE_ARRAY:
+		for entry_value in value as Array:
+			output.append(int(entry_value))
+	if output.is_empty():
+		for entry in fallback:
+			output.append(entry)
+	return output
+
+
 static func make_result(
 	errors: Array[String],
 	warnings: Array[String],
@@ -145,7 +216,9 @@ static func make_result(
 	definitions: Dictionary,
 	bindings: Array[Dictionary],
 	sources: Dictionary,
-	title_profile_id: String
+	title_profile_id: String,
+	boss_stems: Dictionary,
+	boss_stem_sources: Dictionary
 ) -> Dictionary:
 	return {
 		"ok": errors.is_empty(),
@@ -155,7 +228,9 @@ static func make_result(
 		"definitions": definitions,
 		"bindings": bindings,
 		"sources": sources,
-		"title_profile_id": title_profile_id
+		"title_profile_id": title_profile_id,
+		"boss_stems": boss_stems,
+		"boss_stem_sources": boss_stem_sources
 	}
 
 

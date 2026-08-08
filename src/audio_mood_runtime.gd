@@ -125,6 +125,7 @@ func initialize_from_runtime() -> void:
 	loaded_campaign_key = "%s|%s" % [campaign_path, campaign_id]
 	var result: Dictionary = Catalog.load_catalogs(campaign_path, campaign)
 	definitions = result.get("definitions", {})
+	boss_stems = result.get("boss_stems", {})
 	bindings.clear()
 	var bindings_value: Variant = result.get("bindings", [])
 	if typeof(bindings_value) == TYPE_ARRAY:
@@ -136,9 +137,11 @@ func initialize_from_runtime() -> void:
 		var validation: Dictionary = StrictValidator.validate_audio_only(campaign_path)
 		if not bool(validation.get("ok", false)):
 			definitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+			boss_stems.clear()
 			bindings.clear()
 			title_profile_id = Catalog.DEFAULT_PROFILE_ID
 	resolve_active_profile(true)
+	resolve_active_boss_stem(true)
 
 
 func current_runtime_campaign_key() -> String:

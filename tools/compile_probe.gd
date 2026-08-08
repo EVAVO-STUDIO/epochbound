@@ -162,6 +162,7 @@ const TARGETS := [
 	"res://tools/smoke_presentation_studio.gd",
 	"res://tools/smoke_presentation_validation_edges.gd",
 	"res://tools/smoke_audio_mood_runtime.gd",
+	"res://tools/smoke_boss_music_stems.gd",
 	"res://tools/smoke_audio_mood_studio.gd",
 	"res://tools/smoke_audio_mood_validation_edges.gd",
 	"res://tools/smoke_audio_campaign_scaffold.gd",

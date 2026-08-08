@@ -109,6 +109,7 @@ require(
         "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_temporal_shift_contract.py",
         "python3 tools/check_combat_fairness_contract.py",
+        "python3 tools/check_boss_music_stem_contract.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
@@ -117,13 +118,14 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.3"',
+        '"schemaVersion": "2.4"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
         '"headlessCleanupValidation": "passed"',
         '"temporalShiftValidation": "passed"',
         '"combatFairnessValidation": "passed"',
+        '"bossMusicStemValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"multiplayerValidation": "passed"',
@@ -154,6 +156,7 @@ require(
         "SHA512-SUMS.txt",
         "sha512sum --check",
         "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_boss_music_stem_contract.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
@@ -165,6 +168,7 @@ require(
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_audio_mood_runtime.gd",
+        "smoke_boss_music_stems.gd",
         "smoke_audio_mood_studio.gd",
         "smoke_audio_mood_validation_edges.gd",
         "smoke_audio_campaign_scaffold.gd",
@@ -233,6 +237,8 @@ require(
         "smoke_campaign_audit.gd",
         "smoke_temporal_shift_audit.gd",
         "meaningful temporal shifts",
+        "smoke_boss_music_stems.gd",
+        "boss phase music stems",
         "Smoke test Combat Director target locking and stagger interrupts",
         "smoke_combat_director.gd",
         "locked combat telegraphs",
@@ -684,6 +690,23 @@ forbid(
     ["damage_actor(target_name"],
 )
 
+boss_music_stem_contract = read(
+    "boss_music_stem_contract",
+    ROOT / "tools/check_boss_music_stem_contract.py",
+)
+require(
+    "boss_music_stem_contract",
+    boss_music_stem_contract,
+    [
+        "epochbound_boss_music_stem_contract_passed",
+        "underworks_sentinel|catalogue_measure",
+        "underworks_sentinel|cinder_measure",
+        "underworks_sentinel|last_accession",
+        '"bossMusicStemValidation": "passed"',
+    ],
+)
+
+
 multiplayer_session = read("multiplayer_session", ROOT / "src/multiplayer_session.gd")
 require(
     "multiplayer_session",
@@ -727,5 +750,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, boss phase music stems, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

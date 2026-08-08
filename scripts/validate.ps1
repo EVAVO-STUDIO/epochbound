@@ -122,6 +122,7 @@ try {
         @("Smoke test Presentation and Feel Studio editor state", "res://tools/smoke_presentation_studio.gd"),
         @("Smoke test malformed presentation colours camera values atmosphere and bindings", "res://tools/smoke_presentation_validation_edges.gd"),
         @("Smoke test original procedural music ambience and event feedback", "res://tools/smoke_audio_mood_runtime.gd"),
+        @("Smoke test authored boss phase music stems", "res://tools/smoke_boss_music_stems.gd"),
         @("Smoke test Audio and Mood Studio editor state", "res://tools/smoke_audio_mood_studio.gd"),
         @("Smoke test malformed Audio and Mood synthesis ambience and bindings", "res://tools/smoke_audio_mood_validation_edges.gd"),
         @("Smoke test Audio and Mood scaffolding for new campaigns", "res://tools/smoke_audio_campaign_scaffold.gd"),
@@ -141,7 +142,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, boss phase music stems, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

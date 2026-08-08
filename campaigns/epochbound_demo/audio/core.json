@@ -8,16 +8,66 @@
 			"music": {
 				"tempo_bpm": 78.0,
 				"root_midi": 45,
-				"scale": [0, 2, 3, 7, 9],
-				"melody_steps": [0, -99, 2, -99, 4, 3, 2, -99, 0, -99, 3, 4, 2, -99, 1, -99],
-				"bass_steps": [0, -99, -99, -99, 0, -99, 3, -99, 4, -99, -99, -99, 3, -99, 1, -99],
+				"scale": [
+					0,
+					2,
+					3,
+					7,
+					9
+				],
+				"melody_steps": [
+					0,
+					-99,
+					2,
+					-99,
+					4,
+					3,
+					2,
+					-99,
+					0,
+					-99,
+					3,
+					4,
+					2,
+					-99,
+					1,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					-99,
+					-99,
+					0,
+					-99,
+					3,
+					-99,
+					4,
+					-99,
+					-99,
+					-99,
+					3,
+					-99,
+					1,
+					-99
+				],
 				"waveform": "triangle",
 				"pulse_width": 0.35,
 				"gain": 0.16,
 				"combat_gain": 0.06
 			},
-			"ambience": {"kind": "room_tone", "gain": 0.055, "tone_hz": 52.0, "motion": 0.22},
-			"mix": {"menu_duck": 0.45, "cinematic_duck": 0.28, "pause_duck": 0.20, "crossfade_seconds": 0.9}
+			"ambience": {
+				"kind": "room_tone",
+				"gain": 0.055,
+				"tone_hz": 52.0,
+				"motion": 0.22
+			},
+			"mix": {
+				"menu_duck": 0.45,
+				"cinematic_duck": 0.28,
+				"pause_duck": 0.2,
+				"crossfade_seconds": 0.9
+			}
 		},
 		{
 			"id": "bellweather_verdant",
@@ -25,16 +75,66 @@
 			"music": {
 				"tempo_bpm": 94.0,
 				"root_midi": 50,
-				"scale": [0, 2, 3, 7, 9],
-				"melody_steps": [0, 2, 4, -99, 3, 2, 0, -99, 2, 3, 5, 4, 2, -99, 1, -99],
-				"bass_steps": [0, -99, 0, -99, 3, -99, 3, -99, 4, -99, 4, -99, 3, -99, 1, -99],
+				"scale": [
+					0,
+					2,
+					3,
+					7,
+					9
+				],
+				"melody_steps": [
+					0,
+					2,
+					4,
+					-99,
+					3,
+					2,
+					0,
+					-99,
+					2,
+					3,
+					5,
+					4,
+					2,
+					-99,
+					1,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					0,
+					-99,
+					3,
+					-99,
+					3,
+					-99,
+					4,
+					-99,
+					4,
+					-99,
+					3,
+					-99,
+					1,
+					-99
+				],
 				"waveform": "pulse",
 				"pulse_width": 0.28,
 				"gain": 0.17,
-				"combat_gain": 0.10
+				"combat_gain": 0.1
 			},
-			"ambience": {"kind": "pollen", "gain": 0.05, "tone_hz": 74.0, "motion": 0.38},
-			"mix": {"menu_duck": 0.42, "cinematic_duck": 0.27, "pause_duck": 0.18, "crossfade_seconds": 0.75}
+			"ambience": {
+				"kind": "pollen",
+				"gain": 0.05,
+				"tone_hz": 74.0,
+				"motion": 0.38
+			},
+			"mix": {
+				"menu_duck": 0.42,
+				"cinematic_duck": 0.27,
+				"pause_duck": 0.18,
+				"crossfade_seconds": 0.75
+			}
 		},
 		{
 			"id": "bellweather_ashen",
@@ -42,16 +142,66 @@
 			"music": {
 				"tempo_bpm": 86.0,
 				"root_midi": 46,
-				"scale": [0, 1, 3, 7, 8],
-				"melody_steps": [0, -99, 1, 3, 2, -99, 0, -99, 4, 3, 1, -99, 2, 1, 0, -99],
-				"bass_steps": [0, -99, -99, -99, 0, -99, 3, -99, 4, -99, -99, -99, 1, -99, 0, -99],
+				"scale": [
+					0,
+					1,
+					3,
+					7,
+					8
+				],
+				"melody_steps": [
+					0,
+					-99,
+					1,
+					3,
+					2,
+					-99,
+					0,
+					-99,
+					4,
+					3,
+					1,
+					-99,
+					2,
+					1,
+					0,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					-99,
+					-99,
+					0,
+					-99,
+					3,
+					-99,
+					4,
+					-99,
+					-99,
+					-99,
+					1,
+					-99,
+					0,
+					-99
+				],
 				"waveform": "pulse",
 				"pulse_width": 0.22,
 				"gain": 0.16,
 				"combat_gain": 0.12
 			},
-			"ambience": {"kind": "embers", "gain": 0.065, "tone_hz": 43.0, "motion": 0.54},
-			"mix": {"menu_duck": 0.40, "cinematic_duck": 0.24, "pause_duck": 0.16, "crossfade_seconds": 0.85}
+			"ambience": {
+				"kind": "embers",
+				"gain": 0.065,
+				"tone_hz": 43.0,
+				"motion": 0.54
+			},
+			"mix": {
+				"menu_duck": 0.4,
+				"cinematic_duck": 0.24,
+				"pause_duck": 0.16,
+				"crossfade_seconds": 0.85
+			}
 		},
 		{
 			"id": "clockwood_verdant",
@@ -59,16 +209,66 @@
 			"music": {
 				"tempo_bpm": 106.0,
 				"root_midi": 52,
-				"scale": [0, 2, 5, 7, 9],
-				"melody_steps": [0, 2, 3, 5, 4, 3, 2, -99, 1, 2, 4, 5, 3, 2, 0, -99],
-				"bass_steps": [0, -99, 0, -99, 2, -99, 2, -99, 4, -99, 4, -99, 3, -99, 1, -99],
+				"scale": [
+					0,
+					2,
+					5,
+					7,
+					9
+				],
+				"melody_steps": [
+					0,
+					2,
+					3,
+					5,
+					4,
+					3,
+					2,
+					-99,
+					1,
+					2,
+					4,
+					5,
+					3,
+					2,
+					0,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					0,
+					-99,
+					2,
+					-99,
+					2,
+					-99,
+					4,
+					-99,
+					4,
+					-99,
+					3,
+					-99,
+					1,
+					-99
+				],
 				"waveform": "triangle",
 				"pulse_width": 0.35,
 				"gain": 0.18,
-				"combat_gain": 0.10
+				"combat_gain": 0.1
 			},
-			"ambience": {"kind": "insects", "gain": 0.06, "tone_hz": 118.0, "motion": 0.62},
-			"mix": {"menu_duck": 0.42, "cinematic_duck": 0.26, "pause_duck": 0.18, "crossfade_seconds": 0.70}
+			"ambience": {
+				"kind": "insects",
+				"gain": 0.06,
+				"tone_hz": 118.0,
+				"motion": 0.62
+			},
+			"mix": {
+				"menu_duck": 0.42,
+				"cinematic_duck": 0.26,
+				"pause_duck": 0.18,
+				"crossfade_seconds": 0.7
+			}
 		},
 		{
 			"id": "clockwood_ashen",
@@ -76,16 +276,66 @@
 			"music": {
 				"tempo_bpm": 98.0,
 				"root_midi": 47,
-				"scale": [0, 1, 5, 7, 10],
-				"melody_steps": [0, 1, -99, 3, 2, 1, 0, -99, 4, 3, 2, -99, 1, 0, -99, -99],
-				"bass_steps": [0, -99, -99, -99, 2, -99, -99, -99, 4, -99, -99, -99, 1, -99, 0, -99],
+				"scale": [
+					0,
+					1,
+					5,
+					7,
+					10
+				],
+				"melody_steps": [
+					0,
+					1,
+					-99,
+					3,
+					2,
+					1,
+					0,
+					-99,
+					4,
+					3,
+					2,
+					-99,
+					1,
+					0,
+					-99,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					-99,
+					-99,
+					2,
+					-99,
+					-99,
+					-99,
+					4,
+					-99,
+					-99,
+					-99,
+					1,
+					-99,
+					0,
+					-99
+				],
 				"waveform": "pulse",
 				"pulse_width": 0.18,
 				"gain": 0.17,
 				"combat_gain": 0.13
 			},
-			"ambience": {"kind": "cinders", "gain": 0.07, "tone_hz": 39.0, "motion": 0.72},
-			"mix": {"menu_duck": 0.38, "cinematic_duck": 0.23, "pause_duck": 0.15, "crossfade_seconds": 0.80}
+			"ambience": {
+				"kind": "cinders",
+				"gain": 0.07,
+				"tone_hz": 39.0,
+				"motion": 0.72
+			},
+			"mix": {
+				"menu_duck": 0.38,
+				"cinematic_duck": 0.23,
+				"pause_duck": 0.15,
+				"crossfade_seconds": 0.8
+			}
 		},
 		{
 			"id": "underworks_verdant",
@@ -93,16 +343,67 @@
 			"music": {
 				"tempo_bpm": 72.0,
 				"root_midi": 43,
-				"scale": [0, 2, 3, 6, 7, 10],
-				"melody_steps": [0, -99, 3, -99, 2, -99, 5, 4, 3, -99, 1, -99, 2, 0, -99, -99],
-				"bass_steps": [0, -99, -99, -99, 3, -99, -99, -99, 4, -99, -99, -99, 2, -99, 0, -99],
+				"scale": [
+					0,
+					2,
+					3,
+					6,
+					7,
+					10
+				],
+				"melody_steps": [
+					0,
+					-99,
+					3,
+					-99,
+					2,
+					-99,
+					5,
+					4,
+					3,
+					-99,
+					1,
+					-99,
+					2,
+					0,
+					-99,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					-99,
+					-99,
+					3,
+					-99,
+					-99,
+					-99,
+					4,
+					-99,
+					-99,
+					-99,
+					2,
+					-99,
+					0,
+					-99
+				],
 				"waveform": "sine",
-				"pulse_width": 0.50,
+				"pulse_width": 0.5,
 				"gain": 0.15,
 				"combat_gain": 0.11
 			},
-			"ambience": {"kind": "machinery", "gain": 0.085, "tone_hz": 58.0, "motion": 0.46},
-			"mix": {"menu_duck": 0.40, "cinematic_duck": 0.22, "pause_duck": 0.15, "crossfade_seconds": 1.0}
+			"ambience": {
+				"kind": "machinery",
+				"gain": 0.085,
+				"tone_hz": 58.0,
+				"motion": 0.46
+			},
+			"mix": {
+				"menu_duck": 0.4,
+				"cinematic_duck": 0.22,
+				"pause_duck": 0.15,
+				"crossfade_seconds": 1.0
+			}
 		},
 		{
 			"id": "underworks_ashen",
@@ -110,24 +411,194 @@
 			"music": {
 				"tempo_bpm": 80.0,
 				"root_midi": 41,
-				"scale": [0, 1, 3, 6, 7, 10],
-				"melody_steps": [0, -99, 1, 3, 5, -99, 3, 2, 1, -99, 4, 3, 2, 0, -99, -99],
-				"bass_steps": [0, -99, -99, -99, 3, -99, -99, -99, 5, -99, -99, -99, 2, -99, 0, -99],
+				"scale": [
+					0,
+					1,
+					3,
+					6,
+					7,
+					10
+				],
+				"melody_steps": [
+					0,
+					-99,
+					1,
+					3,
+					5,
+					-99,
+					3,
+					2,
+					1,
+					-99,
+					4,
+					3,
+					2,
+					0,
+					-99,
+					-99
+				],
+				"bass_steps": [
+					0,
+					-99,
+					-99,
+					-99,
+					3,
+					-99,
+					-99,
+					-99,
+					5,
+					-99,
+					-99,
+					-99,
+					2,
+					-99,
+					0,
+					-99
+				],
 				"waveform": "pulse",
 				"pulse_width": 0.16,
 				"gain": 0.16,
 				"combat_gain": 0.15
 			},
-			"ambience": {"kind": "furnace", "gain": 0.095, "tone_hz": 47.0, "motion": 0.82},
-			"mix": {"menu_duck": 0.36, "cinematic_duck": 0.20, "pause_duck": 0.13, "crossfade_seconds": 1.0}
+			"ambience": {
+				"kind": "furnace",
+				"gain": 0.095,
+				"tone_hz": 47.0,
+				"motion": 0.82
+			},
+			"mix": {
+				"menu_duck": 0.36,
+				"cinematic_duck": 0.2,
+				"pause_duck": 0.13,
+				"crossfade_seconds": 1.0
+			}
 		}
 	],
 	"bindings": [
-		{"map_id": "bellweather_crossing", "era_id": "verdant", "profile_id": "bellweather_verdant"},
-		{"map_id": "bellweather_crossing", "era_id": "ashen", "profile_id": "bellweather_ashen"},
-		{"map_id": "clockwood_edge", "era_id": "verdant", "profile_id": "clockwood_verdant"},
-		{"map_id": "clockwood_edge", "era_id": "ashen", "profile_id": "clockwood_ashen"},
-		{"map_id": "museum_underworks", "era_id": "verdant", "profile_id": "underworks_verdant"},
-		{"map_id": "museum_underworks", "era_id": "ashen", "profile_id": "underworks_ashen"}
+		{
+			"map_id": "bellweather_crossing",
+			"era_id": "verdant",
+			"profile_id": "bellweather_verdant"
+		},
+		{
+			"map_id": "bellweather_crossing",
+			"era_id": "ashen",
+			"profile_id": "bellweather_ashen"
+		},
+		{
+			"map_id": "clockwood_edge",
+			"era_id": "verdant",
+			"profile_id": "clockwood_verdant"
+		},
+		{
+			"map_id": "clockwood_edge",
+			"era_id": "ashen",
+			"profile_id": "clockwood_ashen"
+		},
+		{
+			"map_id": "museum_underworks",
+			"era_id": "verdant",
+			"profile_id": "underworks_verdant"
+		},
+		{
+			"map_id": "museum_underworks",
+			"era_id": "ashen",
+			"profile_id": "underworks_ashen"
+		}
+	],
+	"boss_stems": [
+		{
+			"boss_id": "underworks_sentinel",
+			"phase_id": "catalogue_measure",
+			"display_name": "Catalogue Pulse",
+			"tempo_multiplier": 0.92,
+			"root_offset": 12,
+			"melody_steps": [
+				0,
+				-99,
+				2,
+				4,
+				-99,
+				3,
+				1,
+				-99
+			],
+			"bass_steps": [
+				0,
+				-99,
+				-99,
+				2,
+				-99,
+				-99,
+				1,
+				-99
+			],
+			"waveform": "triangle",
+			"pulse_width": 0.42,
+			"gain": 0.1,
+			"percussion_gain": 0.035
+		},
+		{
+			"boss_id": "underworks_sentinel",
+			"phase_id": "cinder_measure",
+			"display_name": "Cinder Pulse",
+			"tempo_multiplier": 1.04,
+			"root_offset": 7,
+			"melody_steps": [
+				0,
+				1,
+				-99,
+				3,
+				2,
+				-99,
+				4,
+				3
+			],
+			"bass_steps": [
+				0,
+				-99,
+				2,
+				-99,
+				4,
+				-99,
+				1,
+				-99
+			],
+			"waveform": "pulse",
+			"pulse_width": 0.2,
+			"gain": 0.12,
+			"percussion_gain": 0.055
+		},
+		{
+			"boss_id": "underworks_sentinel",
+			"phase_id": "last_accession",
+			"display_name": "Last Accession Drive",
+			"tempo_multiplier": 1.18,
+			"root_offset": 12,
+			"melody_steps": [
+				0,
+				2,
+				4,
+				3,
+				5,
+				4,
+				2,
+				-99
+			],
+			"bass_steps": [
+				0,
+				-99,
+				3,
+				-99,
+				5,
+				-99,
+				2,
+				-99
+			],
+			"waveform": "pulse",
+			"pulse_width": 0.16,
+			"gain": 0.14,
+			"percussion_gain": 0.075
+		}
 	]
 }

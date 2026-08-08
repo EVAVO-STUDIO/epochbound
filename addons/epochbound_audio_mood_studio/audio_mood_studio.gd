@@ -12,6 +12,7 @@ var campaign_selector: OptionButton
 var profile_selector: OptionButton
 var status_label: Label
 var binding_label: Label
+var boss_stem_label: Label
 var tempo: SpinBox
 var root_midi: SpinBox
 var waveform: OptionButton
@@ -86,6 +87,10 @@ func build_ui() -> void:
 	binding_label.text = "No bindings loaded."
 	binding_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	navigation.add_child(binding_label)
+	boss_stem_label = Label.new()
+	boss_stem_label.text = "Boss phase stems: 0"
+	boss_stem_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	navigation.add_child(boss_stem_label)
 	var validate_button := Button.new()
 	validate_button.text = "Validate Campaign"
 	validate_button.pressed.connect(Callable(self, "validate_campaign"))
@@ -250,6 +255,18 @@ func refresh_profiles() -> void:
 	var bindings_value: Variant = current_catalog.get("bindings", [])
 	var binding_count := (bindings_value as Array).size() if typeof(bindings_value) == TYPE_ARRAY else 0
 	binding_label.text = "%d map/era binding(s)\nTitle profile: %s" % [binding_count, str(current_catalog.get("title_profile_id", AudioMoodCatalog.DEFAULT_PROFILE_ID))]
+	var stems_value: Variant = current_catalog.get("boss_stems", [])
+	var stem_lines := PackedStringArray()
+	if typeof(stems_value) == TYPE_ARRAY:
+		for stem_value in stems_value as Array:
+			if typeof(stem_value) != TYPE_DICTIONARY:
+				continue
+			var stem: Dictionary = stem_value as Dictionary
+			stem_lines.append("%s → %s" % [str(stem.get("boss_id", "boss")), str(stem.get("phase_id", "phase"))])
+	stem_lines.sort()
+	boss_stem_label.text = "Boss phase stems: %d" % stem_lines.size()
+	if not stem_lines.is_empty():
+		boss_stem_label.text += "\n" + "\n".join(stem_lines)
 	if profile_ids.is_empty():
 		status_label.text = "The catalogue has no audio profiles."
 		return
@@ -428,6 +445,11 @@ func join_messages(value: Variant) -> String:
 
 
 func message_count(value: Variant) -> int:
+	return (value as Array).size() if typeof(value) == TYPE_ARRAY else 0
+
+
+func boss_stem_count() -> int:
+	var value: Variant = current_catalog.get("boss_stems", [])
 	return (value as Array).size() if typeof(value) == TYPE_ARRAY else 0
 
 

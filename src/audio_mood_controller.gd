@@ -20,16 +20,23 @@ var sfx_player: AudioStreamPlayer
 
 var definitions: Dictionary = {}
 var bindings: Array[Dictionary] = []
+var boss_stems: Dictionary = {}
 var active_profile: Dictionary = {}
 var active_profile_id := ""
 var title_profile_id := AudioMoodCatalog.DEFAULT_PROFILE_ID
 var loaded_campaign_key := ""
 var loaded_context_key := ""
+var active_boss_stem: Dictionary = {}
+var active_boss_stem_key := ""
 
 var music_sample_clock := 0
 var music_phase := 0.0
 var bass_phase := 0.0
 var combat_phase := 0.0
+var boss_stem_sample_clock := 0
+var boss_stem_phase := 0.0
+var boss_stem_bass_phase := 0.0
+var boss_stem_mix_current := 0.0
 var ambience_phase := 0.0
 var ambience_filter := 0.0
 var music_gain_current := 0.0
@@ -92,6 +99,7 @@ func initialize_from_runtime() -> void:
 	loaded_campaign_key = "%s|%s" % [campaign_path, campaign_id]
 	var result := AudioMoodCatalog.load_catalogs(campaign_path, campaign)
 	definitions = result.get("definitions", {})
+	boss_stems = result.get("boss_stems", {})
 	bindings.clear()
 	var bindings_value: Variant = result.get("bindings", [])
 	if typeof(bindings_value) == TYPE_ARRAY:
@@ -103,9 +111,11 @@ func initialize_from_runtime() -> void:
 		var validation := AudioMoodValidator.validate_audio_only(campaign_path)
 		if not bool(validation.get("ok", false)):
 			definitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+			boss_stems.clear()
 			bindings.clear()
 			title_profile_id = AudioMoodCatalog.DEFAULT_PROFILE_ID
 	resolve_active_profile(true)
+	resolve_active_boss_stem(true)
 
 
 func _process(delta: float) -> void:
@@ -119,6 +129,7 @@ func _process(delta: float) -> void:
 		initialize_from_runtime()
 	update_events()
 	resolve_active_profile(false)
+	resolve_active_boss_stem(false)
 	update_mix(delta)
 	fill_music()
 	fill_ambience()
@@ -157,6 +168,66 @@ func resolve_active_profile(force: bool) -> void:
 		profile_gate = 0.0
 
 
+func current_boss_audio_context() -> Dictionary:
+	var flow := runtime_integer("flow", FLOW_SPLASH)
+	if flow != FLOW_GAME and flow != FLOW_PAUSED:
+		return {}
+	var engaged := runtime_dictionary("engaged_bosses")
+	var contexts := runtime_dictionary("boss_contexts")
+	var phases := runtime_dictionary("boss_phase_ids")
+	var placement_ids := PackedStringArray()
+	for placement_id_value in engaged.keys():
+		if bool(engaged.get(placement_id_value, false)):
+			placement_ids.append(str(placement_id_value))
+	placement_ids.sort()
+	for placement_id in placement_ids:
+		var context_value: Variant = contexts.get(placement_id, {})
+		if typeof(context_value) != TYPE_DICTIONARY:
+			continue
+		var context: Dictionary = context_value as Dictionary
+		var boss_id := str(context.get("object_id", "")).strip_edges()
+		var phase_id := str(phases.get(placement_id, "")).strip_edges()
+		if boss_id.is_empty() or phase_id.is_empty():
+			continue
+		var stem := AudioMoodCatalog.boss_stem(boss_stems, boss_id, phase_id)
+		if stem.is_empty():
+			continue
+		return {
+			"key": AudioMoodCatalog.boss_stem_key(boss_id, phase_id),
+			"boss_id": boss_id,
+			"phase_id": phase_id,
+			"placement_id": placement_id,
+			"stem": stem
+		}
+	return {}
+
+
+func resolve_active_boss_stem(force: bool) -> void:
+	var context := current_boss_audio_context()
+	var next_key := str(context.get("key", ""))
+	if not force and next_key == active_boss_stem_key:
+		return
+	active_boss_stem_key = next_key
+	var stem_value: Variant = context.get("stem", {})
+	active_boss_stem = (stem_value as Dictionary).duplicate(true) if typeof(stem_value) == TYPE_DICTIONARY else {}
+	boss_stem_sample_clock = 0
+	boss_stem_phase = 0.0
+	boss_stem_bass_phase = 0.0
+	boss_stem_mix_current = 0.0
+
+
+func boss_stem_snapshot() -> Dictionary:
+	return {
+		"key": active_boss_stem_key,
+		"boss_id": str(active_boss_stem.get("boss_id", "")),
+		"phase_id": str(active_boss_stem.get("phase_id", "")),
+		"sample_clock": boss_stem_sample_clock,
+		"tempo_multiplier": AudioMoodCatalog.boss_stem_number(active_boss_stem, "tempo_multiplier", 1.0),
+		"melody_step_count": AudioMoodCatalog.boss_stem_integer_array(active_boss_stem, "melody_steps", []).size(),
+		"stem": active_boss_stem.duplicate(true)
+	}
+
+
 func update_mix(delta: float) -> void:
 	var music_gain := clampf(AudioMoodCatalog.number(active_profile, "music", "gain", 0.16), 0.0, 0.45)
 	var ambience_gain := clampf(AudioMoodCatalog.number(active_profile, "ambience", "gain", 0.05), 0.0, 0.30)
@@ -179,6 +250,8 @@ func update_mix(delta: float) -> void:
 	ambience_gain_current = lerpf(ambience_gain_current, ambience_gain * duck * profile_gate, clampf(weight, 0.0, 1.0))
 	var combat_target := 1.0 if combat_is_active() else 0.0
 	combat_mix_current = lerpf(combat_mix_current, combat_target, clampf(delta * 5.0, 0.0, 1.0))
+	var boss_stem_target := 1.0 if not active_boss_stem.is_empty() else 0.0
+	boss_stem_mix_current = lerpf(boss_stem_mix_current, boss_stem_target, clampf(delta * 3.5, 0.0, 1.0))
 
 
 func fill_music() -> void:
@@ -198,7 +271,17 @@ func fill_music() -> void:
 	var waveform := AudioMoodCatalog.text(active_profile, "music", "waveform", "triangle")
 	var pulse_width := clampf(AudioMoodCatalog.number(active_profile, "music", "pulse_width", 0.35), 0.10, 0.90)
 	var combat_gain := clampf(AudioMoodCatalog.number(active_profile, "music", "combat_gain", 0.08), 0.0, 0.30)
+	var stem_active := not active_boss_stem.is_empty()
+	var stem_tempo := clampf(tempo * AudioMoodCatalog.boss_stem_number(active_boss_stem, "tempo_multiplier", 1.0), 40.0, 240.0)
+	var stem_root := clampi(root_midi + int(active_boss_stem.get("root_offset", 0)), 0, 127)
+	var stem_melody: Array[int] = AudioMoodCatalog.boss_stem_integer_array(active_boss_stem, "melody_steps", [0, REST_STEP, 2, REST_STEP])
+	var stem_bass: Array[int] = AudioMoodCatalog.boss_stem_integer_array(active_boss_stem, "bass_steps", [0, REST_STEP, REST_STEP, REST_STEP])
+	var stem_waveform := AudioMoodCatalog.boss_stem_text(active_boss_stem, "waveform", "triangle")
+	var stem_pulse_width := clampf(AudioMoodCatalog.boss_stem_number(active_boss_stem, "pulse_width", 0.35), 0.10, 0.90)
+	var stem_gain := clampf(AudioMoodCatalog.boss_stem_number(active_boss_stem, "gain", 0.0), 0.0, 0.25)
+	var stem_percussion_gain := clampf(AudioMoodCatalog.boss_stem_number(active_boss_stem, "percussion_gain", 0.0), 0.0, 0.20)
 	var samples_per_step := maxi(1, int(SAMPLE_RATE * 60.0 / tempo / 4.0))
+	var stem_samples_per_step := maxi(1, int(SAMPLE_RATE * 60.0 / stem_tempo / 4.0))
 	for _frame_index in range(frames):
 		var step_index := int(music_sample_clock / samples_per_step)
 		var step_phase := float(music_sample_clock % samples_per_step) / float(samples_per_step)
@@ -220,6 +303,26 @@ func fill_music() -> void:
 			var beat_gate := 1.0 if posmod(step_index, 2) == 0 else 0.35
 			var percussion := deterministic_noise(music_sample_clock) * pow(1.0 - step_phase, 5.0) * beat_gate
 			sample += (oscillator("pulse", combat_phase, 0.18) * 0.34 + percussion * 0.20) * combat_mix_current * combat_gain
+		if stem_active:
+			var stem_step_index := int(boss_stem_sample_clock / stem_samples_per_step)
+			var stem_step_phase := float(boss_stem_sample_clock % stem_samples_per_step) / float(stem_samples_per_step)
+			var stem_envelope := minf(1.0, stem_step_phase / 0.05) * maxf(0.0, 1.0 - stem_step_phase * 0.68)
+			var stem_sample := 0.0
+			var stem_melody_degree := stem_melody[stem_step_index % stem_melody.size()]
+			if stem_melody_degree != REST_STEP:
+				var stem_hz := degree_frequency(stem_root + 12, stem_melody_degree, scale)
+				boss_stem_phase = fmod(boss_stem_phase + stem_hz / SAMPLE_RATE, 1.0)
+				stem_sample += oscillator(stem_waveform, boss_stem_phase, stem_pulse_width) * stem_envelope * stem_gain
+			var stem_bass_degree := stem_bass[stem_step_index % stem_bass.size()]
+			if stem_bass_degree != REST_STEP:
+				var stem_bass_hz := degree_frequency(stem_root - 12, stem_bass_degree, scale)
+				boss_stem_bass_phase = fmod(boss_stem_bass_phase + stem_bass_hz / SAMPLE_RATE, 1.0)
+				stem_sample += oscillator("triangle", boss_stem_bass_phase, 0.5) * stem_envelope * stem_gain * 0.58
+			var stem_beat_gate := 1.0 if posmod(stem_step_index, 2) == 0 else 0.28
+			var stem_percussion := deterministic_noise(boss_stem_sample_clock * 37 + 11) * pow(1.0 - stem_step_phase, 6.0) * stem_beat_gate
+			stem_sample += stem_percussion * stem_percussion_gain
+			sample += stem_sample * boss_stem_mix_current
+			boss_stem_sample_clock += 1
 		sample = soft_clip(sample * music_gain_current)
 		playback.push_frame(Vector2(sample, sample))
 		music_sample_clock += 1
@@ -530,6 +633,14 @@ func runtime_array(property_name: String) -> Array:
 		return []
 	var value: Variant = runtime.get(property_name)
 	return value as Array if typeof(value) == TYPE_ARRAY else []
+
+
+func runtime_dictionary(property_name: String) -> Dictionary:
+	var runtime := runtime_root()
+	if runtime == null:
+		return {}
+	var value: Variant = runtime.get(property_name)
+	return value as Dictionary if typeof(value) == TYPE_DICTIONARY else {}
 
 
 func runtime_vector(property_name: String) -> Vector2:

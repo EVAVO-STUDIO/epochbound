@@ -60,6 +60,9 @@ jobs:
       - name: Validate release workflow policy
         run: python3 tools/check_release_workflow_policy.py
 
+      - name: Validate boss phase music stem contract
+        run: python3 tools/check_boss_music_stem_contract.py
+
       - name: Validate canonical runtime composition contract
         run: python3 tools/check_runtime_scene_contract.py
 
@@ -153,6 +156,7 @@ jobs:
           run_test res://tools/smoke_supply_regions.gd
           run_test res://tools/smoke_supply_validation_edges.gd
           run_test res://tools/smoke_audio_mood_runtime.gd
+          run_test res://tools/smoke_boss_music_stems.gd
           run_test res://tools/smoke_audio_mood_studio.gd
           run_test res://tools/smoke_audio_mood_validation_edges.gd
           run_test res://tools/smoke_audio_campaign_scaffold.gd

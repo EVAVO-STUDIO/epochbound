@@ -71,5 +71,20 @@ for old_marker, new_marker, label in (
     if source.count(old_marker) != 1:
         raise SystemExit(f"temporary applicator {label} marker drifted")
     source = source.replace(old_marker, new_marker, 1)
+controller_old = '''    '''\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\\t\\tbindings.clear()''',
+    '''\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\\t\\tboss_stems.clear()
+\\t\\tbindings.clear()''',
+'''
+controller_new = '''    '''\\t\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\\t\\t\\tbindings.clear()''',
+    '''\\t\\t\\tdefinitions = {AudioMoodCatalog.DEFAULT_PROFILE_ID: AudioMoodCatalog.default_profile()}
+\\t\\t\\tboss_stems.clear()
+\\t\\t\\tbindings.clear()''',
+'''
+if source.count(controller_old) != 1:
+    raise SystemExit("temporary applicator nested Audio fallback anchor drifted")
+source = source.replace(controller_old, controller_new, 1)
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

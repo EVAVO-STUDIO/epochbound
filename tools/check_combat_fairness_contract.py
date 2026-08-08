@@ -65,6 +65,10 @@ require(
         "attack_target_position(locked_target_id)",
         "damage_actor(locked_target_id",
         'entity["attack_target_id"] = target_name',
+        "MAX_NON_BOSS_WINDUPS_PER_TARGET := 1",
+        "func attack_pressure_slot_available(",
+        "func uses_shared_attack_pressure_slot(",
+        'entity["mode"] = "pressure"',
     ],
 )
 require(
@@ -81,6 +85,15 @@ require_order(
         "attack_target_position(locked_target_id)",
         "damage_actor(locked_target_id",
         'entity["attack_target_id"] = ""',
+    ],
+)
+require_order(
+    "combat_runtime_pressure",
+    enemy_body,
+    [
+        "attack_pressure_slot_available(index, target_name, definition_data)",
+        'entity["attack_windup"] = maxf(',
+        'entity["mode"] = "pressure"',
     ],
 )
 require_order(
@@ -116,7 +129,11 @@ require(
         "Stagger must clear the pending attack target.",
         "Interrupted windup must not deal deferred damage after stagger.",
         "A post-stagger attack must begin a fresh telegraph.",
-        "target locking, interruptible windup",
+        "Only one ordinary enemy may own a windup against the same actor.",
+        "The waiting enemy must enter pressure mode.",
+        "Attack pressure must hand the next telegraph to the waiting enemy.",
+        "Pressure coordination must not add untelegraphed damage.",
+        "target locking, interruptible windup, one-slot ordinary-enemy pressure",
     ],
 )
 
@@ -130,6 +147,9 @@ require(
         "fresh full windup",
         "A telegraph cannot silently transfer",
         "target locking and stagger interruption",
+        "one active windup slot per actor",
+        "Pressure",
+        "Boss definitions do not consume",
     ],
 )
 
@@ -142,6 +162,8 @@ require(
         "stagger cancels pending damage",
         "A paused pre-hit telegraph must never resume and land later",
         "attack_target_id",
+        "ordinary enemies share one active melee windup slot",
+        "Bosses do not consume the ordinary-enemy slot",
         "Deterministic verification",
     ],
 )
@@ -151,10 +173,11 @@ require(
     "local_gate",
     local_gate,
     [
-        "Smoke test Combat Director target locking and stagger interrupts",
+        "Smoke test Combat Director target locking stagger interrupts and pressure budget",
         "smoke_combat_director.gd",
         "locked combat telegraphs",
         "stagger interrupts",
+        "ordinary-enemy pressure budget",
     ],
 )
 
@@ -182,6 +205,7 @@ require(
         "check_combat_fairness_contract.py",
         "locked combat telegraphs",
         "stagger interrupts",
+        "ordinary-enemy pressure budget",
     ],
 )
 
@@ -196,4 +220,6 @@ print("- windups retain one actor identity from telegraph start through resoluti
 print("- a closer actor cannot inherit an existing pending attack")
 print("- stagger clears both the pending timer and target before recovery")
 print("- interrupted enemies must begin a fresh telegraph before later damage")
+print("- ordinary enemies share one active melee windup per target while bosses remain exempt")
+print("- waiting enemies use deterministic pressure state and inherit the next available telegraph")
 print("- runtime, smoke, documentation, local and exact-main gates remain pinned")

@@ -172,6 +172,27 @@ patch_once(
 )
 """,
 )
+patch_once(
+    "final contract precision",
+    'print("boss_music_stem_integration_applied")\n',
+    '''contract_path = Path("tools/check_boss_music_stem_contract.py")
+contract_source = contract_path.read_text(encoding="utf-8")
+forbidden_line = '        "load(",\\n'
+if contract_source.count(forbidden_line) != 1:
+    raise SystemExit("boss music contract broad load token drifted")
+contract_path.write_text(contract_source.replace(forbidden_line, "", 1), encoding="utf-8")
+
+policy_path = Path("tools/check_release_workflow_policy.py")
+policy_source = policy_path.read_text(encoding="utf-8")
+old_schema = '\"schemaVersion\": \"2.3\"'
+new_schema = '\"schemaVersion\": \"2.4\"'
+if policy_source.count(old_schema) != 1:
+    raise SystemExit("release policy receipt schema token drifted")
+policy_path.write_text(policy_source.replace(old_schema, new_schema, 1), encoding="utf-8")
+
+print("boss_music_stem_integration_applied")
+''',
+)
 
 path.write_text(source, encoding="utf-8")
 

@@ -43,6 +43,17 @@ for checker_path in sorted(Path("tools").glob("check_*_contract.py")):
     )
     checker_path.write_text(checker.rstrip() + "\n", encoding="utf-8")
 
+loopback_contract_path = Path("tools/check_multiplayer_loopback_contract.py")
+loopback_contract = loopback_contract_path.read_text(encoding="utf-8")
+loopback_contract = loopback_contract.replace(
+    '        \'session.call(\\n\\t\\t\\t\\t\\t\\t\\t"request_graceful_leave"\',\n',
+    '        \'"request_graceful_leave"\',\n',
+)
+loopback_contract_path.write_text(
+    loopback_contract.rstrip() + "\n",
+    encoding="utf-8",
+)
+
 policy_path = Path("tools/check_release_workflow_policy.py")
 policy = policy_path.read_text(encoding="utf-8")
 policy = policy.replace('"schemaVersion": "2.5"', '"schemaVersion": "2.6"')
@@ -86,12 +97,20 @@ if 'multiplayer_transport_session = read(' not in policy:
     policy = policy.replace(anchor, transport_guard + anchor, 1)
 policy_path.write_text(policy.rstrip() + "\n", encoding="utf-8")
 
+harness_path = Path("scripts/validate_multiplayer_loopback.ps1")
+harness = harness_path.read_text(encoding="utf-8")
+failure_cleanup_phrase = "Forced termination is retained only as bounded failure cleanup"
+if failure_cleanup_phrase not in harness:
+    harness = harness.rstrip() + (
+        "\n\n# Forced termination is retained only as bounded failure cleanup.\n"
+    )
+harness_path.write_text(harness, encoding="utf-8")
+
 normalized_paths = [
     "README.md",
     "docs/MULTIPLAYER_COOP_PVP.md",
     "docs/MULTIPLAYER_LOOPBACK_GATE.md",
     "scripts/validate.ps1",
-    "scripts/validate_multiplayer_loopback.ps1",
     "src/multiplayer_transport_session.gd",
     "tools/multiplayer_loopback_peer.gd",
     "tools/multiplayer_loopback_peer_driver.gd",

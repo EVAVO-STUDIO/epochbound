@@ -19,6 +19,7 @@ var join_generation := 0
 # this driver repeatedly uses the same production RPC surface until host
 # authority records a fresh sequence. The ally then uses the production
 # graceful-leave protocol and reconnects inside this same Godot process.
+
 func run_client() -> void:
 	session.set(
 		"local_name",
@@ -28,18 +29,21 @@ func run_client() -> void:
 	)
 	if not start_join("LOOPBACK CONNECT STARTED"):
 		return
-	var first_peer_id: int = -1
-	var first_snapshot_sequence: int = -1
-	var first_input_sequence_sent: int = -1
-	var initial_complete_since_msec: int = -1
-	var reconnect_complete_since_msec: int = -1
+	var first_peer_id := -1
+	var first_snapshot_sequence := -1
+	var first_input_sequence_sent := -1
+	var initial_complete_since_msec := -1
+	var reconnect_complete_since_msec := -1
 	var graceful_leave_requested := false
 	var reconnect_started := false
-	var deadline_msec: int = Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
+	var receipt_ready := false
+	var pending_receipt: Dictionary = {}
+	var deadline_msec := Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
 	while Time.get_ticks_msec() < deadline_msec:
-		var mode: String = str(session.get("mode"))
-		var notice: String = str(session.get("session_notice"))
-		if mode == MultiplayerSessionModel.MODE_OFFLINE and (
+		var mode := str(session.get("mode"))
+		var notice := str(session.get("session_notice"))
+		var host_commit_received := bool(session.get("last_host_shutdown_commit_received"))
+		if mode == MultiplayerSessionModel.MODE_OFFLINE and not host_commit_received and (
 			notice.begins_with("JOIN REJECTED")
 			or notice.contains("CONNECTION FAILED")
 			or notice.contains("HOST DISCONNECTED")
@@ -52,7 +56,7 @@ func run_client() -> void:
 			send_explicit_input_if_due()
 		log_snapshot_if_needed()
 
-		var complete_exchange: bool = client_has_complete_exchange()
+		var complete_exchange := client_has_complete_exchange()
 		if peer_role == MultiplayerSessionModel.ROLE_ALLY:
 			if not graceful_leave_requested:
 				if complete_exchange:
@@ -64,17 +68,10 @@ func run_client() -> void:
 						and explicit_input_sequence >= LOOPBACK_INPUT_SEQUENCE_START + 3
 					):
 						first_peer_id = int(session.get("local_peer_id"))
-						first_snapshot_sequence = int(
-							session.get("last_snapshot_sequence")
-						)
+						first_snapshot_sequence = int(session.get("last_snapshot_sequence"))
 						first_input_sequence_sent = explicit_input_sequence
-						if not bool(session.call(
-							"request_graceful_leave",
-							"LOOPBACK ALLY RECONNECT"
-						)):
-							finish_failure(
-								"Loopback ally could not request a graceful leave."
-							)
+						if not bool(session.call("request_graceful_leave", "LOOPBACK ALLY RECONNECT")):
+							finish_failure("Loopback ally could not request a graceful leave.")
 							return
 						graceful_leave_requested = true
 						print(
@@ -103,7 +100,7 @@ func run_client() -> void:
 					if not start_join("LOOPBACK RECONNECT STARTED"):
 						return
 					reconnect_started = true
-			elif complete_exchange:
+			elif complete_exchange and not receipt_ready:
 				if reconnect_complete_since_msec < 0:
 					reconnect_complete_since_msec = Time.get_ticks_msec()
 				if (
@@ -111,47 +108,66 @@ func run_client() -> void:
 					>= RECONNECT_EXCHANGE_HOLD_MSEC
 					and explicit_input_sequence > first_input_sequence_sent
 				):
-					var receipt: Dictionary = client_receipt()
-					receipt["same_process_reconnect"] = true
-					receipt["first_peer_id"] = first_peer_id
-					receipt["first_snapshot_sequence"] = first_snapshot_sequence
-					receipt["first_input_sequence_sent"] = first_input_sequence_sent
-					receipt["graceful_leave_ack_sequence"] = int(
-						session.get("last_graceful_leave_ack_sequence")
-					)
-					receipt["reconnect_generation"] = join_generation
-					if not write_json(receipt_path, receipt):
-						finish_failure(
-							"Loopback ally could not write its reconnect receipt."
-						)
-						return
-					await hold_after_receipt()
-					return
+					pending_receipt = client_receipt()
+					pending_receipt["same_process_reconnect"] = true
+					pending_receipt["first_peer_id"] = first_peer_id
+					pending_receipt["first_snapshot_sequence"] = first_snapshot_sequence
+					pending_receipt["first_input_sequence_sent"] = first_input_sequence_sent
+					pending_receipt["graceful_leave_ack_sequence"] = int(session.get("last_graceful_leave_ack_sequence"))
+					pending_receipt["reconnect_generation"] = join_generation
+					receipt_ready = true
+					print("LOOPBACK CLIENT READY FOR HOST SHUTDOWN: ally")
 			else:
 				reconnect_complete_since_msec = -1
-		elif complete_exchange:
-			var receipt: Dictionary = client_receipt()
-			if not write_json(receipt_path, receipt):
-				finish_failure(
-					"Loopback %s could not write its validation receipt." % peer_role
-				)
+		elif complete_exchange and not receipt_ready:
+			pending_receipt = client_receipt()
+			receipt_ready = true
+			print("LOOPBACK CLIENT READY FOR HOST SHUTDOWN: invader")
+
+		if (
+			receipt_ready
+			and mode == MultiplayerSessionModel.MODE_OFFLINE
+			and host_commit_received
+		):
+			pending_receipt["host_shutdown_sequence"] = int(session.get("last_host_shutdown_sequence"))
+			pending_receipt["host_shutdown_ack_sent_sequence"] = int(session.get("last_host_shutdown_ack_sent_sequence"))
+			pending_receipt["host_shutdown_commit_received"] = true
+			pending_receipt["host_shutdown_reason"] = str(session.get("last_host_shutdown_reason"))
+			pending_receipt["final_mode"] = mode
+			pending_receipt["independent_exit"] = true
+			if (
+				int(pending_receipt.get("host_shutdown_sequence", -1)) <= 0
+				or int(pending_receipt.get("host_shutdown_ack_sent_sequence", -1))
+				!= int(pending_receipt.get("host_shutdown_sequence", -1))
+			):
+				finish_failure("Loopback client did not preserve the acknowledged host-shutdown sequence.")
 				return
-			await hold_after_receipt()
+			if not write_json(receipt_path, pending_receipt):
+				finish_failure("Loopback %s could not write its host-shutdown receipt." % peer_role)
+				return
+			print(
+				"LOOPBACK HOST SHUTDOWN COMMIT RECEIVED: %s sequence %d" % [
+					peer_role,
+					int(pending_receipt.get("host_shutdown_sequence", -1))
+				]
+			)
+			await finish_success()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
-		"Loopback %s timed out: mode=%s peer=%d snapshot=%d input_sequence=%d ack=%d reconnect=%s notice=%s" % [
+		"Loopback %s timed out: mode=%s peer=%d snapshot=%d input_sequence=%d ack=%d host_shutdown=%d commit=%s reconnect=%s notice=%s" % [
 			peer_role,
 			str(session.get("mode")),
 			int(session.get("local_peer_id")),
 			int(session.get("last_snapshot_sequence")),
 			explicit_input_sequence,
 			int(session.get("last_graceful_leave_ack_sequence")),
+			int(session.get("last_host_shutdown_sequence")),
+			str(session.get("last_host_shutdown_commit_received")),
 			str(reconnect_started),
 			str(session.get("session_notice"))
 		]
 	)
-
 
 func start_join(log_prefix: String) -> bool:
 	if not bool(session.call("join_session", HOST_ADDRESS, peer_role, port)):

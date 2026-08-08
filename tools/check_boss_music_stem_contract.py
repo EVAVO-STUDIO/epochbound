@@ -226,8 +226,8 @@ require(
     [
         "Validate boss phase music stem contract",
         "python3 tools/check_boss_music_stem_contract.py",
-        '# Receipt schema migrated from: "schemaVersion": "2.4"',
-        '"schemaVersion": "2.5"',
+        '# Receipt schema migrated from: "schemaVersion": "2.5"',
+        '"schemaVersion": "2.6"',
         '"bossMusicStemValidation": "passed"',
     ],
 )
@@ -252,7 +252,7 @@ require(
     release_policy,
     [
         "python3 tools/check_boss_music_stem_contract.py",
-        '"schemaVersion": "2.5"',
+        '"schemaVersion": "2.6"',
         '"bossMusicStemValidation": "passed"',
         "check_boss_music_stem_contract.py",
         "smoke_boss_music_stems.gd",

@@ -1,5 +1,6 @@
 extends SceneTree
 
+const HeadlessRuntimeCleanup = preload("res://tools/headless_runtime_cleanup.gd")
 const MultiplayerSessionModel = preload("res://src/game/multiplayer_session_model.gd")
 
 const RUNTIME_SCENE := "res://src/app.tscn"
@@ -10,6 +11,7 @@ const HOST_ERA := "ashen"
 const HOST_POSITION := Vector2(360, 240)
 const EXPECTED_AREA := "clockwood_ashen_hunt"
 const DEFAULT_TIMEOUT_SECONDS := 24.0
+const HOST_SHUTDOWN_EXCHANGE_HOLD_MSEC := 900
 
 var peer_role: String = ""
 var port: int = 0
@@ -97,7 +99,6 @@ func instantiate_runtime() -> Node:
 	await process_frame
 	return instance
 
-
 func run_host() -> void:
 	runtime.call("change_flow", 4)
 	if not bool(runtime.call(
@@ -136,9 +137,12 @@ func run_host() -> void:
 	}):
 		finish_failure("Loopback host could not write its ready marker.")
 		return
-	var initial_ally_peer_id: int = -1
-	var initial_invader_peer_id: int = -1
-	var deadline_msec: int = Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
+	var initial_ally_peer_id := -1
+	var initial_invader_peer_id := -1
+	var reconnect_complete_since_msec := -1
+	var shutdown_started := false
+	var receipt: Dictionary = {}
+	var deadline_msec := Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
 	while Time.get_ticks_msec() < deadline_msec:
 		var peers_value: Variant = session.get("peers")
 		var peers: Dictionary = (
@@ -159,79 +163,108 @@ func run_host() -> void:
 					initial_invader_peer_id
 				]
 			)
-		if host_has_reconnect_exchange(
+		if not shutdown_started and host_has_reconnect_exchange(
 			peers,
 			initial_ally_peer_id,
 			initial_invader_peer_id
 		):
-			var reconnected_ally_peer_id: int = peer_id_for_role(
-				peers,
-				MultiplayerSessionModel.ROLE_ALLY
-			)
-			var snapshot_value: Variant = session.call("build_world_snapshot")
-			var snapshot: Dictionary = (
-				snapshot_value if typeof(snapshot_value) == TYPE_DICTIONARY else {}
-			)
-			var payload_value: Variant = session.call("encode_world_snapshot", snapshot)
-			var payload: PackedByteArray = (
-				payload_value
-				if payload_value is PackedByteArray
-				else PackedByteArray()
-			)
-			if payload.is_empty():
-				finish_failure("Loopback host could not encode a bounded network snapshot.")
-				return
-			print(
-				"LOOPBACK RECONNECT EXCHANGE: first ally %d current ally %d invader %d" % [
-					initial_ally_peer_id,
-					reconnected_ally_peer_id,
-					initial_invader_peer_id
-				]
-			)
-			var receipt := {
-				"ok": true,
-				"role": MultiplayerSessionModel.ROLE_HOST,
-				"port": port,
-				"peer_count": peers.size(),
-				"ally_count": MultiplayerSessionModel.role_count(
+			if reconnect_complete_since_msec < 0:
+				reconnect_complete_since_msec = Time.get_ticks_msec()
+			if (
+				Time.get_ticks_msec() - reconnect_complete_since_msec
+				>= HOST_SHUTDOWN_EXCHANGE_HOLD_MSEC
+			):
+				var reconnected_ally_peer_id := peer_id_for_role(
 					peers,
 					MultiplayerSessionModel.ROLE_ALLY
-				),
-				"invader_count": MultiplayerSessionModel.role_count(
-					peers,
-					MultiplayerSessionModel.ROLE_INVADER
-				),
-				"input_peer_count": remote_input_peer_count(peers),
-				"graceful_leave_request_count": int(
-					session.get("graceful_leave_request_count")
-				),
-				"last_graceful_leave_peer_id": int(
-					session.get("last_graceful_leave_peer_id")
-				),
-				"initial_ally_peer_id": initial_ally_peer_id,
-				"reconnected_ally_peer_id": reconnected_ally_peer_id,
-				"persistent_invader_peer_id": initial_invader_peer_id,
-				"same_process_reconnect_proved": true,
-				"snapshot_sequence": int(snapshot.get("sequence", -1)),
-				"protocol_version": int(snapshot.get("protocol_version", 0)),
-				"snapshot_wire_bytes": payload.size(),
-				"snapshot_uncompressed_bytes": int(
-					session.get("last_snapshot_uncompressed_bytes")
-				),
-				"map_id": str(snapshot.get("map_id", "")),
-				"era_id": str(snapshot.get("era_id", "")),
-				"area_id": EXPECTED_AREA
-			}
+				)
+				var snapshot_value: Variant = session.call("build_world_snapshot")
+				var snapshot: Dictionary = (
+					snapshot_value if typeof(snapshot_value) == TYPE_DICTIONARY else {}
+				)
+				var payload_value: Variant = session.call("encode_world_snapshot", snapshot)
+				var payload: PackedByteArray = (
+					payload_value
+					if payload_value is PackedByteArray
+					else PackedByteArray()
+				)
+				if payload.is_empty():
+					finish_failure("Loopback host could not encode a bounded network snapshot.")
+					return
+				print(
+					"LOOPBACK RECONNECT EXCHANGE: first ally %d current ally %d invader %d" % [
+						initial_ally_peer_id,
+						reconnected_ally_peer_id,
+						initial_invader_peer_id
+					]
+				)
+				receipt = {
+					"ok": true,
+					"role": MultiplayerSessionModel.ROLE_HOST,
+					"port": port,
+					"peer_count": peers.size(),
+					"ally_count": MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_ALLY),
+					"invader_count": MultiplayerSessionModel.role_count(peers, MultiplayerSessionModel.ROLE_INVADER),
+					"input_peer_count": remote_input_peer_count(peers),
+					"graceful_leave_request_count": int(session.get("graceful_leave_request_count")),
+					"last_graceful_leave_peer_id": int(session.get("last_graceful_leave_peer_id")),
+					"initial_ally_peer_id": initial_ally_peer_id,
+					"reconnected_ally_peer_id": reconnected_ally_peer_id,
+					"persistent_invader_peer_id": initial_invader_peer_id,
+					"same_process_reconnect_proved": true,
+					"snapshot_sequence": int(snapshot.get("sequence", -1)),
+					"protocol_version": int(snapshot.get("protocol_version", 0)),
+					"snapshot_wire_bytes": payload.size(),
+					"snapshot_uncompressed_bytes": int(session.get("last_snapshot_uncompressed_bytes")),
+					"map_id": str(snapshot.get("map_id", "")),
+					"era_id": str(snapshot.get("era_id", "")),
+					"area_id": EXPECTED_AREA
+				}
+				if not bool(session.call(
+					"request_graceful_host_shutdown",
+					"LOOPBACK HOST SHUTDOWN"
+				)):
+					finish_failure("Loopback host could not start graceful shutdown.")
+					return
+				shutdown_started = true
+				print(
+					"LOOPBACK HOST SHUTDOWN REQUESTED: sequence %d peers %d" % [
+						int(session.get("host_shutdown_sequence")),
+						int(session.get("last_host_shutdown_expected_count"))
+					]
+				)
+		elif not shutdown_started:
+			reconnect_complete_since_msec = -1
+		if shutdown_started and str(session.get("mode")) == MultiplayerSessionModel.MODE_OFFLINE:
+			receipt["host_shutdown_sequence"] = int(session.get("last_host_shutdown_sequence"))
+			receipt["host_shutdown_expected_count"] = int(session.get("last_host_shutdown_expected_count"))
+			receipt["host_shutdown_ack_count"] = int(session.get("last_host_shutdown_ack_count"))
+			receipt["host_shutdown_forced"] = bool(session.get("last_host_shutdown_forced"))
+			receipt["host_shutdown_reason"] = str(session.get("last_host_shutdown_reason"))
+			receipt["final_mode"] = str(session.get("mode"))
+			receipt["independent_exit"] = true
+			if (
+				int(receipt.get("host_shutdown_expected_count", 0)) != 2
+				or int(receipt.get("host_shutdown_ack_count", 0)) != 2
+				or bool(receipt.get("host_shutdown_forced", true))
+			):
+				finish_failure("Loopback host shutdown did not receive both unique peer acknowledgements.")
+				return
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback host could not write its validation receipt.")
 				return
-			await hold_after_receipt()
+			print(
+				"LOOPBACK HOST SHUTDOWN COMPLETE: sequence %d acknowledgements %d" % [
+					int(receipt.get("host_shutdown_sequence", -1)),
+					int(receipt.get("host_shutdown_ack_count", 0))
+				]
+			)
+			await finish_success()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
-		"Loopback host timed out before the ally completed acknowledged leave and reconnect while the invader remained online."
+		"Loopback host timed out before acknowledged host shutdown completed after the ally reconnect exchange."
 	)
-
 
 func run_client() -> void:
 	session.set(
@@ -287,7 +320,7 @@ func run_client() -> void:
 			if not write_json(receipt_path, receipt):
 				finish_failure("Loopback %s could not write its validation receipt." % peer_role)
 				return
-			await hold_after_receipt()
+			await finish_success()
 			return
 		await create_timer(0.05).timeout
 	finish_failure(
@@ -405,20 +438,14 @@ func write_json(path: String, payload: Dictionary) -> bool:
 	file.close()
 	return true
 
-
-func hold_after_receipt() -> void:
-	# The parent harness owns final process-tree termination after all receipts
-	# are validated. The ally has already closed one ENet client and rejoined in
-	# this same process; keeping the final connections alive separates reconnect
-	# evidence from Godot's independent headless process-exit behaviour.
-	print("LOOPBACK RECEIPT READY: %s" % peer_role)
-	if runtime != null:
-		runtime.set_process(false)
-	if session != null:
-		session.set_process(false)
-	while true:
-		await create_timer(1.0).timeout
-
+func finish_success() -> void:
+	print("LOOPBACK CLEAN EXIT: %s" % peer_role)
+	var closing_runtime: Node = runtime
+	runtime = null
+	session = null
+	if closing_runtime != null:
+		await HeadlessRuntimeCleanup.release(self, closing_runtime)
+	quit(0)
 
 func finish_failure(message: String) -> void:
 	var payload := {

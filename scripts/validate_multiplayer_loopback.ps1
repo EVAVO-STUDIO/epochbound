@@ -142,6 +142,18 @@ function Test-AllReceiptsPresent {
     return $true
 }
 
+function Test-AllPeersExited {
+    param([Parameter(Mandatory = $true)] [array]$Peers)
+    foreach ($peer in $Peers) {
+        $peer.Process.Refresh()
+        if (-not $peer.Process.HasExited) {
+            return $false
+        }
+    }
+    return $true
+}
+
+
 function Save-EnvironmentValue {
     param(
         [Parameter(Mandatory = $true)] [hashtable]$Snapshot,
@@ -265,15 +277,21 @@ try {
         throw "Real ENet loopback did not produce all three receipts within $TimeoutSeconds seconds."
     }
 
-    # Each peer atomically promotes its complete receipt. Give redirected logs
-    # one bounded interval to become visible before reviewing all child output.
-    Start-Sleep -Milliseconds 300
+    # Each peer atomically promotes its complete receipt, performs bounded
+    # Audio-aware runtime disposal and exits independently with code zero.
+    $exitDeadline = [DateTime]::UtcNow.AddSeconds(15)
+    while (-not (Test-AllPeersExited -Peers $peers) -and [DateTime]::UtcNow -lt $exitDeadline) {
+        Start-Sleep -Milliseconds 100
+    }
+    if (-not (Test-AllPeersExited -Peers $peers)) {
+        Write-AllPeerLogs -Peers $peers
+        throw "Real ENet loopback peers did not complete independent shutdown within 15 seconds."
+    }
 
     Write-AllPeerLogs -Peers $peers
     foreach ($peer in $peers) {
-        $peer.Process.Refresh()
-        if ($peer.Process.HasExited) {
-            throw "Real ENet loopback $($peer.Role) exited before harness-owned cleanup."
+        if ([int]$peer.Process.ExitCode -ne 0) {
+            throw "Real ENet loopback $($peer.Role) exited with code $($peer.Process.ExitCode)."
         }
         Assert-PeerLogClean $peer
     }
@@ -299,9 +317,16 @@ try {
         [int]$hostReceipt.snapshot_uncompressed_bytes -le [int]$hostReceipt.snapshot_wire_bytes -or
         [string]$hostReceipt.map_id -ne "clockwood_edge" -or
         [string]$hostReceipt.era_id -ne "ashen" -or
-        [string]$hostReceipt.area_id -ne "clockwood_ashen_hunt"
+        [string]$hostReceipt.area_id -ne "clockwood_ashen_hunt" -or
+        [int]$hostReceipt.host_shutdown_sequence -le 0 -or
+        [int]$hostReceipt.host_shutdown_expected_count -ne 2 -or
+        [int]$hostReceipt.host_shutdown_ack_count -ne 2 -or
+        [bool]$hostReceipt.host_shutdown_forced -or
+        [string]$hostReceipt.host_shutdown_reason -ne "LOOPBACK HOST SHUTDOWN" -or
+        [string]$hostReceipt.final_mode -ne "offline" -or
+        -not [bool]$hostReceipt.independent_exit
     ) {
-        throw "Real ENet loopback host receipt did not prove the bounded authoritative reconnect exchange."
+        throw "Real ENet loopback host receipt did not prove the bounded authoritative reconnect and acknowledged shutdown exchange."
     }
 
     foreach ($receipt in @($allyReceipt, $invaderReceipt)) {
@@ -313,9 +338,15 @@ try {
             [int]$receipt.snapshot_sequence -lt 0 -or
             [int]$receipt.input_sequence_sent -le 10000 -or
             [string]$receipt.map_id -ne "clockwood_edge" -or
-            [string]$receipt.era_id -ne "ashen"
+            [string]$receipt.era_id -ne "ashen" -or
+            [int]$receipt.host_shutdown_sequence -ne [int]$hostReceipt.host_shutdown_sequence -or
+            [int]$receipt.host_shutdown_ack_sent_sequence -ne [int]$hostReceipt.host_shutdown_sequence -or
+            -not [bool]$receipt.host_shutdown_commit_received -or
+            [string]$receipt.host_shutdown_reason -ne "LOOPBACK HOST SHUTDOWN" -or
+            [string]$receipt.final_mode -ne "offline" -or
+            -not [bool]$receipt.independent_exit
         ) {
-            throw "Real ENet loopback $expectedRole receipt did not prove input transmission and authoritative snapshot restoration."
+            throw "Real ENet loopback $expectedRole receipt did not prove input, authoritative snapshot restoration and acknowledged host shutdown."
         }
     }
 
@@ -342,14 +373,14 @@ try {
         "Real ENet loopback passed: host, ally and invader negotiated through UDP; " +
         "the ally completed a host-acknowledged graceful leave and same-process reconnect while the invader remained online; " +
         "both production input phases reached host authority; authoritative snapshots were restored after reconnect; " +
+        "the host collected both shutdown acknowledgements, committed closure, and all three Godot processes exited independently; " +
         "and the compressed snapshot stayed within the 1200-byte transport budget."
     )
 }
 finally {
-    # The ally has already exercised a real client close and reconnect. The
-    # parent harness deliberately owns only final process-tree termination after
-    # receipt validation; host shutdown and independent headless process exit
-    # remain separate lifecycle boundaries.
+    # Normal success paths have already closed their ENet peers, released
+    # their canonical runtimes and exited independently. Forced termination is
+    # retained only as bounded failure cleanup.
     foreach ($peer in $peers) {
         Stop-LoopbackPeer $peer
     }
@@ -360,3 +391,5 @@ finally {
         Remove-Item -Recurse -Force $runRoot -ErrorAction SilentlyContinue
     }
 }
+
+# Forced termination is retained only as bounded failure cleanup.

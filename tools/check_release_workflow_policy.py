@@ -119,7 +119,7 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.5"',
+        '"schemaVersion": "2.6"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -132,6 +132,7 @@ require(
         '"longFormProgressionValidation": "passed"',
         '"multiplayerValidation": "passed"',
         '"multiplayerConnectionValidation": "passed"',
+        '"multiplayerHostShutdownValidation": "passed"',
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],
@@ -769,6 +770,28 @@ forbid(
     ],
 )
 
+
+multiplayer_transport_session = read(
+    "multiplayer_transport_session",
+    ROOT / "src/multiplayer_transport_session.gd",
+)
+require(
+    "multiplayer_transport_session",
+    multiplayer_transport_session,
+    [
+        "request_graceful_host_shutdown",
+        "_host_shutdown_requested",
+        "_ack_host_shutdown",
+        "_host_shutdown_committed",
+        "_host_shutdown_committed.rpc(",
+        "or host_shutdown_pending",
+        "close_session_immediately(reason, true)",
+        "close_peer_before_detach",
+        "last_host_shutdown_ack_count",
+        "last_host_shutdown_forced",
+    ],
+)
+
 if errors:
     print("Epochbound release workflow policy failed:\n")
     for error in errors:
@@ -781,6 +804,6 @@ print("- focused Audio, Sprite and Linux Agent workflows remain governed manual 
 print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
-print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
+print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown and save isolation are guarded before Godot execution")
 print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

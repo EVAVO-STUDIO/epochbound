@@ -130,6 +130,24 @@ func run_test() -> void:
 			check(not bool(client_session.call("apply_world_snapshot", snapshot)), "Repeated snapshot sequences must be rejected as stale.")
 		await cleanup(client_runtime)
 
+	check(bool(session.call("request_graceful_host_shutdown", "TEST HOST SHUTDOWN")), "Test host must start a bounded graceful shutdown.")
+	var shutdown_sequence := int(session.get("host_shutdown_sequence"))
+	var expected_shutdown_ids: Array = session.get("host_shutdown_expected_peer_ids")
+	check(shutdown_sequence > 0, "Graceful host shutdown must allocate a positive sequence.")
+	check(expected_shutdown_ids == [2, 3], "Graceful host shutdown must capture both registered remote peers in stable order.")
+	check(bool(session.call("accept_test_host_shutdown_ack", 2, shutdown_sequence)), "The first registered peer acknowledgement must be accepted.")
+	check(not bool(session.call("accept_test_host_shutdown_ack", 2, shutdown_sequence)), "Duplicate host-shutdown acknowledgements must be rejected.")
+	check(str(session.get("mode")) == MultiplayerSessionModel.MODE_HOST, "The host must remain online until every expected peer acknowledges or the bounded timeout expires.")
+	check(bool(session.call("accept_test_host_shutdown_ack", 3, shutdown_sequence)), "The final registered peer acknowledgement must commit shutdown.")
+	check(bool(session.get("host_shutdown_commit_sent")), "All acknowledgements must commit the host shutdown before transport close.")
+	# The production server intentionally remains attached for the complete
+	# reliable-commit flush window before closing its ENet peer.
+	session.call("advance_test_host_shutdown", 1.1)
+	check(str(session.get("mode")) == MultiplayerSessionModel.MODE_OFFLINE, "Committed test host shutdown must return the session offline.")
+	check(int(session.get("last_host_shutdown_expected_count")) == 2, "Host shutdown evidence must retain the expected peer count.")
+	check(int(session.get("last_host_shutdown_ack_count")) == 2, "Host shutdown evidence must retain both unique acknowledgements.")
+	check(not bool(session.get("last_host_shutdown_forced")), "A fully acknowledged host shutdown must not be marked forced.")
+
 	await cleanup(runtime)
 	finish()
 
@@ -168,7 +186,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Multiplayer runtime smoke test passed: authored online areas, co-op enemy damage, invasion PvP, save isolation and authoritative snapshot restoration are coherent.")
+		print("Multiplayer runtime smoke test passed: authored online areas, co-op enemy damage, invasion PvP, save isolation, authoritative snapshots and acknowledged host shutdown are coherent.")
 		quit(0)
 		return
 	for failure in failures:

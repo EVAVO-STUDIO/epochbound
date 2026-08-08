@@ -30,8 +30,22 @@ for token in required_workflow_tokens:
         raise SystemExit(f"exact-main workflow is missing {token}")
 workflow_path.write_text(workflow.rstrip() + "\n", encoding="utf-8")
 
+for checker_path in sorted(Path("tools").glob("check_*_contract.py")):
+    checker = checker_path.read_text(encoding="utf-8")
+    checker = checker.replace('"schemaVersion": "2.5"', '"schemaVersion": "2.6"')
+    checker = checker.replace(
+        '# Receipt schema migrated from: "schemaVersion": "2.4"',
+        '# Receipt schema migrated from: "schemaVersion": "2.5"',
+    )
+    checker = checker.replace(
+        '# Receipt schema migrated from: "schemaVersion": "2.6"',
+        '# Receipt schema migrated from: "schemaVersion": "2.5"',
+    )
+    checker_path.write_text(checker.rstrip() + "\n", encoding="utf-8")
+
 policy_path = Path("tools/check_release_workflow_policy.py")
 policy = policy_path.read_text(encoding="utf-8")
+policy = policy.replace('"schemaVersion": "2.5"', '"schemaVersion": "2.6"')
 misplaced = (
     '        "blocks_manual_save",\n'
     '        "blocks_autosave",\n'
@@ -79,7 +93,6 @@ normalized_paths = [
     "scripts/validate.ps1",
     "scripts/validate_multiplayer_loopback.ps1",
     "src/multiplayer_transport_session.gd",
-    "tools/check_multiplayer_loopback_contract.py",
     "tools/multiplayer_loopback_peer.gd",
     "tools/multiplayer_loopback_peer_driver.gd",
     "tools/smoke_multiplayer_runtime.gd",

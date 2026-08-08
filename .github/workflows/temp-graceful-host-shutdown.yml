@@ -44,6 +44,7 @@ jobs:
             echo "Applicator stopped at protected workflow bookkeeping; finalizing those guarded edits separately."
           fi
           python3 tools/temp_finalize_graceful_host_shutdown.py
+          python3 tools/temp_fix_host_directed_disconnect.py
           git diff --check
 
       - name: Run all fail-closed source contracts

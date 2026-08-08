@@ -91,7 +91,15 @@ Pulse width is constrained between `0.10` and `0.90`. Audio Studio does not load
 
 `combat_gain` controls an additional high-register voice and restrained procedural percussion. Combat intensity fades in when directed enemies or a boss are actively threatening the player, and fades out after the encounter resolves.
 
-The exploration theme continues underneath, avoiding a jarring complete track restart for every small encounter. Boss direction can later extend this same contract with authored phase-specific stems rather than replacing it.
+The exploration theme continues underneath, avoiding a jarring complete track restart for every small encounter.
+
+## Boss phase stems
+
+Boss phases may now add an authored deterministic stem through the Audio catalogue's `boss_stems` array. Each record binds one stable boss definition ID to one stable phase ID and layers its own tempo multiplier, transposition, melody, bass, waveform and percussion pressure over the active map-and-era theme.
+
+The runtime never hard-codes the reference Sentinel. It resolves the currently engaged boss and phase, resets only the phase-stem clock when that key changes, and fades the stem away when the encounter ends. The ordinary exploration profile, ambience, ducking and player volume settings continue underneath.
+
+Audio & Mood Studio displays loaded boss/phase bindings beside the normal profile summary. See [`BOSS_MUSIC_STEMS.md`](BOSS_MUSIC_STEMS.md) for the complete schema, validation and listening contract.
 
 ## Ambience profile
 
@@ -186,6 +194,8 @@ Validation rejects:
 - unsafe tempos, root notes, pulse widths or gains;
 - missing or oversized scale and sequence data;
 - sequence values outside the supported degree range;
+- unknown, duplicate or malformed boss phase stems;
+- boss stems that reference a non-boss object or unknown phase;
 - ducking or transition values outside production bounds.
 
 Warnings identify mixes whose combined exploration and combat gains may clip on small speakers and map/era contexts without explicit bindings.

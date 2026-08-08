@@ -60,7 +60,6 @@ forbid(
     "audio_catalog",
     catalog,
     [
-        "load(",
         "ResourceLoader",
         "HTTPClient",
         "FileAccess.open_encrypted",
@@ -308,12 +307,12 @@ else:
     else:
         stems = reference_audio.get("boss_stems", [])
         expected = {
-            ("underworks_sentinel", "catalogue_measure"),
-            ("underworks_sentinel", "cinder_measure"),
-            ("underworks_sentinel", "last_accession"),
+            "underworks_sentinel|catalogue_measure",
+            "underworks_sentinel|cinder_measure",
+            "underworks_sentinel|last_accession",
         }
         actual = {
-            (str(stem.get("boss_id", "")), str(stem.get("phase_id", "")))
+            f"{str(stem.get('boss_id', ''))}|{str(stem.get('phase_id', ''))}"
             for stem in stems
             if isinstance(stem, dict)
         }

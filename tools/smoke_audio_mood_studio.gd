@@ -15,6 +15,7 @@ func run_test() -> void:
 	root.add_child(studio)
 	check(studio.load_campaign_path(CAMPAIGN_PATH), "Strict Audio Studio must load the reference campaign.")
 	check(studio.profile_count() == 7, "Audio Studio must expose seven reference profiles.")
+	check(studio.boss_stem_count() == 3, "Audio Studio must expose the three reference boss stems.")
 	var pattern: Array[int] = studio.parse_pattern("0, 2 - 4 rest 5")
 	check(pattern == [0, 2, -99, 4, -99, 5], "Pattern parser must preserve notes and explicit rests.")
 	var encoded: String = studio.pattern_text(pattern, true)
@@ -33,7 +34,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Audio and Mood Studio smoke test passed: strict campaign loading, profile state and pattern editing are coherent.")
+		print("Audio and Mood Studio smoke test passed: strict campaign loading, profile state, three reference boss stems and pattern editing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -78,6 +78,7 @@ func run_test() -> void:
 
 	controller.set("boss_stem_sample_clock", 91)
 	runtime.call("shift_to_next_era")
+	controller.call("resolve_active_profile", false)
 	controller.call("resolve_active_boss_stem", false)
 	snapshot = controller.call("boss_stem_snapshot")
 	check(str(snapshot.get("key", "")) == "underworks_sentinel|cinder_measure", "Ashen era shift must resolve Cinder Measure music.")

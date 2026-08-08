@@ -70,6 +70,17 @@ static func validate_profile_record(
 	validate_integral_music_values(profile_data, source, errors)
 
 
+static func validate_boss_stem_record(
+	stem_data: Dictionary,
+	source: String,
+	object_definitions: Dictionary,
+	errors: Array[String],
+	warnings: Array[String]
+) -> void:
+	BaseValidator.validate_boss_stem_record(stem_data, source, object_definitions, errors, warnings)
+	validate_boss_stem_integral_values(stem_data, source, errors)
+
+
 static func validate_audio_integrity_only(campaign_path: String) -> Dictionary:
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
@@ -95,6 +106,23 @@ static func validate_audio_integrity_only(campaign_path: String) -> Dictionary:
 		validate_integral_music_values(
 			profile_value as Dictionary,
 			str(sources.get(profile_id, campaign_path)),
+			errors
+		)
+	var stems_value: Variant = catalog_result.get("boss_stems", {})
+	var stems: Dictionary = stems_value as Dictionary if typeof(stems_value) == TYPE_DICTIONARY else {}
+	var stem_sources_value: Variant = catalog_result.get("boss_stem_sources", {})
+	var stem_sources: Dictionary = stem_sources_value as Dictionary if typeof(stem_sources_value) == TYPE_DICTIONARY else {}
+	var stem_keys := PackedStringArray()
+	for stem_key_value in stems.keys():
+		stem_keys.append(str(stem_key_value))
+	stem_keys.sort()
+	for stem_key in stem_keys:
+		var stem_value: Variant = stems.get(stem_key, {})
+		if typeof(stem_value) != TYPE_DICTIONARY:
+			continue
+		validate_boss_stem_integral_values(
+			stem_value as Dictionary,
+			str(stem_sources.get(stem_key, campaign_path)),
 			errors
 		)
 	validate_authored_title_profiles(campaign_path, campaign, definitions, errors)
@@ -142,6 +170,24 @@ static func validate_integral_music_values(
 			validate_integral_number(
 				(sequence_value as Array)[index],
 				"%s/music/%s[%d]" % [source, key, index],
+				errors
+			)
+
+
+static func validate_boss_stem_integral_values(
+	stem_data: Dictionary,
+	source: String,
+	errors: Array[String]
+) -> void:
+	validate_integral_number(stem_data.get("root_offset", null), "%s/boss_stem/root_offset" % source, errors)
+	for key in ["melody_steps", "bass_steps"]:
+		var sequence_value: Variant = stem_data.get(key, [])
+		if typeof(sequence_value) != TYPE_ARRAY:
+			continue
+		for index in range((sequence_value as Array).size()):
+			validate_integral_number(
+				(sequence_value as Array)[index],
+				"%s/boss_stem/%s[%d]" % [source, key, index],
 				errors
 			)
 

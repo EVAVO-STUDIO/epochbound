@@ -32,6 +32,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 20. Animated water, grass sway, brass machinery cycles, material-specific foot response, foreground occlusion and contextual world feedback
 21. Camera-correct projectiles, shared combat depth, presentation-owned ammo and boss status, and pause-safe CanvasLayer ordering
 22. Versioned player-local Audio, presentation and accessibility settings with persistent keyboard and controller remapping
+23. Authored boss phase music stems that layer Catalogue Measure, Cinder Measure and Last Accession over the current Underworks era theme
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -184,6 +185,7 @@ The Audio layer provides:
 - bounded pulse, triangle and sine synthesis;
 - deterministic room tone, pollen, insects, embers, cinders, machinery and furnace ambience;
 - a combat layer that fades over the continuing exploration theme;
+- stable boss-and-phase stems that escalate authored encounters without replacing map-and-era identity;
 - feedback for attacks, impacts, damage, pickups, travel, shifts, menus, dialogue, combat and cinematics;
 - menu, dialogue, cinematic and pause ducking;
 - guarded generator startup and underrun detection.
@@ -211,6 +213,7 @@ Read:
 - [`docs/PRESENTATION_FEEL_STUDIO.md`](docs/PRESENTATION_FEEL_STUDIO.md)
 - [`docs/PRESENTATION_PLAYTEST_CHECKLIST.md`](docs/PRESENTATION_PLAYTEST_CHECKLIST.md)
 - [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)
+- [`docs/BOSS_MUSIC_STEMS.md`](docs/BOSS_MUSIC_STEMS.md)
 - [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 - [`docs/SPRITE_ANIMATION_STUDIO.md`](docs/SPRITE_ANIMATION_STUDIO.md)
 - [`docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md`](docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md)
@@ -293,7 +296,8 @@ The gate performs:
 - deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
-- projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions.
+- projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions;
+- boss phase stem references, deterministic phase selection, era continuity, clock resets and final-phase escalation.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. Missing editor-theme icons and `ObjectDB instances leaked at exit` also fail validation, preventing unchecked editor resources or incomplete runtime teardown from returning to the supported Godot editor.
 
@@ -322,7 +326,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings, passed meaningful temporal-shift validation and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings, passed meaningful temporal-shift validation, `bossMusicStemValidation`, and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -370,6 +374,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/PRESENTATION_FEEL_STUDIO.md`](docs/PRESENTATION_FEEL_STUDIO.md)
 - [`docs/PRESENTATION_PLAYTEST_CHECKLIST.md`](docs/PRESENTATION_PLAYTEST_CHECKLIST.md)
 - [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)
+- [`docs/BOSS_MUSIC_STEMS.md`](docs/BOSS_MUSIC_STEMS.md)
 - [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)
 - [`docs/SPRITE_ANIMATION_STUDIO.md`](docs/SPRITE_ANIMATION_STUDIO.md)
 - [`docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md`](docs/SPRITE_ANIMATION_PLAYTEST_CHECKLIST.md)
@@ -404,4 +409,4 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, boss phase-specific music stems, automated long-form progression playthroughs and deeper economy-balance simulation.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, automated long-form progression playthroughs, deeper economy-balance simulation and broader multi-boss music authoring previews.

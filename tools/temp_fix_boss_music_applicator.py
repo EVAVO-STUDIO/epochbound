@@ -174,4 +174,33 @@ patch_once(
 )
 
 path.write_text(source, encoding="utf-8")
+
+checker_path = Path("tools/check_boss_music_stem_contract.py")
+checker_source = checker_path.read_text(encoding="utf-8")
+checker_old = '''        expected = {
+            ("underworks_sentinel", "catalogue_measure"),
+            ("underworks_sentinel", "cinder_measure"),
+            ("underworks_sentinel", "last_accession"),
+        }
+        actual = {
+            (str(stem.get("boss_id", "")), str(stem.get("phase_id", "")))
+            for stem in stems
+            if isinstance(stem, dict)
+        }
+'''
+checker_new = '''        expected = {
+            "underworks_sentinel|catalogue_measure",
+            "underworks_sentinel|cinder_measure",
+            "underworks_sentinel|last_accession",
+        }
+        actual = {
+            f"{str(stem.get('boss_id', ''))}|{str(stem.get('phase_id', ''))}"
+            for stem in stems
+            if isinstance(stem, dict)
+        }
+'''
+if checker_source.count(checker_old) != 1:
+    raise SystemExit("boss music contract reference-key block drifted")
+checker_path.write_text(checker_source.replace(checker_old, checker_new, 1), encoding="utf-8")
+
 print("boss_music_applicator_cardinality_fixed")

@@ -36,6 +36,7 @@ jobs:
           set -euo pipefail
           python3 tools/temp_fix_boss_music_applicator.py
           python3 tools/temp_apply_boss_music_stems.py
+          python3 tools/temp_fix_boss_music_smoke.py
           git diff --check
 
       - name: Run all fail-closed source contracts
@@ -116,6 +117,7 @@ jobs:
               "tools/check_release_workflow_policy.py",
               "tools/smoke_audio_mood_studio.gd",
               "tools/smoke_audio_mood_validation_edges.gd",
+              "tools/smoke_boss_music_stems.gd",
           }
           root = Path(os.environ["RUNNER_TEMP"])
           changed = [

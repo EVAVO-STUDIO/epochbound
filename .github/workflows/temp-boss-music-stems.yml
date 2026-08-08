@@ -1,4 +1,4 @@
-name: Temporary Boss Music Stem Integration
+name: Temporary Publish Clean Boss Music Candidate
 
 on:
   push:
@@ -9,37 +9,61 @@ permissions:
   contents: write
 
 concurrency:
-  group: epochbound-temp-boss-music-stems
+  group: epochbound-clean-boss-music-release
   cancel-in-progress: false
 
 jobs:
-  integrate:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  publish-clean-candidate:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
+      RELEASE_BRANCH: agent/boss-phase-music-stems-release
       GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
       GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
       GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
 
     steps:
-      - name: Check out exact branch
+      - name: Check out exact authored source
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Apply deterministic boss music stem integration
+      - name: Assemble clean candidate from current main
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/temp_fix_boss_music_applicator.py
-          python3 tools/temp_apply_boss_music_stems.py
-          python3 tools/temp_fix_boss_music_smoke.py
+          source_sha="$(git rev-parse HEAD)"
+          git fetch origin main
+          git checkout -B "${RELEASE_BRANCH}" origin/main
+          git checkout "${source_sha}" -- \
+            .github/workflows/audio-mood-validation.yml \
+            .github/workflows/validate.yml \
+            README.md \
+            addons/epochbound_audio_mood_studio/audio_mood_studio.gd \
+            campaigns/epochbound_demo/audio/core.json \
+            docs/AUDIO_MOOD_STUDIO.md \
+            docs/BOSS_MUSIC_STEMS.md \
+            scripts/validate.ps1 \
+            src/audio_mood_controller.gd \
+            src/audio_mood_runtime.gd \
+            src/content/audio_mood_catalog.gd \
+            src/content/audio_mood_strict_validator.gd \
+            src/content/audio_mood_validator.gd \
+            tools/check_boss_music_stem_contract.py \
+            tools/check_combat_fairness_contract.py \
+            tools/check_multiplayer_connection_contract.py \
+            tools/check_multiplayer_loopback_contract.py \
+            tools/check_release_workflow_policy.py \
+            tools/check_temporal_shift_contract.py \
+            tools/compile_probe.gd \
+            tools/smoke_audio_mood_studio.gd \
+            tools/smoke_audio_mood_validation_edges.gd \
+            tools/smoke_boss_music_stems.gd
           git diff --check
 
-      - name: Run all fail-closed source contracts
+      - name: Run every fail-closed source contract
         shell: bash
         run: |
           set -euo pipefail
@@ -87,78 +111,61 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
-      - name: Verify and publish permanent non-workflow source
+      - name: Publish only permanent non-workflow source
         shell: bash
         run: |
           set -euo pipefail
+          git restore --source=origin/main -- \
+            .github/workflows/audio-mood-validation.yml \
+            .github/workflows/validate.yml
           git diff --check
-          git diff --name-only \
-            | grep -v '^tools/temp_' \
-            > "${RUNNER_TEMP}/changed-files.txt"
-          grep -v '^\.github/workflows/' "${RUNNER_TEMP}/changed-files.txt" \
-            > "${RUNNER_TEMP}/publish-files.txt"
+          git diff --name-only origin/main > "${RUNNER_TEMP}/changed-files.txt"
           python3 - <<'PY'
           import os
-          import re
           from pathlib import Path
 
-          allowed_exact = {
-              ".github/workflows/audio-mood-validation.yml",
-              ".github/workflows/validate.yml",
+          expected = {
               "README.md",
               "addons/epochbound_audio_mood_studio/audio_mood_studio.gd",
               "campaigns/epochbound_demo/audio/core.json",
               "docs/AUDIO_MOOD_STUDIO.md",
+              "docs/BOSS_MUSIC_STEMS.md",
               "scripts/validate.ps1",
               "src/audio_mood_controller.gd",
               "src/audio_mood_runtime.gd",
               "src/content/audio_mood_catalog.gd",
               "src/content/audio_mood_strict_validator.gd",
               "src/content/audio_mood_validator.gd",
-              "tools/compile_probe.gd",
+              "tools/check_boss_music_stem_contract.py",
+              "tools/check_combat_fairness_contract.py",
+              "tools/check_multiplayer_connection_contract.py",
+              "tools/check_multiplayer_loopback_contract.py",
               "tools/check_release_workflow_policy.py",
+              "tools/check_temporal_shift_contract.py",
+              "tools/compile_probe.gd",
               "tools/smoke_audio_mood_studio.gd",
               "tools/smoke_audio_mood_validation_edges.gd",
               "tools/smoke_boss_music_stems.gd",
           }
-          root = Path(os.environ["RUNNER_TEMP"])
-          changed = [
+          changed_path = Path(os.environ["RUNNER_TEMP"]) / "changed-files.txt"
+          changed = {
               line.strip()
-              for line in (root / "changed-files.txt").read_text(encoding="utf-8").splitlines()
+              for line in changed_path.read_text(encoding="utf-8").splitlines()
               if line.strip()
-          ]
-          publish = [
-              line.strip()
-              for line in (root / "publish-files.txt").read_text(encoding="utf-8").splitlines()
-              if line.strip()
-          ]
-          if not changed or not publish:
-              raise SystemExit("boss music stem applicator produced no publishable changes")
-          for workflow in (
-              ".github/workflows/audio-mood-validation.yml",
-              ".github/workflows/validate.yml",
-          ):
-              if workflow not in changed:
-                  raise SystemExit(f"validated workflow update is missing: {workflow}")
-          unexpected = [
-              path
-              for path in changed
-              if path not in allowed_exact
-              and re.fullmatch(r"tools/check_[a-z0-9_]+_contract\.py", path) is None
-          ]
-          if unexpected:
-              raise SystemExit("unexpected changed files: " + ", ".join(unexpected))
-          print("validated permanent changes:")
-          for path in changed:
+          }
+          if changed != expected:
+              missing = sorted(expected - changed)
+              unexpected = sorted(changed - expected)
+              raise SystemExit(
+                  f"clean boss music release scope mismatch; missing={missing}; unexpected={unexpected}"
+              )
+          print("validated clean boss music release files:")
+          for path in sorted(changed):
               print(f"- {path}")
-          print("publishing non-workflow source through Actions:")
-          for path in publish:
-              print(f"- {path}")
-          print("publishing protected workflows separately through the GitHub connector")
           PY
-          git add --pathspec-from-file="${RUNNER_TEMP}/publish-files.txt"
+          git add --pathspec-from-file="${RUNNER_TEMP}/changed-files.txt"
           git diff --cached --check
           git config user.name "EVAVO Release Agent"
           git config user.email "evavo.studio@gmail.com"
           git commit -m "feat: add authored boss phase music stems [skip ci]"
-          git push origin HEAD:agent/boss-phase-music-stems
+          git push --force origin HEAD:"${RELEASE_BRANCH}"

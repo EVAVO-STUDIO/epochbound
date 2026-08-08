@@ -129,6 +129,49 @@ patch_once(
 )
 ''',
 )
+patch_once(
+    "focused Audio release policy anchor",
+    '''replace_once(
+    "tools/check_release_workflow_policy.py",
+    '''        "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",''',
+    '''        "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_boss_music_stem_contract.py",
+        "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",''',
+)
+''',
+    '''replace_once(
+    "tools/check_release_workflow_policy.py",
+    '''require(
+    "audio_mood",
+    sources["audio_mood"],
+    [
+        "actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+        "persist-credentials: false",
+        "ref: ${{ inputs.expected_sha }}",
+        "SHA512-SUMS.txt",
+        "sha512sum --check",
+        "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",''',
+    '''require(
+    "audio_mood",
+    sources["audio_mood"],
+    [
+        "actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+        "persist-credentials: false",
+        "ref: ${{ inputs.expected_sha }}",
+        "SHA512-SUMS.txt",
+        "sha512sum --check",
+        "python3 tools/check_release_workflow_policy.py",
+        "python3 tools/check_boss_music_stem_contract.py",
+        "python3 tools/check_runtime_scene_contract.py",
+        "python3 tools/check_player_settings_contract.py",''',
+)
+''',
+)
 
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

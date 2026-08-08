@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch the temporary applicator's repeated catalogue-return anchor."""
+"""Patch temporary applicator cardinality and redundant catalogue rewrites."""
 
 from pathlib import Path
 
@@ -46,5 +46,15 @@ new_block = '''replace_count(
 '''
 if source.count(old_block) != 1:
     raise SystemExit("temporary applicator repeated-return block drifted")
-path.write_text(source.replace(old_block, new_block, 1), encoding="utf-8")
+source = source.replace(old_block, new_block, 1)
+redundant_block = '''replace_once(
+    "src/content/audio_mood_catalog.gd",
+    '\\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id)\\n\\n\\nstatic func merge_profile(',
+    '\\treturn make_result(errors, warnings, files, definitions, bindings, sources, title_profile_id, boss_stems, boss_stem_sources)\\n\\n\\nstatic func merge_profile(',
+)
+'''
+if source.count(redundant_block) != 1:
+    raise SystemExit("temporary applicator redundant final-return block drifted")
+source = source.replace(redundant_block, "", 1)
+path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

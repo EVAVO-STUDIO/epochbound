@@ -257,10 +257,10 @@ transport_path.write_text(transport.rstrip() + "\n", encoding="utf-8")
 
 smoke_path = Path("tools/smoke_multiplayer_runtime.gd")
 smoke = smoke_path.read_text(encoding="utf-8")
-smoke_grace_old = '\tsession.call("advance_host_shutdown_for_test", 0.01)\n'
+smoke_grace_old = '\tsession.call("advance_test_host_shutdown", 0.01)\n'
 smoke_grace_new = '''\t# The production server intentionally remains attached for the complete
 \t# reliable-commit flush window before closing its ENet peer.
-\tsession.call("advance_host_shutdown_for_test", 1.1)
+\tsession.call("advance_test_host_shutdown", 1.1)
 '''
 if smoke_grace_new not in smoke:
     smoke = replace_once(

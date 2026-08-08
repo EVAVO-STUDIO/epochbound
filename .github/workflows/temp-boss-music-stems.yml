@@ -34,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 tools/temp_fix_boss_music_applicator.py
           python3 tools/temp_apply_boss_music_stems.py
           git diff --check
 

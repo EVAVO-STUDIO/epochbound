@@ -46,8 +46,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path(".github/workflows/validate.yml")
-          source = path.read_text(encoding="utf-8")
+          workflow_path = Path(".github/workflows/validate.yml")
+          source = workflow_path.read_text(encoding="utf-8")
           source = source.replace(
               '# Receipt schema migrated from: "schemaVersion": "2.4"',
               '# Receipt schema migrated from: "schemaVersion": "2.5"',
@@ -70,7 +70,28 @@ jobs:
           for token in required:
               if token not in source:
                   raise SystemExit(f"exact-main workflow is missing {token}")
-          path.write_text(source, encoding="utf-8")
+          workflow_path.write_text(source.rstrip() + "\n", encoding="utf-8")
+
+          normalized_paths = [
+              "README.md",
+              "docs/MULTIPLAYER_COOP_PVP.md",
+              "docs/MULTIPLAYER_LOOPBACK_GATE.md",
+              "scripts/validate.ps1",
+              "scripts/validate_multiplayer_loopback.ps1",
+              "src/multiplayer_transport_session.gd",
+              "tools/check_multiplayer_loopback_contract.py",
+              "tools/check_release_workflow_policy.py",
+              "tools/multiplayer_loopback_peer.gd",
+              "tools/multiplayer_loopback_peer_driver.gd",
+              "tools/smoke_multiplayer_runtime.gd",
+          ]
+          for relative_path in normalized_paths:
+              path = Path(relative_path)
+              if path.is_file():
+                  path.write_text(
+                      path.read_text(encoding="utf-8").rstrip() + "\n",
+                      encoding="utf-8",
+                  )
           PY
           git diff --check
 

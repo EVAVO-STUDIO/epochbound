@@ -113,6 +113,22 @@ patch_once(
 \t\t\tboss_stems.clear()
 \t\t\tbindings.clear()''',
 )
+patch_once(
+    "repeated README Audio links",
+    r'''replace_once(
+    "README.md",
+    '- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)\n- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)',
+    '- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)\n- [`docs/BOSS_MUSIC_STEMS.md`](docs/BOSS_MUSIC_STEMS.md)\n- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)',
+)
+''',
+    r'''replace_count(
+    "README.md",
+    '- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)\n- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)',
+    '- [`docs/AUDIO_MOOD_STUDIO.md`](docs/AUDIO_MOOD_STUDIO.md)\n- [`docs/BOSS_MUSIC_STEMS.md`](docs/BOSS_MUSIC_STEMS.md)\n- [`docs/AUDIO_PLAYTEST_CHECKLIST.md`](docs/AUDIO_PLAYTEST_CHECKLIST.md)',
+    2,
+)
+''',
+)
 
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

@@ -131,7 +131,7 @@ patch_once(
 )
 patch_once(
     "focused Audio release policy anchor",
-    '''replace_once(
+    """replace_once(
     "tools/check_release_workflow_policy.py",
     '''        "python3 tools/check_release_workflow_policy.py",
         "python3 tools/check_runtime_scene_contract.py",
@@ -141,8 +141,8 @@ patch_once(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",''',
 )
-''',
-    '''replace_once(
+""",
+    """replace_once(
     "tools/check_release_workflow_policy.py",
     '''require(
     "audio_mood",
@@ -170,7 +170,7 @@ patch_once(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",''',
 )
-''',
+""",
 )
 
 path.write_text(source, encoding="utf-8")

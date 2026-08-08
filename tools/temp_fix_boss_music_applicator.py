@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch temporary applicator cardinality and redundant catalogue rewrites."""
+"""Patch temporary applicator cardinality and source anchors."""
 
 from pathlib import Path
 
@@ -56,5 +56,10 @@ redundant_block = '''replace_once(
 if source.count(redundant_block) != 1:
     raise SystemExit("temporary applicator redundant final-return block drifted")
 source = source.replace(redundant_block, "", 1)
+old_marker = '    "\\n\\nstatic func validate_audio_integrity_only(\\n",\n'
+new_marker = '    "\\n\\nstatic func validate_audio_integrity_only(campaign_path: String) -> Dictionary:\\n",\n'
+if source.count(old_marker) != 1:
+    raise SystemExit("temporary applicator strict-validator marker drifted")
+source = source.replace(old_marker, new_marker, 1)
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

@@ -16,6 +16,15 @@ for relative_path in PARTS:
         raise SystemExit(f"Missing host-directed disconnect patch part: {relative_path}")
     runpy.run_path(str(path), run_name="__main__")
 
+loopback_doc = Path("docs/MULTIPLAYER_LOOPBACK_GATE.md")
+loopback_source = loopback_doc.read_text(encoding="utf-8")
+if "host-directed disconnect" not in loopback_source:
+    loopback_source = loopback_source.rstrip() + (
+        "\n\nThe final real-socket phase proves a host-directed disconnect after every "
+        "captured peer acknowledges the same shutdown sequence.\n"
+    )
+loopback_doc.write_text(loopback_source, encoding="utf-8")
+
 for relative_path in [
     "README.md",
     "docs/MULTIPLAYER_COOP_PVP.md",

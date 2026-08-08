@@ -1,0 +1,49 @@
+name: Temporary Host Shutdown Source Export
+
+on:
+  push:
+    branches:
+      - agent/graceful-host-shutdown
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-host-shutdown-source-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Apply exact generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python3 tools/temp_apply_graceful_host_shutdown.py
+          set -e
+          python3 tools/temp_finalize_graceful_host_shutdown.py
+          mkdir -p "${RUNNER_TEMP}/source"
+          cp src/multiplayer_transport_session.gd "${RUNNER_TEMP}/source/"
+          cp src/multiplayer_session.gd "${RUNNER_TEMP}/source/"
+          cp tools/multiplayer_loopback_peer.gd "${RUNNER_TEMP}/source/"
+          cp tools/multiplayer_loopback_peer_driver.gd "${RUNNER_TEMP}/source/"
+          cp tools/smoke_multiplayer_runtime.gd "${RUNNER_TEMP}/source/"
+          cp scripts/validate_multiplayer_loopback.ps1 "${RUNNER_TEMP}/source/"
+          cp tools/check_multiplayer_loopback_contract.py "${RUNNER_TEMP}/source/"
+
+      - name: Upload generated source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-host-shutdown-source-${{ github.sha }}
+          path: ${{ runner.temp }}/source
+          if-no-files-found: error
+          retention-days: 1

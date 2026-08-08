@@ -92,7 +92,9 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
-          git diff --name-only > "${RUNNER_TEMP}/changed-files.txt"
+          git diff --name-only \
+            | grep -v '^tools/temp_' \
+            > "${RUNNER_TEMP}/changed-files.txt"
           grep -v '^\.github/workflows/' "${RUNNER_TEMP}/changed-files.txt" \
             > "${RUNNER_TEMP}/publish-files.txt"
           python3 - <<'PY'

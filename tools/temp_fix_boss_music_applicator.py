@@ -97,6 +97,22 @@ patch_once(
 \t\t\tboss_stems.clear()
 \t\t\tbindings.clear()''',
 )
+patch_once(
+    "nested hardened runtime fallback",
+    r'''\t\tdefinitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+\t\tbindings.clear()''',
+    r'''\t\t\tdefinitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+\t\t\tbindings.clear()''',
+)
+patch_once(
+    "nested hardened runtime replacement",
+    r'''\t\tdefinitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+\t\tboss_stems.clear()
+\t\tbindings.clear()''',
+    r'''\t\t\tdefinitions = {Catalog.DEFAULT_PROFILE_ID: Catalog.default_profile()}
+\t\t\tboss_stems.clear()
+\t\t\tbindings.clear()''',
+)
 
 path.write_text(source, encoding="utf-8")
 print("boss_music_applicator_cardinality_fixed")

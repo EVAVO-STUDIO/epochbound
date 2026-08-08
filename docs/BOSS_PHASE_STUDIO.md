@@ -131,6 +131,14 @@ This separation supports story conditions such as:
 
 The outcome and its effects are idempotent. Re-entering the map, shifting eras or loading a save cannot duplicate completion rewards.
 
+### Completed-arena retirement
+
+When the durable outcome is already `defeated`, the runtime retires the boss placement before activation checks run. The placement remains inactive with zero health, transient boss context is removed, arena locks stay released and introduction or conclusion cinematics cannot replay.
+
+This retirement is checked both by the focused Boss runtime regression and by the repeated long-form progression gate after every Museum Underworks revisit.
+
+Save-profile restoration clears all transient engagement, context, phase and pattern dictionaries after the durable payload and exact map have loaded. Boss state is then derived again from the restored outcome and player position, preventing stale combat state from surviving a load.
+
 ## Phase contract
 
 Each phase is a complete object:

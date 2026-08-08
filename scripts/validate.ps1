@@ -80,6 +80,7 @@ try {
         @("Smoke test host-authoritative co-op PvP runtime and snapshots", "res://tools/smoke_multiplayer_runtime.gd"),
         @("Smoke test malformed online policies areas and save isolation", "res://tools/smoke_multiplayer_validation_edges.gd"),
         @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
+        @("Smoke test repeated long-form progression endurance", "res://tools/smoke_long_form_progression.gd"),
         @("Smoke test world model and traversal", "res://tools/smoke_world_model.gd"),
         @("Smoke test Encounter Studio and base combat", "res://tools/smoke_encounters.gd"),
         @("Smoke test Combat Director target locking stagger interrupts and pressure budget", "res://tools/smoke_combat_director.gd"),
@@ -142,7 +143,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, player settings, persistent controls, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

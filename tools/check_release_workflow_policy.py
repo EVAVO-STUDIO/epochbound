@@ -114,11 +114,12 @@ require(
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_canonical_journey_contract.py",
+        "python3 tools/check_long_form_progression_contract.py",
         "python3 tools/check_multiplayer_contract.py",
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.4"',
+        '"schemaVersion": "2.5"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -128,6 +129,7 @@ require(
         '"bossMusicStemValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
+        '"longFormProgressionValidation": "passed"',
         '"multiplayerValidation": "passed"',
         '"multiplayerConnectionValidation": "passed"',
         "git merge-base --is-ancestor",
@@ -252,6 +254,11 @@ require(
         "host-authoritative co-op",
         "authored PvP invasions",
         "smoke_canonical_journey.gd",
+        "Smoke test repeated long-form progression endurance",
+        "smoke_long_form_progression.gd",
+        "repeated progression endurance",
+        "thirty-two map transitions",
+        "four destructive restorations",
     ],
 )
 
@@ -713,6 +720,25 @@ require(
 )
 
 
+long_form_progression_contract = read(
+    "long_form_progression_contract",
+    ROOT / "tools/check_long_form_progression_contract.py",
+)
+require(
+    "long_form_progression_contract",
+    long_form_progression_contract,
+    [
+        "epochbound_long_form_progression_contract_passed",
+        "SOAK_LAPS := 8",
+        "EXPECTED_ROUTE_TRANSITIONS := 32",
+        "EXPECTED_SAVE_RESTORES := 4",
+        "retire_completed_boss",
+        "super.apply_save_profile",
+        '"longFormProgressionValidation": "passed"',
+    ],
+)
+
+
 multiplayer_session = read("multiplayer_session", ROOT / "src/multiplayer_session.gd")
 require(
     "multiplayer_session",
@@ -756,5 +782,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

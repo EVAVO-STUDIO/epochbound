@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed when Epochbound's canonical long-form journey gate drifts."""
+"""Fail closed when Epochbound's shared canonical journey gate drifts."""
 
 from __future__ import annotations
 
@@ -33,14 +33,14 @@ def require_order(relative_path: str, source: str, tokens: list[str]) -> None:
         cursor = position
 
 
-journey_path = "tools/smoke_canonical_journey.gd"
-journey = read(journey_path)
+driver_path = "tools/reference_journey_driver.gd"
+driver = read(driver_path)
 require(
-    journey_path,
-    journey,
+    driver_path,
+    driver,
     [
-        'RUNTIME_SCENE := "res://src/app.tscn"',
-        'CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"',
+        'extends RefCounted',
+        'static func complete(',
         'open_merchant',
         'activate_merchant_selection',
         'reveal_companion_cue',
@@ -55,11 +55,13 @@ require(
         'apply_save_profile',
         'underworks:boss:sentinel',
         'A restored completed boss must not remain engaged',
+        '"completion_profile": second.duplicate(true)',
+        'static func progression_fingerprint',
     ],
 )
 require_order(
-    journey_path,
-    journey,
+    driver_path,
+    driver,
     [
         'open_merchant',
         'capture_save_profile',
@@ -79,8 +81,35 @@ for forbidden in [
     "SaveProfileStore.write_profile",
     "SaveProfileStore.read_profile",
 ]:
-    if forbidden in journey:
-        errors.append(f"{journey_path}: contains forbidden {forbidden}")
+    if forbidden in driver:
+        errors.append(f"{driver_path}: contains forbidden {forbidden}")
+
+journey_path = "tools/smoke_canonical_journey.gd"
+journey = read(journey_path)
+require(
+    journey_path,
+    journey,
+    [
+        'RUNTIME_SCENE := "res://src/app.tscn"',
+        'CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"',
+        'ReferenceJourneyDriver.complete',
+        'Callable(self, "check")',
+        'completion_profile',
+        'HeadlessRuntimeCleanup.release',
+        'two exact save restorations',
+    ],
+)
+
+compile_path = "tools/compile_probe.gd"
+compile_probe = read(compile_path)
+require(
+    compile_path,
+    compile_probe,
+    [
+        'res://tools/reference_journey_driver.gd',
+        'res://tools/smoke_canonical_journey.gd',
+    ],
+)
 
 local_gate_path = "scripts/validate.ps1"
 local_gate = read(local_gate_path)
@@ -100,6 +129,7 @@ require_order(
         'Validate campaign content',
         'Run deterministic campaign production audit',
         'Smoke test canonical long-form reference journey',
+        'Smoke test repeated long-form progression endurance',
         'Smoke test world model and traversal',
     ],
 )
@@ -110,10 +140,12 @@ require(
     documentation_path,
     documentation,
     [
+        'res://tools/reference_journey_driver.gd',
         'res://tools/smoke_canonical_journey.gd',
         'two checksummed profiles',
         'Determinism and safety',
         'does not use wall-clock time',
+        'LONG_FORM_PROGRESSION_PLAYTHROUGHS.md',
         'not a substitute for hands-on Windows playtesting',
     ],
 )
@@ -137,7 +169,7 @@ if errors:
     raise SystemExit(1)
 
 print("epochbound_canonical_journey_contract_passed")
-print("- the playable reference route crosses economy, discovery, crafting, travel, boss and save boundaries")
-print("- two in-memory checksummed restorations remain part of the release gate")
-print("- content validation and deterministic audit run before the journey")
+print("- one shared production-route driver owns economy, discovery, crafting, travel, boss and save boundaries")
+print("- the focused canonical gate still captures and restores two in-memory checksummed profiles")
+print("- content validation and deterministic audit run before both long-form journey gates")
 print("- wall-clock, random-input and external save-file shortcuts remain forbidden")

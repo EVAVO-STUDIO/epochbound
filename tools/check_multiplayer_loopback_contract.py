@@ -373,7 +373,7 @@ require(
         'smoke_multiplayer_snapshot_transport.gd',
         'Run real ENet host ally and invader loopback',
         'scripts/validate_multiplayer_loopback.ps1',
-        '"schemaVersion": "2.4"',
+        '"schemaVersion": "2.5"',
         '"multiplayerLoopbackValidation": "passed"',
     ],
 )

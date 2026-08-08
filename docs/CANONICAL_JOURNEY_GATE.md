@@ -4,17 +4,25 @@ Epochbound includes one executable long-form journey that crosses the production
 
 The route captures and restores two checksummed profiles so both mid-journey and completed-world state remain release-gated.
 
-The gate runs from:
+The production route is owned by:
+
+```text
+res://tools/reference_journey_driver.gd
+```
+
+The focused release wrapper runs from:
 
 ```text
 res://tools/smoke_canonical_journey.gd
 ```
 
-It is executed by the complete `scripts/validate.ps1` Godot 4.6.2 gate after campaign validation and deterministic campaign audit.
+Both the focused gate and the repeated endurance matrix use the same driver, so later progression coverage cannot silently fork into a second copy of the reference campaign route.
+
+The focused journey is executed by the complete `scripts/validate.ps1` Godot 4.6.2 gate after campaign validation and deterministic campaign audit.
 
 ## Route covered
 
-The journey instantiates the actual playable `src/app.tscn` scene and then:
+The shared driver operates on the actual playable `src/app.tscn` scene and then:
 
 1. Starts at Bellweather Crossing.
 2. Opens Bellweather Provisions through the player-facing merchant path.
@@ -61,11 +69,13 @@ The canonical journey catches integration regressions such as:
 - a completed boss returning as engaged after load;
 - save checksums representing stale rather than current durable state.
 
+The companion endurance matrix described in [`LONG_FORM_PROGRESSION_PLAYTHROUGHS.md`](LONG_FORM_PROGRESSION_PLAYTHROUGHS.md) begins from this completed-world result and repeatedly exercises travel, era changes, supply time, checkpoints and restoration.
+
 ## Determinism and safety
 
 The test does not use wall-clock time, random combat input, operating-system state or an external save directory. Save profiles are captured and restored in memory through the same runtime APIs used by normal saves.
 
-The test intentionally uses authored IDs from the reference campaign. Changing those IDs or removing a required route must update the journey in the same change, making production-route drift explicit.
+The test intentionally uses authored IDs from the reference campaign. Changing those IDs or removing a required route must update the shared driver in the same change, making production-route drift explicit.
 
 ## Release policy
 
@@ -74,6 +84,7 @@ A release candidate is not considered fully validated unless:
 - the reference campaign passes complete content validation;
 - the deterministic campaign audit passes;
 - the canonical journey passes without `SCRIPT ERROR:` or top-level `ERROR:` output;
+- the repeated long-form progression gate passes afterward;
 - every focused regression still passes afterward;
 - validation leaves tracked repository content unchanged.
 

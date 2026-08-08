@@ -127,6 +127,112 @@ func run_smoke_test() -> void:
 		check(str(runtime.get("active_cinematic_id")).is_empty(), "Completing the conclusion must restore gameplay control.")
 	check(bool(runtime.call("can_open_save_overlay")), "Saving must become available after durable arena completion and its conclusion.")
 
+	var completed_currency := EconomyModel.balance(
+		dictionary_property(runtime, "currency_balances"),
+		"archive_chits"
+	)
+	var completed_shards := int(runtime.get("clock_shards"))
+	check(
+		bool(runtime.call(
+			"activate_map",
+			"bellweather_crossing",
+			"from_underworks",
+			"verdant",
+			false
+		)),
+		"Completed boss regression must leave Museum Underworks."
+	)
+	check(
+		bool(runtime.call(
+			"activate_map",
+			"museum_underworks",
+			"from_bellweather",
+			"verdant",
+			false
+		)),
+		"Completed boss regression must revisit Museum Underworks."
+	)
+	runtime.set("player", Vector2(320, 224))
+	runtime.set("companion", Vector2(294, 238))
+	runtime.call("update_boss_engagements")
+	check(
+		not bool(dictionary_property(runtime, "engaged_bosses").get(BOSS_PLACEMENT, false)),
+		"Revisiting a completed boss arena must not re-engage the boss."
+	)
+	entities = array_property(runtime, "runtime_entities")
+	boss_index = entity_index(entities, BOSS_PLACEMENT)
+	check(
+		boss_index < 0 or not bool((entities[boss_index] as Dictionary).get("active", true)),
+		"Revisiting a completed boss arena must retire its runtime entity."
+	)
+	check(
+		str(runtime.get("active_cinematic_id")).is_empty(),
+		"Revisiting a completed boss arena must not replay boss cinematics."
+	)
+	check(
+		EconomyModel.balance(
+			dictionary_property(runtime, "currency_balances"),
+			"archive_chits"
+		) == completed_currency,
+		"Revisiting a completed boss arena must not duplicate currency rewards."
+	)
+	check(
+		int(runtime.get("clock_shards")) == completed_shards,
+		"Revisiting a completed boss arena must not duplicate shard rewards."
+	)
+	check(
+		bool(runtime.call("can_open_save_overlay")),
+		"Revisiting a completed boss arena must leave saving available."
+	)
+
+	var completed_profile: Dictionary = runtime.call(
+		"capture_save_profile",
+		"slot_2",
+		"Completed boss restore regression"
+	)
+	check(
+		not str(completed_profile.get("checksum", "")).is_empty(),
+		"Completed boss restore regression must capture a checksummed profile."
+	)
+	runtime.set("engaged_bosses", {BOSS_PLACEMENT: true})
+	runtime.set("boss_contexts", {BOSS_PLACEMENT: {"stale": true}})
+	runtime.set("boss_phase_ids", {BOSS_PLACEMENT: "catalogue_measure"})
+	runtime.set("boss_pattern_indices", {BOSS_PLACEMENT: 99})
+	check(
+		bool(runtime.call("apply_save_profile", completed_profile, CAMPAIGN_PATH)),
+		"Completed boss restore regression must load through the production profile path."
+	)
+	check(
+		not bool(dictionary_property(runtime, "engaged_bosses").get(BOSS_PLACEMENT, false)),
+		"Completed boss restore regression must clear stale engagement."
+	)
+	check(
+		not dictionary_property(runtime, "boss_contexts").has(BOSS_PLACEMENT),
+		"Completed boss restore regression must clear stale boss context."
+	)
+	check(
+		not dictionary_property(runtime, "boss_phase_ids").has(BOSS_PLACEMENT),
+		"Completed boss restore regression must clear stale phase state."
+	)
+	check(
+		not dictionary_property(runtime, "boss_pattern_indices").has(BOSS_PLACEMENT),
+		"Completed boss restore regression must clear stale pattern state."
+	)
+	entities = array_property(runtime, "runtime_entities")
+	boss_index = entity_index(entities, BOSS_PLACEMENT)
+	check(
+		boss_index < 0 or not bool((entities[boss_index] as Dictionary).get("active", true)),
+		"Completed boss restore regression must keep the runtime entity retired."
+	)
+	check(
+		str(runtime.get("active_cinematic_id")).is_empty(),
+		"Completed boss restore regression must not replay cinematics."
+	)
+	check(
+		bool(runtime.call("can_open_save_overlay")),
+		"Completed boss restore regression must leave saving available."
+	)
+
 	await cleanup(runtime)
 	finish()
 
@@ -161,7 +267,7 @@ func cleanup(runtime: Node) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Boss runtime smoke test passed: engagement, era phases, phase clamping, patterns, reinforcements, arena locks, cinematics and durable outcomes are coherent.")
+		print("Boss runtime smoke test passed: engagement, era phases, phase clamping, patterns, reinforcements, arena locks, cinematics, durable outcomes and completed-arena retirement are coherent.")
 		quit(0)
 		return
 	for failure in failures:

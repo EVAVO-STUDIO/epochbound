@@ -43,6 +43,18 @@ func load_fallback_campaign() -> void:
 	reset_boss_state()
 
 
+func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bool:
+	var restored := super.apply_save_profile(profile, target_campaign_path)
+	if not restored:
+		return false
+	# Boss engagement, phase and arena dictionaries are transient. Derive them
+	# again only after the durable session payload and exact map are restored.
+	clear_boss_state()
+	sync_boss_reinforcement_visibility()
+	update_boss_engagements()
+	return true
+
+
 func clear_boss_state() -> void:
 	engaged_bosses.clear()
 	boss_contexts.clear()
@@ -119,6 +131,8 @@ func sync_boss_reinforcement_visibility() -> void:
 		var base_definition := BossObjectCatalog.definition(object_definitions, str(entity.get("object_id", "")))
 		if not base_definition.is_empty():
 			entity["definition"] = base_definition
+		if retire_completed_boss(index, entity, base_definition):
+			continue
 		var placement := BossCatalog.placement_record(map_data, str(entity.get("placement_id", "")))
 		var reinforcement_value: Variant = placement.get("boss_reinforcement", {})
 		if typeof(reinforcement_value) == TYPE_DICTIONARY and not (reinforcement_value as Dictionary).is_empty():
@@ -141,6 +155,8 @@ func update_boss_engagements() -> void:
 		var definition_data := BossObjectCatalog.definition(object_definitions, object_id)
 		if not BossCatalog.is_boss(definition_data):
 			continue
+		if retire_completed_boss(index, entity, definition_data):
+			continue
 		var placement_id := str(entity.get("placement_id", ""))
 		var zone := boss_zone(definition_data)
 		if not bool(engaged_bosses.get(placement_id, false)):
@@ -148,6 +164,40 @@ func update_boss_engagements() -> void:
 				continue
 			engage_boss(placement_id, object_id, definition_data, zone)
 		ensure_boss_phase(index, definition_data)
+
+
+func boss_outcome_completed(definition_data: Dictionary) -> bool:
+	var outcome_key := BossCatalog.outcome_state_key(definition_data)
+	return (
+		not outcome_key.is_empty()
+		and session_state.get(outcome_key) == "defeated"
+	)
+
+
+func retire_completed_boss(
+	index: int,
+	entity: Dictionary,
+	definition_data: Dictionary
+) -> bool:
+	if (
+		index < 0
+		or index >= runtime_entities.size()
+		or not BossCatalog.is_boss(definition_data)
+		or not boss_outcome_completed(definition_data)
+	):
+		return false
+	var placement_id := str(entity.get("placement_id", ""))
+	entity["active"] = false
+	entity["health"] = 0
+	entity["mode"] = "defeated"
+	entity["attack_windup"] = 0.0
+	entity["attack_target_id"] = ""
+	runtime_entities[index] = entity
+	engaged_bosses.erase(placement_id)
+	boss_contexts.erase(placement_id)
+	boss_phase_ids.erase(placement_id)
+	boss_pattern_indices.erase(placement_id)
+	return true
 
 
 func engage_boss(

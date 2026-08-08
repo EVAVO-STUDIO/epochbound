@@ -98,6 +98,9 @@ jobs:
       - name: Validate canonical journey integration contract
         run: python3 tools/check_canonical_journey_contract.py
 
+      - name: Validate long-form progression integration contract
+        run: python3 tools/check_long_form_progression_contract.py
+
       - name: Validate co-op and PvP integration contract
         run: python3 tools/check_multiplayer_contract.py
 
@@ -174,9 +177,9 @@ jobs:
           import os
           from pathlib import Path
 
-          # Receipt schema migrated from: "schemaVersion": "2.3"
+          # Receipt schema migrated from: "schemaVersion": "2.4"
           payload = {
-              "schemaVersion": "2.4",
+              "schemaVersion": "2.5",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -185,6 +188,7 @@ jobs:
               "playerSettingsValidation": "passed",
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
+              "longFormProgressionValidation": "passed",
               "multiplayerValidation": "passed",
               "multiplayerConnectionValidation": "passed",
               "multiplayerLoopbackValidation": "passed",

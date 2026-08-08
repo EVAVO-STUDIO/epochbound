@@ -312,7 +312,7 @@ require(
         'Validate multiplayer connection setup contract',
         'python3 tools/check_multiplayer_connection_contract.py',
         '"multiplayerConnectionValidation": "passed"',
-        '"schemaVersion": "2.4"',
+        '"schemaVersion": "2.5"',
     ],
 )
 

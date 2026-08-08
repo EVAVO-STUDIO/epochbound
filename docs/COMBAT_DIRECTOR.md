@@ -175,6 +175,8 @@ Use an override sparingly. Zone-based leashes make groups easier to reason about
 
 Target identity is locked when windup begins. A different actor becoming closer cannot inherit the pending attack. The enemy may continue tracking the locked actor's current position, but damage can resolve only against that actor. If the locked actor becomes unavailable, the telegraph cancels instead of transferring silently.
 
+Ordinary enemies share one active windup slot per actor. An in-range enemy that cannot claim the slot enters **Pressure**: it faces the target, maintains combat interest and waits without applying contact damage. When the committed attack resolves, misses or is interrupted, the next eligible enemy may begin a fresh telegraph. Boss definitions do not consume the ordinary-enemy slot, so a boss may remain active while one reinforcement pressures the same actor.
+
 A readable attack should give the player enough information to:
 
 - recognise that damage is imminent;
@@ -226,9 +228,13 @@ The enemy moves between deterministic points around its spawn. Patrol is cosmeti
 
 The zone is active, the target is valid and inside the leash, and the enemy is navigating toward attack range.
 
+### Pressure
+
+The enemy is in attack range, but another ordinary enemy already owns the active windup against that actor. It holds position, faces the target and waits without dealing damage. Pressure is transient coordination state, not a durable campaign outcome.
+
 ### Windup
 
-The enemy has reached attack range and is telegraphing. The selected actor identity remains locked until resolution or cancellation. Damage is applied only when the windup completes and that locked target remains available, close enough and inside the leash.
+The enemy has reached attack range, owns the available pressure slot and is telegraphing. The selected actor identity remains locked until resolution or cancellation. Damage is applied only when the windup completes and that locked target remains available, close enough and inside the leash.
 
 ### Staggered
 
@@ -313,6 +319,8 @@ A production encounter should pass all of these gates.
 - Damage follows a telegraphed action rather than arbitrary contact.
 - A telegraph cannot silently transfer from Eli to Morrow, or from Morrow to Eli, because another actor becomes closer.
 - A successful stagger cancels the pending hit instead of pausing it until recovery.
+- Ordinary groups expose one active melee telegraph per actor instead of stacking simultaneous contact windups.
+- Waiting enemies communicate pressure without applying hidden damage; bosses remain exempt from the ordinary-enemy slot.
 - Leash boundaries do not cause enemies to reset in the middle of normal combat.
 - Entry points do not place the player inside attack range.
 - Era shifting does not spawn an enemy directly on an actor.
@@ -360,6 +368,7 @@ Clockwood Edge contains an Ashen-only two-enemy zone. It proves:
 - multiple placements coordinated by one zone;
 - group activation;
 - shared leash space;
+- one-slot ordinary-enemy pressure and deterministic attack handoff;
 - persistent clearing only after both enemies are defeated;
 - combat on a larger scrolling map.
 
@@ -372,7 +381,7 @@ The strict Godot 4.6.2 gate now covers:
 3. complete campaign, map, catalog, placement and encounter-zone validation;
 4. world traversal and cross-map smoke tests;
 5. reusable object and base-combat smoke tests;
-6. Combat Director smoke tests for activation, target locking and stagger interruption, windup, damage, knockback, leash return and zone clearing.
+6. Combat Director smoke tests for activation, target locking and stagger interruption, ordinary-enemy pressure handoff, windup, damage, knockback, leash return and zone clearing.
 
 Run the same gate from Windows PowerShell:
 
@@ -387,7 +396,7 @@ The current contracts are intended to support later additions without replacing 
 
 - ranged attacks and projectiles;
 - directional defence, dodge and invulnerability windows;
-- enemy roles and coordinated group tactics;
+- authored enemy roles and richer coordinated group tactics beyond the baseline pressure slot;
 - encounter phases and reinforcement waves;
 - capability and quest-gated activation;
 - boss arenas and phase transitions;

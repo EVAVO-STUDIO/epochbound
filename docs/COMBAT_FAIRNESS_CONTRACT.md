@@ -29,9 +29,21 @@ A successful hit that applies stagger is an interrupt.
 
 This makes hit response tactical rather than cosmetic and ensures the player's successful counterattack has an observable consequence.
 
+## Invariant 3: ordinary groups expose one active telegraph
+
+The ordinary enemies share one active melee windup slot per actor.
+
+- The first eligible ordinary enemy in deterministic runtime order may claim the slot.
+- Other in-range ordinary enemies enter `pressure`, face the actor and wait without applying damage.
+- A completed, missed, cancelled or interrupted attack releases the slot.
+- The next waiting enemy must begin its own full windup before it can damage the actor.
+- Eli and Morrow have independent pressure slots.
+- Bosses do not consume the ordinary-enemy slot, preserving boss threat while preventing reinforcement dogpiles.
+- Pressure is coordination state only; it does not change authored damage, cooldown, range, stagger or knockback values.
+
 ## Runtime state boundaries
 
-`attack_target_id`, `attack_windup`, stagger timers and knockback velocity are transient encounter state.
+`attack_target_id`, `attack_windup`, pressure mode, stagger timers and knockback velocity are transient encounter state.
 
 They may be retained only while synchronising the currently active runtime entities. They are not campaign-authored fields and must not enter durable save profiles, portable campaign packages or multiplayer progression records.
 
@@ -45,7 +57,10 @@ The Combat Director smoke test proves both invariants through the real runtime s
 4. a second windup is interrupted with `damage_entity`;
 5. the pending timer and target lock are cleared immediately;
 6. advancing beyond the original windup and stagger windows causes no deferred damage;
-7. any later attack starts a new target lock and a fresh telegraph.
+7. any later attack starts a new target lock and a fresh telegraph;
+8. the two Clockwood Hounds enter range together;
+9. exactly one owns the windup while the other enters pressure;
+10. one telegraphed hit resolves, then the waiting Hound receives the next fresh windup without extra damage.
 
 The fail-closed source checker pins the runtime, smoke test, local gate, documentation and exact-main validation receipt together.
 
@@ -58,7 +73,8 @@ Automation proves state ordering, not presentation quality. Before release, veri
 - hit sound, flash and recoil make the cancellation obvious;
 - Morrow crossing an enemy's path does not make telegraphs look misleading;
 - bosses remain threatening when ordinary stagger interrupts are allowed;
-- multiple nearby enemies do not create unreadable overlapping target cues;
+- multiple nearby ordinary enemies communicate pressure without overlapping melee telegraphs;
+- boss and reinforcement combinations remain threatening without becoming unreadable dogpiles;
 - accessibility settings preserve enough contrast and duration to read the lock.
 
 Do not weaken the invariant by making attacks instant, disabling stagger broadly or hiding target changes in presentation. Tune authored timing while preserving the same deterministic state contract.

@@ -196,6 +196,82 @@ func probe_runtime_scene() -> void:
 	check(session.get("bellweather:zone:east_ash_hunt") == "cleared", "Defeated zone members must persist a clear-state key.")
 	check(str(runtime.get("zone_banner")) == "EAST ASH HUNT CLEARED", "Cleared encounter must publish a player-facing zone banner.")
 
+	var pressure_campaign_result := Repository.read_json(CAMPAIGN_PATH)
+	check(pressure_campaign_result.get("ok", false), "Pressure fixture campaign must load independently.")
+	var pressure_campaign: Dictionary = pressure_campaign_result.get("data", {})
+	var pressure_clockwood := load_map(pressure_campaign, "clockwood_edge")
+	var pressure_clockwood_ashen := EncounterZoneModel.available_zones(pressure_clockwood, "ashen")
+	check(not pressure_clockwood_ashen.is_empty(), "Pressure fixture must retain the Ashen Clockwood encounter zone.")
+	var pressure_zone: Dictionary = pressure_clockwood_ashen[0] if not pressure_clockwood_ashen.is_empty() else {}
+	var pressure_ids := EncounterZoneModel.enemy_placement_ids(pressure_zone)
+	runtime.set("map_data", pressure_clockwood)
+	runtime.set("current_era_id", "ashen")
+	runtime.call("sync_runtime_entities", false)
+	entities = runtime_entities(runtime)
+	var pressure_indices: Array[int] = []
+	for pressure_id in pressure_ids:
+		var pressure_index := enemy_index(entities, pressure_id)
+		check(pressure_index >= 0, "Every Clockwood pressure-zone member must instantiate.")
+		if pressure_index >= 0:
+			pressure_indices.append(pressure_index)
+	check(pressure_indices.size() == 2, "Clockwood pressure fixture must retain two ordinary enemies.")
+	if pressure_indices.size() == 2:
+		var pressure_target := Vector2.ZERO
+		for pressure_index in pressure_indices:
+			var pressure_entity: Dictionary = entities[pressure_index]
+			var spawn_value: Variant = pressure_entity.get("spawn_position", Vector2.ZERO)
+			pressure_target += spawn_value if spawn_value is Vector2 else Vector2.ZERO
+		pressure_target /= float(pressure_indices.size())
+		for pressure_order in range(pressure_indices.size()):
+			var pressure_index := pressure_indices[pressure_order]
+			var pressure_entity: Dictionary = entities[pressure_index]
+			var side := -1.0 if pressure_order == 0 else 1.0
+			pressure_entity["position"] = pressure_target + Vector2(side * 14.0, 0.0)
+			pressure_entity["mode"] = "chase"
+			pressure_entity["attack_cooldown"] = 0.0
+			pressure_entity["attack_windup"] = 0.0
+			pressure_entity["attack_target_id"] = ""
+			pressure_entity["stagger_timer"] = 0.0
+			pressure_entity["knockback_velocity"] = Vector2.ZERO
+			entities[pressure_index] = pressure_entity
+		runtime.set("runtime_entities", entities)
+		runtime.set("player", pressure_target)
+		runtime.set("companion", pressure_target + Vector2(180.0, 0.0))
+		runtime.set("player_hurt_lock", 0.0)
+		var pressure_health_before := int(runtime.get("player_health"))
+		runtime.call("update_runtime_entities", 0.01)
+		entities = runtime_entities(runtime)
+		var committed_index := -1
+		var waiting_index := -1
+		for pressure_index in pressure_indices:
+			var pressure_entity: Dictionary = entities[pressure_index]
+			if str(pressure_entity.get("mode", "")) == "windup":
+				committed_index = pressure_index
+			elif str(pressure_entity.get("mode", "")) == "pressure":
+				waiting_index = pressure_index
+		check(committed_index >= 0, "One ordinary enemy must own the active pressure-slot windup.")
+		check(waiting_index >= 0, "The waiting enemy must enter pressure mode.")
+		check(count_target_windups(entities, pressure_indices, "player") == 1, "Only one ordinary enemy may own a windup against the same actor.")
+		if committed_index >= 0 and waiting_index >= 0:
+			var committed: Dictionary = entities[committed_index]
+			var committed_definition: Dictionary = committed.get("definition", {})
+			var committed_damage := int(committed_definition.get("attack_damage", 1))
+			var expected_pressure_damage := committed_damage
+			if runtime.has_method("player_defense_value"):
+				expected_pressure_damage = maxi(1, committed_damage - int(runtime.call("player_defense_value")))
+			var committed_windup := float(committed.get("attack_windup", 0.0))
+			runtime.call("update_runtime_entities", committed_windup + 0.01)
+			entities = runtime_entities(runtime)
+			check(int(runtime.get("player_health")) == pressure_health_before - expected_pressure_damage, "Pressure coordination must resolve exactly one telegraphed hit.")
+			var handed_entity: Dictionary = entities[waiting_index]
+			check(str(handed_entity.get("mode", "")) == "windup", "Attack pressure must hand the next telegraph to the waiting enemy.")
+			check(str(handed_entity.get("attack_target_id", "")) == "player", "Pressure handoff must acquire a fresh target lock.")
+			check(float(handed_entity.get("attack_windup", 0.0)) > 0.0, "Pressure handoff must begin a fresh full telegraph.")
+			check(count_target_windups(entities, pressure_indices, "player") == 1, "Pressure handoff must retain one active ordinary-enemy windup.")
+			var health_after_pressure_hit := int(runtime.get("player_health"))
+			runtime.call("update_runtime_entities", 0.01)
+			check(int(runtime.get("player_health")) == health_after_pressure_hit, "Pressure coordination must not add untelegraphed damage.")
+
 	await HeadlessRuntimeCleanup.release(self, runtime)
 
 
@@ -214,9 +290,20 @@ func enemy_index(entities: Array, placement_id: String) -> int:
 	return -1
 
 
+func count_target_windups(entities: Array, indices: Array[int], target_id: String) -> int:
+	var count := 0
+	for index in indices:
+		if index < 0 or index >= entities.size() or typeof(entities[index]) != TYPE_DICTIONARY:
+			continue
+		var entity: Dictionary = entities[index]
+		if float(entity.get("attack_windup", 0.0)) > 0.0 and str(entity.get("attack_target_id", "")) == target_id:
+			count += 1
+	return count
+
+
 func finish() -> void:
 	if failures.is_empty():
-		print("Combat Director smoke test passed: zones, target locking, interruptible windup, derived damage, stagger, leash return and persistent clearing are coherent.")
+		print("Combat Director smoke test passed: zones, target locking, interruptible windup, one-slot ordinary-enemy pressure, deterministic handoff, derived damage, stagger, leash return and persistent clearing are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -7,6 +7,7 @@ const DEFAULT_STAGGER := 0.18
 const DEFAULT_ATTACK_WINDUP := 0.24
 const DEFAULT_KNOCKBACK_DISTANCE := 22.0
 const KNOCKBACK_DECAY := 8.5
+const MAX_NON_BOSS_WINDUPS_PER_TARGET := 1
 
 var player_knockback := Vector2.ZERO
 var companion_knockback := Vector2.ZERO
@@ -193,7 +194,7 @@ func update_directed_enemy(index: int, entity: Dictionary, delta: float) -> void
 	elif zone_active and (distance <= awareness or float(entity.get("target_memory", 0.0)) > 0.0):
 		mode = "chase"
 		entity["target_memory"] = float(definition_data.get("target_memory", 0.8))
-	elif mode in ["chase", "windup", "staggered"]:
+	elif mode in ["chase", "pressure", "windup", "staggered"]:
 		mode = "return"
 
 	if mode == "return":
@@ -209,9 +210,13 @@ func update_directed_enemy(index: int, entity: Dictionary, delta: float) -> void
 
 	if mode == "chase":
 		if distance <= attack_range and float(entity.get("attack_cooldown", 0.0)) <= 0.0:
-			entity["attack_windup"] = maxf(0.05, float(definition_data.get("attack_windup", DEFAULT_ATTACK_WINDUP)))
-			entity["attack_target_id"] = target_name
-			entity["mode"] = "windup"
+			if attack_pressure_slot_available(index, target_name, definition_data):
+				entity["attack_windup"] = maxf(0.05, float(definition_data.get("attack_windup", DEFAULT_ATTACK_WINDUP)))
+				entity["attack_target_id"] = target_name
+				entity["mode"] = "windup"
+			else:
+				entity["attack_target_id"] = ""
+				entity["mode"] = "pressure"
 			EncounterModel.update_facing(entity, position.direction_to(target_position))
 		else:
 			entity = steer_enemy(index, entity, target_position, float(definition_data.get("move_speed", 48.0)), delta)
@@ -235,6 +240,41 @@ func attack_target_is_available(actor_id: String) -> bool:
 
 func attack_target_position(actor_id: String) -> Vector2:
 	return companion if actor_id == "companion" else player
+
+
+func attack_pressure_slot_available(
+	requesting_index: int,
+	target_id: String,
+	definition_data: Dictionary
+) -> bool:
+	if not uses_shared_attack_pressure_slot(definition_data):
+		return true
+	var committed := 0
+	for other_index in range(runtime_entities.size()):
+		if other_index == requesting_index or typeof(runtime_entities[other_index]) != TYPE_DICTIONARY:
+			continue
+		var other: Dictionary = runtime_entities[other_index]
+		if not bool(other.get("active", true)) or EncounterModel.kind(other) != "enemy":
+			continue
+		if float(other.get("attack_windup", 0.0)) <= 0.0:
+			continue
+		if str(other.get("attack_target_id", "")) != target_id:
+			continue
+		var other_definition_value: Variant = other.get("definition", {})
+		var other_definition: Dictionary = (
+			other_definition_value if typeof(other_definition_value) == TYPE_DICTIONARY else {}
+		)
+		if not uses_shared_attack_pressure_slot(other_definition):
+			continue
+		committed += 1
+	return committed < MAX_NON_BOSS_WINDUPS_PER_TARGET
+
+
+func uses_shared_attack_pressure_slot(definition_data: Dictionary) -> bool:
+	var boss_value: Variant = definition_data.get("boss", {})
+	if typeof(boss_value) != TYPE_DICTIONARY:
+		return true
+	return not bool((boss_value as Dictionary).get("enabled", false))
 
 
 func update_patrol(

@@ -239,10 +239,11 @@ require(
         "meaningful temporal shifts",
         "smoke_boss_music_stems.gd",
         "boss phase music stems",
-        "Smoke test Combat Director target locking and stagger interrupts",
+        "Smoke test Combat Director target locking stagger interrupts and pressure budget",
         "smoke_combat_director.gd",
         "locked combat telegraphs",
         "stagger interrupts",
+        "ordinary-enemy pressure budget",
         "smoke_multiplayer_session_model.gd",
         "smoke_multiplayer_connection_profile.gd",
         "Smoke test player-local multiplayer connection setup and recovery",
@@ -666,6 +667,8 @@ require(
         "attack_target_id",
         "Stagger must cancel the pending attack windup",
         "Interrupted windup must not deal deferred damage after stagger",
+        "ordinary enemies share one active melee windup per target",
+        "waiting enemies use deterministic pressure state",
         '"combatFairnessValidation": "passed"',
     ],
 )
@@ -682,6 +685,9 @@ require(
         "damage_actor(locked_target_id",
         'entity["attack_windup"] = 0.0',
         'entity["attack_target_id"] = ""',
+        "MAX_NON_BOSS_WINDUPS_PER_TARGET := 1",
+        "attack_pressure_slot_available(index, target_name, definition_data)",
+        'entity["mode"] = "pressure"',
     ],
 )
 forbid(
@@ -750,5 +756,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, boss phase music stems, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

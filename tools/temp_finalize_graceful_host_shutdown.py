@@ -255,6 +255,22 @@ if close_order_new not in transport:
     )
 transport_path.write_text(transport.rstrip() + "\n", encoding="utf-8")
 
+smoke_path = Path("tools/smoke_multiplayer_runtime.gd")
+smoke = smoke_path.read_text(encoding="utf-8")
+smoke_grace_old = '\tsession.call("advance_host_shutdown_for_test", 0.01)\n'
+smoke_grace_new = '''\t# The production server intentionally remains attached for the complete
+\t# reliable-commit flush window before closing its ENet peer.
+\tsession.call("advance_host_shutdown_for_test", 1.1)
+'''
+if smoke_grace_new not in smoke:
+    smoke = replace_once(
+        smoke,
+        smoke_grace_old,
+        smoke_grace_new,
+        "host shutdown smoke commit grace",
+    )
+smoke_path.write_text(smoke.rstrip() + "\n", encoding="utf-8")
+
 harness_path = Path("scripts/validate_multiplayer_loopback.ps1")
 harness = harness_path.read_text(encoding="utf-8")
 failure_cleanup_phrase = "Forced termination is retained only as bounded failure cleanup"
@@ -271,7 +287,6 @@ normalized_paths = [
     "scripts/validate.ps1",
     "tools/multiplayer_loopback_peer.gd",
     "tools/multiplayer_loopback_peer_driver.gd",
-    "tools/smoke_multiplayer_runtime.gd",
 ]
 for relative_path in normalized_paths:
     path = Path(relative_path)

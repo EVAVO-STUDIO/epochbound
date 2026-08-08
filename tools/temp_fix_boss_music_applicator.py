@@ -190,6 +190,14 @@ if policy_source.count(old_schema) != 1:
     raise SystemExit("release policy receipt schema token drifted")
 policy_path.write_text(policy_source.replace(old_schema, new_schema, 1), encoding="utf-8")
 
+prior_marker = '# Receipt schema migrated from: "schemaVersion": "2.4"'
+restored_marker = '# Receipt schema migrated from: "schemaVersion": "2.3"'
+for checker_path in sorted(Path("tools").glob("check_*_contract.py")):
+    checker_source = checker_path.read_text(encoding="utf-8")
+    if prior_marker not in checker_source:
+        continue
+    checker_path.write_text(checker_source.replace(prior_marker, restored_marker), encoding="utf-8")
+
 print("boss_music_stem_integration_applied")
 ''',
 )

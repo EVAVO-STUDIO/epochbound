@@ -13,11 +13,11 @@ Every finding contains:
 
 Reports are sorted deterministically by severity, code, context and message. Identical campaign input must produce byte-equivalent JSON output.
 
-Epochbound's built-in reference campaign has a stricter release contract: complete content validation and all nine audit probes must publish zero errors, blockers and warnings. The normal audit API still distinguishes blockers from review warnings for external campaigns.
+Epochbound's built-in reference campaign has a stricter release contract: complete content validation and all ten audit probes must publish zero errors, blockers and warnings. The normal audit API still distinguishes blockers from review warnings for external campaigns.
 
-The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression, affordability risks and meaningful temporal-shift evidence. These counts are evidence and triage aids, not balance scores.
+The report also publishes bounded metrics for maps, capabilities, quests, restorative sources, progression items, progression capabilities, source risks, merchant-only progression, affordability risks, deterministic economy-balance evidence and meaningful temporal-shift evidence. These counts are evidence and triage aids, not balance scores.
 
-## Nine permanent probes
+## Ten permanent probes
 
 ### 1. Map reachability
 
@@ -158,7 +158,24 @@ A price or aggregate review total above the starting balance is a warning, not a
 
 The probe does not assume all optional upgrades must be affordable at campaign start. It evaluates only items and capabilities already identified as progression requirements.
 
-### 9. Temporal shift consequence
+### 9. Deterministic economy balance
+
+The audit executes bounded opening-market and active-play endurance scenarios using the same buy and sell price functions as the runtime. It measures executable starting purchases, whether optional opening spending preserves a healing route, preparation-category variety, repeatable buy-sell loops and renewable healing or ammunition throughput across a fixed thirty-minute active-play horizon.
+
+Findings:
+
+- `economy.starting_wallet_no_choice` — warning
+- `economy.starting_wallet_single_choice` — warning
+- `economy.optional_spend_strands_recovery` — warning
+- `economy.repeatable_arbitrage` — blocker
+- `economy.recovery_endurance_risk` — warning
+- `economy.ammo_endurance_risk` — warning
+
+Only unconditional opening merchants and stock entries participate in the starting-choice and arbitrage scenarios. A positive buy-sell spread is release-stopping only when the purchased stock is unlimited or renewable. Finite one-time trading differences remain evidence rather than failures.
+
+Renewable throughput uses authored supply-region intervals and restock quantities across 1,800 seconds of active play. It does not grant offline progress or assume that a resource is immediately available. See `ECONOMY_BALANCE_SIMULATION.md` for the complete model and reference-campaign contract.
+
+### 10. Temporal shift consequence
 
 Every map with at least two declared eras must publish evidence that shifting changes the authored journey. The deterministic probe recognises five outcome categories:
 
@@ -183,7 +200,7 @@ The category and evidence counts are intentionally bounded. They prove authored 
 1. Open the **Audit** main-screen tab.
 2. Select a built-in or installed campaign.
 3. Select **Run Audit**.
-4. Review the metrics summary, including progression, affordability and temporal consequence counts.
+4. Review the metrics summary, including progression, affordability, economy-balance and temporal consequence counts.
 5. Resolve every blocker.
 6. Review and either resolve or document every warning.
 7. Export the deterministic JSON report into `user://audit_reports`.
@@ -213,4 +230,4 @@ Campaign Audit Studio does not simulate every possible player action. It does no
 - long-form save/load soak tests;
 - human assessment of story quality and encounter fairness.
 
-The temporal probe measures authored evidence rather than experiential quality; a category count does not prove that a shift is obvious, fair or memorable. The source and affordability probes are deliberately conservative. They do not model arbitrary sales, every reward order, exchange rates, optional spending, all recipe alternatives, every capability-equipment choice or dynamic scripts outside the campaign contract. They provide deterministic early warnings that make those later reviews more focused and safer to automate.
+The temporal probe measures authored evidence rather than experiential quality; a category count does not prove that a shift is obvious, fair or memorable. The source, affordability and economy-balance probes are deliberately conservative. The balance simulation covers bounded opening purchases, renewable merchant throughput and same-currency arbitrage, but it does not model every reward order, encounter drop, exchange rate, optional branch, all recipe alternatives, every capability-equipment choice or dynamic script outside the campaign contract. These probes provide deterministic early warnings that make later playtests more focused and safer to automate.

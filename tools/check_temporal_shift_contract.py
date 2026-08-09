@@ -76,7 +76,7 @@ require(
     campaign_audit,
     [
         'TemporalShiftAudit = preload("res://src/content/temporal_shift_audit.gd")',
-        "PROBE_COUNT := 9",
+        "PROBE_COUNT := 10",
         '"multi_era_map_count": 0',
         '"meaningful_shift_map_count": 0',
         '"temporal_outcome_count": 0',
@@ -108,7 +108,7 @@ require(
     "reference_smoke",
     reference_smoke,
     [
-        "all nine production probes",
+        "all ten production probes",
         'metrics.get("multi_era_map_count", 0)',
         'metrics.get("meaningful_shift_map_count", 0)',
         'metrics.get("temporal_route_count", 0)',
@@ -126,7 +126,7 @@ require(
     [
         '"temporal.palette_only"',
         '"orphan"',
-        "Synthetic audit must execute all nine probes",
+        "Synthetic audit must execute all ten probes",
     ],
 )
 
@@ -149,7 +149,7 @@ require(
     "studio_smoke",
     studio_smoke,
     [
-        "all nine production probes",
+        "all ten production probes",
         "Temporal maps 3/3 authored",
         "Temporal outcomes",
     ],
@@ -181,9 +181,9 @@ require(
     "audit_documentation",
     documentation,
     [
-        "all nine audit probes",
-        "## Nine permanent probes",
-        "### 9. Temporal shift consequence",
+        "all ten audit probes",
+        "## Ten permanent probes",
+        "### 10. Temporal shift consequence",
         "`temporal.palette_only`",
         "route, threat, information, relationship or resource",
         "Records available in every declared era are neutral",
@@ -196,11 +196,11 @@ require(
     "audit_checklist",
     checklist,
     [
-        "all nine probes",
+        "all ten probes",
         "## Temporal shift consequences",
         "Temporal maps",
         "`temporal.palette_only`",
-        "same nine-probe audit report",
+        "same ten-probe audit report",
     ],
 )
 
@@ -209,7 +209,7 @@ require(
     "readme",
     readme,
     [
-        "nine deterministic production probes",
+        "ten deterministic production probes",
         "meaningful temporal-shift consequences",
         "Meaningful era consequences before palette-only shifts",
     ],
@@ -221,8 +221,8 @@ require(
     workflow,
     [
         "python3 tools/check_temporal_shift_contract.py",
-        '# Receipt schema migrated from: "schemaVersion": "2.5"',
-        '"schemaVersion": "2.6"',
+        '# Receipt schema migrated from: "schemaVersion": "2.6"',
+        '"schemaVersion": "2.7"',
         '"temporalShiftValidation": "passed"',
     ],
 )
@@ -233,7 +233,7 @@ require(
     release_policy,
     [
         "python3 tools/check_temporal_shift_contract.py",
-        '"schemaVersion": "2.6"',
+        '"schemaVersion": "2.7"',
         '"temporalShiftValidation": "passed"',
         "smoke_temporal_shift_audit.gd",
         "meaningful temporal shifts",

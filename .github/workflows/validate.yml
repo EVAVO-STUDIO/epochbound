@@ -86,6 +86,9 @@ jobs:
       - name: Validate boss phase music stem contract
         run: python3 tools/check_boss_music_stem_contract.py
 
+      - name: Validate deterministic economy balance integration contract
+        run: python3 tools/check_economy_balance_contract.py
+
       - name: Validate canonical runtime composition contract
         run: python3 tools/check_runtime_scene_contract.py
 
@@ -177,9 +180,9 @@ jobs:
           import os
           from pathlib import Path
 
-          # Receipt schema migrated from: "schemaVersion": "2.5"
+          # Receipt schema migrated from: "schemaVersion": "2.6"
           payload = {
-              "schemaVersion": "2.6",
+              "schemaVersion": "2.7",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -201,6 +204,7 @@ jobs:
               "temporalShiftValidation": "passed",
               "combatFairnessValidation": "passed",
               "bossMusicStemValidation": "passed",
+              "economyBalanceValidation": "passed",
               "presentationValidation": "passed",
               "audioMoodValidation": "passed",
               "spriteAnimationValidation": "passed",

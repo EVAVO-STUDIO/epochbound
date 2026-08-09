@@ -110,6 +110,7 @@ require(
         "python3 tools/check_temporal_shift_contract.py",
         "python3 tools/check_combat_fairness_contract.py",
         "python3 tools/check_boss_music_stem_contract.py",
+        "python3 tools/check_economy_balance_contract.py",
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_supply_region_contract.py",
@@ -119,7 +120,7 @@ require(
         "python3 tools/check_multiplayer_connection_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.6"',
+        '"schemaVersion": "2.7"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -127,6 +128,7 @@ require(
         '"temporalShiftValidation": "passed"',
         '"combatFairnessValidation": "passed"',
         '"bossMusicStemValidation": "passed"',
+        '"economyBalanceValidation": "passed"',
         '"supplyRegionValidation": "passed"',
         '"canonicalJourneyValidation": "passed"',
         '"longFormProgressionValidation": "passed"',
@@ -236,6 +238,9 @@ require(
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
         "Smoke test multi-source progression affordability planning",
+        "Smoke test deterministic economy balance simulation",
+        "smoke_economy_balance_simulation.gd",
+        "deterministic economy balance",
         "Smoke test warning-free reference campaign release readiness",
         "smoke_campaign_audit.gd",
         "smoke_temporal_shift_audit.gd",
@@ -297,7 +302,7 @@ require(
         'metrics.get("progression_source_risk_count", -1)) == 0',
         'metrics.get("multi_era_map_count", 0)',
         'metrics.get("meaningful_shift_map_count", 0)',
-        "all nine production probes",
+        "all ten production probes",
         "zero blockers, errors or warnings",
     ],
 )
@@ -347,8 +352,10 @@ require(
         'interaction.get("progression_required", false)',
         'progression_map.erase("interactions")',
         'TemporalShiftAudit = preload("res://src/content/temporal_shift_audit.gd")',
-        "PROBE_COUNT := 9",
+        'EconomyBalanceSimulation = preload("res://src/content/economy_balance_simulation.gd")',
+        "PROBE_COUNT := 10",
         'TemporalShiftAudit.audit(maps, objects, findings)',
+        'EconomyBalanceSimulation.audit(',
     ],
 )
 
@@ -721,6 +728,23 @@ require(
 )
 
 
+economy_balance_contract = read(
+    "economy_balance_contract",
+    ROOT / "tools/check_economy_balance_contract.py",
+)
+require(
+    "economy_balance_contract",
+    economy_balance_contract,
+    [
+        "epochbound_economy_balance_contract_passed",
+        "SIMULATION_HORIZON_SECONDS := 1800.0",
+        "economy.repeatable_arbitrage",
+        "Economy choices 4/4 recovery-safe",
+        '"economyBalanceValidation": "passed"',
+    ],
+)
+
+
 long_form_progression_contract = read(
     "long_form_progression_contract",
     ROOT / "tools/check_long_form_progression_contract.py",
@@ -805,5 +829,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

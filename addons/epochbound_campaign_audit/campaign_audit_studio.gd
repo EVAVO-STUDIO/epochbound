@@ -159,6 +159,19 @@ func render_report(report: Dictionary) -> void:
 			int(metrics.get("temporal_resource_count", 0))
 		]
 	)
+	metrics_label.text += (
+		"\nEconomy choices %d/%d recovery-safe   •   Categories %d   •   Balance scenarios %d   •   Risks %d   •   Repeatable loops %d   •   Recovery/30m %d   •   Ammo/30m %d"
+		% [
+			int(metrics.get("economy_recovery_safe_choice_count", 0)),
+			int(metrics.get("economy_starting_choice_count", 0)),
+			int(metrics.get("economy_preparation_category_count", 0)),
+			int(metrics.get("economy_balance_scenario_count", 0)),
+			int(metrics.get("economy_balance_risk_count", 0)),
+			int(metrics.get("economy_repeatable_arbitrage_count", 0)),
+			int(metrics.get("economy_renewable_recovery_units", 0)),
+			int(metrics.get("economy_renewable_ammo_units", 0))
+		]
+	)
 	for finding_value in report.get("findings", []):
 		if typeof(finding_value) != TYPE_DICTIONARY:
 			continue

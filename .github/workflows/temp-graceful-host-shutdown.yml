@@ -36,6 +36,7 @@ jobs:
           set -euo pipefail
           python3 tools/temp_finalize_graceful_host_shutdown.py
           python3 tools/temp_fix_host_directed_disconnect.py
+          python3 tools/temp_fix_scene_multiplayer_disconnect.py
           git diff --check
 
       - name: Run all fail-closed source contracts

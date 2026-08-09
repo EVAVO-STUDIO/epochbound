@@ -25,30 +25,40 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Reproduce exact validated working tree
+      - name: Reproduce exact validated production tree
         shell: bash
         run: |
           set -euo pipefail
           python3 tools/temp_finalize_graceful_host_shutdown.py
           python3 tools/temp_fix_host_directed_disconnect.py
+          python3 tools/temp_fix_scene_multiplayer_disconnect.py
           git diff --check
-          git diff --binary > "${RUNNER_TEMP}/host-shutdown-exact.patch"
-          mkdir -p "${RUNNER_TEMP}/host-shutdown-exact/src" "${RUNNER_TEMP}/host-shutdown-exact/tools" "${RUNNER_TEMP}/host-shutdown-exact/scripts" "${RUNNER_TEMP}/host-shutdown-exact/docs" "${RUNNER_TEMP}/host-shutdown-exact/.github/workflows"
-          cp src/multiplayer_transport_session.gd "${RUNNER_TEMP}/host-shutdown-exact/src/"
-          cp src/multiplayer_session.gd "${RUNNER_TEMP}/host-shutdown-exact/src/"
-          cp tools/multiplayer_loopback_peer.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
-          cp tools/multiplayer_loopback_peer_driver.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
-          cp tools/smoke_multiplayer_runtime.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
-          cp tools/check_multiplayer_loopback_contract.py "${RUNNER_TEMP}/host-shutdown-exact/tools/"
-          cp scripts/validate_multiplayer_loopback.ps1 "${RUNNER_TEMP}/host-shutdown-exact/scripts/"
-          cp docs/MULTIPLAYER_LOOPBACK_GATE.md "${RUNNER_TEMP}/host-shutdown-exact/docs/"
-          cp .github/workflows/validate.yml "${RUNNER_TEMP}/host-shutdown-exact/.github/workflows/"
-          cp "${RUNNER_TEMP}/host-shutdown-exact.patch" "${RUNNER_TEMP}/host-shutdown-exact/"
+          root="${RUNNER_TEMP}/host-shutdown-production"
+          mkdir -p "$root/.github/workflows" "$root/docs" "$root/scripts" "$root/src" "$root/tools"
+          cp .github/workflows/validate.yml "$root/.github/workflows/validate.yml"
+          cp README.md "$root/README.md"
+          cp docs/MULTIPLAYER_COOP_PVP.md "$root/docs/MULTIPLAYER_COOP_PVP.md"
+          cp docs/MULTIPLAYER_LOOPBACK_GATE.md "$root/docs/MULTIPLAYER_LOOPBACK_GATE.md"
+          cp scripts/validate.ps1 "$root/scripts/validate.ps1"
+          cp scripts/validate_multiplayer_loopback.ps1 "$root/scripts/validate_multiplayer_loopback.ps1"
+          cp src/multiplayer_transport_session.gd "$root/src/multiplayer_transport_session.gd"
+          cp tools/check_boss_music_stem_contract.py "$root/tools/check_boss_music_stem_contract.py"
+          cp tools/check_combat_fairness_contract.py "$root/tools/check_combat_fairness_contract.py"
+          cp tools/check_long_form_progression_contract.py "$root/tools/check_long_form_progression_contract.py"
+          cp tools/check_multiplayer_connection_contract.py "$root/tools/check_multiplayer_connection_contract.py"
+          cp tools/check_multiplayer_loopback_contract.py "$root/tools/check_multiplayer_loopback_contract.py"
+          cp tools/check_release_workflow_policy.py "$root/tools/check_release_workflow_policy.py"
+          cp tools/check_temporal_shift_contract.py "$root/tools/check_temporal_shift_contract.py"
+          cp tools/multiplayer_loopback_peer.gd "$root/tools/multiplayer_loopback_peer.gd"
+          cp tools/multiplayer_loopback_peer_driver.gd "$root/tools/multiplayer_loopback_peer_driver.gd"
+          cp tools/smoke_multiplayer_runtime.gd "$root/tools/smoke_multiplayer_runtime.gd"
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS.txt"
 
-      - name: Upload exact debug source
+      - name: Upload exact production source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: epochbound-host-shutdown-exact-${{ github.sha }}
-          path: ${{ runner.temp }}/host-shutdown-exact
+          name: epochbound-host-shutdown-production-${{ github.sha }}
+          path: ${{ runner.temp }}/host-shutdown-production
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 1

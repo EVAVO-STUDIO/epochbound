@@ -50,7 +50,10 @@ jobs:
           git restore --source=HEAD -- .github/workflows/validate.yml
           git diff --check
 
-          git diff --name-only | sort -u > "${RUNNER_TEMP}/changed-files.txt"
+          {
+            git diff --name-only
+            git ls-files --others --exclude-standard
+          } | sort -u > "${RUNNER_TEMP}/changed-files.txt"
           python3 - <<'PY'
           import os
           from pathlib import Path

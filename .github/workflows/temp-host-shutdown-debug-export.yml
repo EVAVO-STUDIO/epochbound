@@ -1,0 +1,54 @@
+name: Temporary Host Shutdown Debug Export
+
+on:
+  push:
+    branches:
+      - agent/graceful-host-shutdown
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-host-shutdown-debug-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    if: ${{ !contains(github.event.head_commit.message, '[skip debug export]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reproduce exact validated working tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/temp_finalize_graceful_host_shutdown.py
+          python3 tools/temp_fix_host_directed_disconnect.py
+          git diff --check
+          git diff --binary > "${RUNNER_TEMP}/host-shutdown-exact.patch"
+          mkdir -p "${RUNNER_TEMP}/host-shutdown-exact/src" "${RUNNER_TEMP}/host-shutdown-exact/tools" "${RUNNER_TEMP}/host-shutdown-exact/scripts" "${RUNNER_TEMP}/host-shutdown-exact/docs" "${RUNNER_TEMP}/host-shutdown-exact/.github/workflows"
+          cp src/multiplayer_transport_session.gd "${RUNNER_TEMP}/host-shutdown-exact/src/"
+          cp src/multiplayer_session.gd "${RUNNER_TEMP}/host-shutdown-exact/src/"
+          cp tools/multiplayer_loopback_peer.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
+          cp tools/multiplayer_loopback_peer_driver.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
+          cp tools/smoke_multiplayer_runtime.gd "${RUNNER_TEMP}/host-shutdown-exact/tools/"
+          cp tools/check_multiplayer_loopback_contract.py "${RUNNER_TEMP}/host-shutdown-exact/tools/"
+          cp scripts/validate_multiplayer_loopback.ps1 "${RUNNER_TEMP}/host-shutdown-exact/scripts/"
+          cp docs/MULTIPLAYER_LOOPBACK_GATE.md "${RUNNER_TEMP}/host-shutdown-exact/docs/"
+          cp .github/workflows/validate.yml "${RUNNER_TEMP}/host-shutdown-exact/.github/workflows/"
+          cp "${RUNNER_TEMP}/host-shutdown-exact.patch" "${RUNNER_TEMP}/host-shutdown-exact/"
+
+      - name: Upload exact debug source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-host-shutdown-exact-${{ github.sha }}
+          path: ${{ runner.temp }}/host-shutdown-exact
+          if-no-files-found: error
+          retention-days: 1

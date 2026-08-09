@@ -1,0 +1,162 @@
+name: Temporary Economy Balance V2 Validation
+
+on:
+  push:
+    branches:
+      - agent/economy-balance-simulation-v2
+
+permissions:
+  contents: write
+
+concurrency:
+  group: epochbound-temp-economy-balance-v2
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+      GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+      GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
+
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply checksum-locked economy balance delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/temp_apply_economy_v2.py
+          git diff --check
+
+      - name: Run every fail-closed source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/*.py
+          rm -rf tools/__pycache__
+          python3 tools/check_release_workflow_policy.py
+          for checker in tools/check_*_contract.py; do
+            python3 "$checker"
+          done
+
+      - name: Download and verify official Godot 4.6.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt \
+            > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
+          chmod +x .godot-bin/godot
+          version="$(.godot-bin/godot --version)"
+          [[ "${version}" =~ ^4\.6\.2 ]] || { echo "Unexpected Godot version: ${version}" >&2; exit 1; }
+          command -v pwsh >/dev/null || { echo "PowerShell is required" >&2; exit 1; }
+          rm -rf .godot-download
+
+      - name: Run complete leak-free seventeen-system validation gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot"
+
+      - name: Run real ENet reconnect and host shutdown regression gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_loopback.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE"
+
+      - name: Verify and publish intentional production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          {
+            git diff --name-only
+            git ls-files --others --exclude-standard
+          } | sort -u > "${RUNNER_TEMP}/changed-files.txt"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          allowed = {
+              ".github/workflows/validate.yml",
+              "README.md",
+              "addons/epochbound_campaign_audit/campaign_audit_studio.gd",
+              "docs/AUDIT_PLAYTEST_CHECKLIST.md",
+              "docs/CAMPAIGN_AUDIT_STUDIO.md",
+              "docs/ECONOMY_BALANCE_SIMULATION.md",
+              "docs/ECONOMY_PLAYTEST_CHECKLIST.md",
+              "scripts/validate.ps1",
+              "src/content/campaign_audit.gd",
+              "src/content/economy_balance_simulation.gd",
+              "tools/check_boss_music_stem_contract.py",
+              "tools/check_combat_fairness_contract.py",
+              "tools/check_economy_balance_contract.py",
+              "tools/check_long_form_progression_contract.py",
+              "tools/check_multiplayer_connection_contract.py",
+              "tools/check_multiplayer_loopback_contract.py",
+              "tools/check_release_workflow_policy.py",
+              "tools/check_temporal_shift_contract.py",
+              "tools/compile_probe.gd",
+              "tools/smoke_campaign_audit.gd",
+              "tools/smoke_campaign_audit_edges.gd",
+              "tools/smoke_campaign_audit_studio.gd",
+              "tools/smoke_economy_balance_simulation.gd",
+          }
+          required = {
+              ".github/workflows/validate.yml",
+              "docs/ECONOMY_BALANCE_SIMULATION.md",
+              "docs/ECONOMY_PLAYTEST_CHECKLIST.md",
+              "src/content/economy_balance_simulation.gd",
+              "tools/check_economy_balance_contract.py",
+              "tools/smoke_economy_balance_simulation.gd",
+              "src/content/campaign_audit.gd",
+              "addons/epochbound_campaign_audit/campaign_audit_studio.gd",
+          }
+          root = Path(os.environ["RUNNER_TEMP"])
+          changed = {
+              line.strip()
+              for line in (root / "changed-files.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          }
+          unexpected = sorted(changed.difference(allowed))
+          missing = sorted(required.difference(changed))
+          omitted = sorted(allowed.difference(changed))
+          if unexpected:
+              raise SystemExit("unexpected changed files: " + ", ".join(unexpected))
+          if missing:
+              raise SystemExit("required economy files are missing: " + ", ".join(missing))
+          if omitted:
+              raise SystemExit("validated economy delta is incomplete: " + ", ".join(omitted))
+          publish = sorted(changed.difference({".github/workflows/validate.yml"}))
+          (root / "publish-files.txt").write_text("\n".join(publish) + "\n", encoding="utf-8")
+          print("validated economy production files:")
+          for path in sorted(changed):
+              print(f"- {path}")
+          PY
+          git add --pathspec-from-file="${RUNNER_TEMP}/publish-files.txt"
+          git diff --cached --check
+          git config user.name "EVAVO Release Agent"
+          git config user.email "evavo.studio@gmail.com"
+          git commit -m "feat: add deterministic economy balance simulation [skip ci]"
+          git push origin HEAD:agent/economy-balance-simulation-v2

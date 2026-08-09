@@ -85,7 +85,7 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
-      - name: Verify and publish intentional production source
+      - name: Publish the exact validated production tree
         shell: bash
         run: |
           set -euo pipefail
@@ -148,8 +148,10 @@ jobs:
               raise SystemExit("required economy files are missing: " + ", ".join(missing))
           if omitted:
               raise SystemExit("validated economy delta is incomplete: " + ", ".join(omitted))
-          publish = sorted(changed.difference({".github/workflows/validate.yml"}))
-          (root / "publish-files.txt").write_text("\n".join(publish) + "\n", encoding="utf-8")
+          (root / "publish-files.txt").write_text(
+              "\n".join(sorted(changed)) + "\n",
+              encoding="utf-8",
+          )
           print("validated economy production files:")
           for path in sorted(changed):
               print(f"- {path}")
@@ -159,4 +161,11 @@ jobs:
           git config user.name "EVAVO Release Agent"
           git config user.email "evavo.studio@gmail.com"
           git commit -m "feat: add deterministic economy balance simulation [skip ci]"
+          git rm \
+            .github/workflows/temp-economy-v2-validation.yml \
+            tools/temp_apply_economy_v2.py \
+            tools/temp_economy_v2_part01.txt \
+            tools/temp_economy_v2_part02.txt
+          git commit -m "chore: remove temporary economy validation machinery [skip ci]"
+          git diff --check HEAD~2..HEAD
           git push origin HEAD:agent/economy-balance-simulation-v2

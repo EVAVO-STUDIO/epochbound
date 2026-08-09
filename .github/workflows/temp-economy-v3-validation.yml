@@ -89,6 +89,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf .godot-bin
+          git ls-files --others --exclude-standard -z -- '*.uid' | xargs -0 -r rm -f
           git diff --check
           {
             git diff --name-only

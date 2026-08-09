@@ -34,6 +34,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 22. Versioned player-local Audio, presentation and accessibility settings with persistent keyboard and controller remapping
 23. Authored boss phase music stems that layer Catalogue Measure, Cinder Measure and Last Accession over the current Underworks era theme
 24. Automated repeated long-form progression playthroughs with eight completed-world laps, deterministic supply time, checksummed checkpoints and destructive restoration probes
+25. Reliable host-shutdown requests, per-peer acknowledgements, committed closure and independent clean ENet process exit
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -299,7 +300,8 @@ The gate performs:
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
 - projectile camera conversion, shared combat depth, ammo HUD, boss status, duplicate suppression and pause-layer regressions;
 - boss phase stem references, deterministic phase selection, era continuity, clock resets and final-phase escalation;
-- eight completed-world laps covering 32 map transitions, 16 era shifts, 13 supply cycles, eight checkpoints and four destructive restorations without completed-boss re-engagement or duplicate progression rewards.
+- eight completed-world laps covering 32 map transitions, 16 era shifts, 13 supply cycles, eight checkpoints and four destructive restorations without completed-boss re-engagement or duplicate progression rewards;
+- real ENet host shutdown with two unique peer acknowledgements, reliable commit, final offline state and independent zero-exit child processes.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. Missing editor-theme icons and `ObjectDB instances leaked at exit` also fail validation, preventing unchecked editor resources or incomplete runtime teardown from returning to the supported Godot editor.
 
@@ -414,3 +416,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 ## Next production boundaries
 
 The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, deeper economy-balance simulation and broader multi-boss music authoring previews.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.

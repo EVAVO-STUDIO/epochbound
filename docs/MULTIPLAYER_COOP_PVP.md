@@ -34,7 +34,8 @@ The production vertical slice supports:
 - host-only progression and session-only PvP scores;
 - manual-save locking while remote peers are present;
 - autosave deferral while an invasion is active;
-- offline, host and client modes in the same canonical scene.
+- offline, host and client modes in the same canonical scene;
+- acknowledged host shutdown with bounded fallback and clean peer exit.
 
 There is no central matchmaking, relay, account service, anti-cheat service, voice chat, platform invitation service or NAT traversal service in this slice. Internet hosts must expose the configured UDP port or use a future relay/invitation layer.
 
@@ -313,9 +314,10 @@ Host authority reduces casual state tampering but is not a substitute for a prod
 10. Re-enter, invade again and defeat the invader.
 11. Confirm the invader is banished and no durable reward appears in the host save.
 12. Enter Museum Underworks with the ally and complete the Sentinel route.
-13. Close the online session, save, reload and confirm no guest actor or invasion state returns.
-14. Restart a client and confirm its saved endpoint and display name reload without changing any campaign save slot.
-15. Repeat one launch with `--join`, `--port` or `--name` and confirm command-line values take precedence over the player-local profile.
+13. Have the host choose **Leave Online Session** and confirm both clients report the shutdown request, acknowledge it, receive the commit, return offline and close without being force-killed.
+14. Save and reload the host journey and confirm no guest actor or invasion state returns.
+15. Restart a client and confirm its saved endpoint and display name reload without changing any campaign save slot.
+16. Repeat one launch with `--join`, `--port` or `--name` and confirm command-line values take precedence over the player-local profile.
 
 ## Remaining production boundaries
 
@@ -324,10 +326,14 @@ The current implementation is a validated direct-IP vertical slice. Production I
 - platform invitations, friend discovery or join codes;
 - relay and NAT traversal;
 - optional dedicated-server orchestration;
-- reconnect and host-migration policy;
+- reconnect after host restart and host-migration policy;
 - identity, moderation and block lists;
 - latency simulation and packet-loss soak testing;
 - bandwidth and snapshot profiling on final art/content loads;
 - exploit review and authoritative rate limits;
 - platform certification and Android/iOS network permissions;
 - accessibility and controller usability review with multiple real machines.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.

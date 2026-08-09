@@ -1,4 +1,4 @@
-# Real ENet Loopback and Reconnect Validation Gate
+# Real ENet Loopback, Reconnect and Host Shutdown Validation Gate
 
 Epochbound’s in-process regressions validate host authority, authored co-op and PvP rules, save isolation and deterministic simulation. This gate adds transport evidence: three independent Godot processes communicate through real ENet UDP sockets on the loopback interface.
 
@@ -63,9 +63,9 @@ The matrix also rejects oversized packets, malformed headers, digest mismatches 
 
 ## Receipt requirements
 
-The host receipt proves current party counts, both current input streams, the original graceful-leave peer, the persistent invader, protocol version, map, era, authored area and bounded final snapshot.
+The host receipt proves current party counts, both current input streams, the original graceful-leave peer, the persistent invader, protocol version, map, era, authored area, bounded final snapshot, positive shutdown sequence, two expected peers, two unique acknowledgements, non-forced commit and final offline state.
 
-The ally receipt proves the first join, first input and snapshot, positive leave acknowledgement, same-process reconnect generation, later input and later snapshot. The invader receipt proves that its original transport remains alive while the ally leaves and rejoins.
+The ally receipt proves the first join, first input and snapshot, positive leave acknowledgement, same-process reconnect generation, later input and later snapshot. The invader receipt proves that its original transport remains alive while the ally leaves and rejoins. Both client receipts prove they acknowledged the host sequence, received the matching commit, returned offline and exited independently.
 
 The harness is:
 
@@ -75,7 +75,11 @@ scripts/validate_multiplayer_loopback.ps1
 
 It creates isolated Godot user-data roots, readiness markers, logs and receipts under one unique operating-system temporary directory. It applies bounded startup and completion deadlines, rejects early child exit, and scans all child output for parser, runtime and native crash errors.
 
-The ally itself exercises a real client detach, close and reconnect. After all receipts are flushed and validated, the parent harness owns final process termination and removes the temporary directory in `finally` cleanup. Final headless process teardown is deliberately kept separate from reconnect evidence.
+The ally itself exercises a real client detach, close and reconnect. After the second exchange, the host refuses new connections, sends one reliable shutdown request to every registered remote peer, waits for unique acknowledgements, sends a reliable commit, and closes only after the clients detach or a bounded commit grace expires.
+
+Each client stops input and snapshot application as soon as the host request arrives, acknowledges the exact sequence, accepts only the matching commit, detaches its high-level `MultiplayerAPI`, closes ENet and returns offline. The host records expected and acknowledged counts and fails the gate if shutdown required its timeout fallback.
+
+All three peers atomically publish final receipts, release the canonical runtime through the shared Audio-aware headless cleanup contract, and exit independently with code zero. The parent harness waits for those exits and keeps forced process-tree termination only for failure cleanup.
 
 ## Permanent fail-closed contract
 
@@ -97,10 +101,26 @@ The exact-main validation receipt records:
 }
 ```
 
-That field means the static contract, six-state matrix, initial real exchange, host-acknowledged leave, same-process reconnect, persistent invader, second input/snapshot exchange, log review and clean-source verification all passed.
+That field means the static contract, six-state matrix, initial real exchange, host-acknowledged client leave, same-process reconnect, persistent invader, second input/snapshot exchange, acknowledged host shutdown, independent process exit, log review and clean-source verification all passed.
+
+The exact-main receipt also records:
+
+```json
+{
+  "multiplayerHostShutdownValidation": "passed"
+}
+```
 
 ## Remaining boundaries
 
-This gate proves graceful client leave and bounded same-process reconnect against a still-running host. It does not prove graceful host shutdown, independent final process exit, host migration, reconnect after a host restart, automatic outage recovery, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
+This gate proves graceful client leave, bounded same-process reconnect, acknowledged host shutdown and independent final process exit. It does not prove host migration, reconnect after a host restart, automatic outage recovery, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
 
 It does not prove public Internet reachability merely because loopback succeeds. Those boundaries require dedicated lifecycle, multi-machine and network-condition validation.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.
+
+The final real-socket phase proves a host-directed disconnect after every captured peer acknowledges the same shutdown sequence.
+
+- Host teardown uses a SceneMultiplayer-owned disconnect for every acknowledged peer, clearing relay membership before ENet channel shutdown and preventing zero-channel sends.

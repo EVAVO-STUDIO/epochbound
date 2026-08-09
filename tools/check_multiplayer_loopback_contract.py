@@ -68,10 +68,12 @@ require(
         'snapshot_wire_bytes',
         'snapshot_uncompressed_bytes',
         'write_json(receipt_path, receipt)',
-        'hold_after_receipt',
+        'finish_success',
         'LOOPBACK INITIAL EXCHANGE',
         'LOOPBACK RECONNECT EXCHANGE',
-        'LOOPBACK RECEIPT READY',
+        'LOOPBACK HOST SHUTDOWN REQUESTED',
+        'LOOPBACK HOST SHUTDOWN COMPLETE',
+        'LOOPBACK CLEAN EXIT',
     ],
 )
 forbid(
@@ -103,7 +105,7 @@ require(
         'RECONNECT_EXCHANGE_HOLD_MSEC := 450',
         'RECONNECT_SETTLE_MSEC := 250',
         'session.call("join_session", HOST_ADDRESS, peer_role, port)',
-        'session.call(\n\t\t\t\t\t\t\t"request_graceful_leave"',
+        '"request_graceful_leave"',
         'last_graceful_leave_ack_sequence',
         'same_process_reconnect',
         'first_peer_id',
@@ -158,6 +160,28 @@ require(
         'GRACEFUL_LEAVE_TIMEOUT_SECONDS := 3.0',
         'MAX_GRACEFUL_LEAVE_REASON_CHARS := 80',
         'MAX_GRACEFUL_LEAVE_HISTORY := 8',
+        'GRACEFUL_HOST_SHUTDOWN_TIMEOUT_SECONDS := 3.0',
+        'HOST_SHUTDOWN_COMMIT_GRACE_SECONDS := 1.0',
+        'HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS := 1.0',
+        'func request_graceful_host_shutdown',
+        'func begin_host_shutdown_disconnect',
+        'multiplayer.call("disconnect_peer", peer_id)',
+        'finish_remote_host_shutdown',
+        '_host_shutdown_committed.rpc(',
+        'or host_shutdown_pending',
+        'close_session_immediately(reason, true)',
+        'close_peer_before_detach',
+        'func _host_shutdown_requested',
+        'func _ack_host_shutdown',
+        'func _host_shutdown_committed',
+        'accept_host_shutdown_ack',
+        'last_host_shutdown_expected_count',
+        'last_host_shutdown_ack_count',
+        'last_host_shutdown_disconnect_count',
+        'last_host_shutdown_disconnect_observed',
+        'last_host_shutdown_forced',
+        'last_host_shutdown_ack_sent_sequence',
+        'last_host_shutdown_commit_received',
         'broadcast_world_snapshot_wire',
         'multiplayer.get_peers()',
         '_receive_snapshot_wire.rpc_id',
@@ -229,6 +253,7 @@ forbid(
         'SaveProfileStore',
         'Time.get_unix_time',
         'OS.get_unix_time',
+        'network_peer.disconnect_peer(peer_id)',
     ],
 )
 
@@ -299,9 +324,15 @@ require(
         'snapshot_wire_bytes -gt 1200',
         'snapshot_uncompressed_bytes -le',
         'clockwood_ashen_hunt',
-        'exited before harness-owned cleanup',
-        'parent harness deliberately owns only final process-tree termination',
-        'host shutdown and independent headless process exit',
+        'Test-AllPeersExited',
+        'did not complete independent shutdown',
+        'host_shutdown_ack_count -ne 2',
+        'host_shutdown_disconnect_count -ne 2',
+        'host_shutdown_commit_received',
+        'host_shutdown_disconnect_observed',
+        'independent_exit',
+        'all three Godot processes exited independently',
+        'Forced termination is retained only as bounded failure cleanup',
         'Remove-Item -Recurse -Force',
         'Real ENet loopback passed',
     ],
@@ -373,8 +404,9 @@ require(
         'smoke_multiplayer_snapshot_transport.gd',
         'Run real ENet host ally and invader loopback',
         'scripts/validate_multiplayer_loopback.ps1',
-        '"schemaVersion": "2.5"',
+        '"schemaVersion": "2.6"',
         '"multiplayerLoopbackValidation": "passed"',
+        '"multiplayerHostShutdownValidation": "passed"',
     ],
 )
 
@@ -395,8 +427,10 @@ require(
         'same Godot process reconnects',
         'original invader remains connected',
         '1,200-byte',
-        'parent harness owns final process termination',
-        'does not prove graceful host shutdown',
+        'acknowledged host shutdown',
+        'host-directed disconnect',
+        'exit independently with code zero',
+        'does not prove host migration',
         'does not prove public Internet reachability',
         'validate_multiplayer_loopback.ps1',
         'multiplayerLoopbackValidation',
@@ -416,5 +450,7 @@ print("- SHA-256 envelopes reject malformed packets before object-free Deflate d
 print("- all six reference map and era states fit the 1,200-byte wire budget at maximum authored party size")
 print("- the ally completes a host-acknowledged leave and same-process reconnect while the invader remains online")
 print("- authoritative snapshots reach both clients and restore the ally after reconnect")
-print("- the parent harness validates atomic live receipts and owns bounded final process cleanup")
-print("- graceful host shutdown, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")
+print("- the host collects unique shutdown acknowledgements before reliable commit and host-directed peer disconnect")
+print("- both clients observe the committed shutdown and the host-owned disconnect before going offline")
+print("- all three peers publish atomic final receipts and exit independently with clean runtime disposal")
+print("- host restart recovery, migration, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")

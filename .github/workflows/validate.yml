@@ -177,9 +177,9 @@ jobs:
           import os
           from pathlib import Path
 
-          # Receipt schema migrated from: "schemaVersion": "2.4"
+          # Receipt schema migrated from: "schemaVersion": "2.5"
           payload = {
-              "schemaVersion": "2.5",
+              "schemaVersion": "2.6",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -192,6 +192,7 @@ jobs:
               "multiplayerValidation": "passed",
               "multiplayerConnectionValidation": "passed",
               "multiplayerLoopbackValidation": "passed",
+              "multiplayerHostShutdownValidation": "passed",
               "campaignAudit": "passed",
               "referenceContentWarnings": 0,
               "referenceAuditWarnings": 0,

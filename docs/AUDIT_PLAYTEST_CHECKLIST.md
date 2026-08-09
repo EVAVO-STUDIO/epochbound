@@ -7,7 +7,7 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Run the same audit twice without editing source.
 - Confirm both JSON exports are identical.
 - Confirm all findings use stable severity, code, context and message fields.
-- Confirm the report exposes all nine probes and the progression, merchant-only and affordability metrics.
+- Confirm the report exposes all ten probes and the progression, merchant-only and affordability metrics.
 - Confirm there are no blockers before release.
 - Record an owner and rationale for every accepted warning.
 
@@ -77,6 +77,13 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Confirm multi-currency alternatives and capability-equipment choices are not added to the aggregate total without proof that one exact route is mandatory.
 - For every affordability warning, document the earliest guaranteed currency source and its minimum value.
 - Spend currency on optional goods before the required purchase and confirm the campaign still offers a recovery route.
+- Confirm **Economy choices** matches the number of purchases executable from the starting inventory and wallets.
+- Confirm every optional opening choice counted as recovery-safe leaves a healing item owned or still affordable.
+- Review the preparation-category count and verify the opening economy offers intentional recovery, ammunition, equipment or material decisions.
+- Exhaust renewable healing and ammunition stock, advance active play through the thirty-minute simulation horizon and compare actual replenishment with the report.
+- Compare the cheapest unconditional buy price and highest same-currency sell price for every renewable item.
+- Confirm no unlimited or replenishing stock produces `economy.repeatable_arbitrage`.
+- Review `economy.recovery_endurance_risk` and `economy.ammo_endurance_risk` against non-merchant drops or rewards with an executable proof.
 - Verify failed purchases and sales remain transactional.
 
 ## Quest startability
@@ -108,5 +115,5 @@ Use this checklist after the automated Audit Studio report and before distributi
 - Export the campaign twice and compare package SHA-256 values.
 - Inspect the manifest before installation.
 - Install into a clean user campaign directory.
-- Confirm the installed campaign produces the same nine-probe audit report as its source.
+- Confirm the installed campaign produces the same ten-probe audit report as its source.
 - Preserve the audit JSON beside the distributed package.

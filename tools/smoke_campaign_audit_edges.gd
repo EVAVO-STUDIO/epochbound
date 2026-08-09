@@ -260,7 +260,7 @@ func run_test() -> void:
 	)
 
 	var report: Dictionary = CampaignAudit.audit_loaded(campaign, maps, items, story, economy, recipes, objects)
-	check(int(report.get("probe_count", 0)) == 9, "Synthetic audit must execute all nine probes.")
+	check(int(report.get("probe_count", 0)) == 10, "Synthetic audit must execute all ten probes.")
 	check(int(report.get("blocker_count", 0)) >= 12, "Synthetic audit must surface multiple independent blockers.")
 	check(has_code(report, "map.unreachable"), "Unreachable maps must be reported.")
 	check(has_code(report, "travel.no_exit"), "Maps without exits must be reported.")
@@ -291,6 +291,8 @@ func run_test() -> void:
 	)
 	check(int(metrics.get("merchant_only_progression_count", 0)) >= 3, "Synthetic audit must identify merchant-only item and capability routes.")
 	check(int(metrics.get("affordability_risk_count", 0)) >= 3, "Synthetic audit must count item and capability affordability findings.")
+	check(int(metrics.get("economy_balance_risk_count", 0)) >= 1, "Synthetic audit must count opening-economy balance findings.")
+	check(has_code(report, "economy.starting_wallet_single_choice"), "A wallet with only one executable opening purchase must be reported for review.")
 	finish()
 
 
@@ -349,7 +351,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Campaign audit edge smoke test passed: reachability, exact source accounting, nested rewards, recipe unlocks, finite stock, merchant bindings, cycles, self-gates, affordability, quest and save blockers are detected.")
+		print("Campaign audit edge smoke test passed: reachability, exact source accounting, nested rewards, recipe unlocks, finite stock, merchant bindings, cycles, self-gates, affordability, economy balance, quest and save blockers are detected.")
 		quit(0)
 		return
 	for failure in failures:

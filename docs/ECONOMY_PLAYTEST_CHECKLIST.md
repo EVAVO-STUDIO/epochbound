@@ -198,7 +198,7 @@ Using a backed-up current-schema old save created before regional supply fields 
 
 - Run the reference audit twice.
 - Confirm both JSON exports are identical.
-- Confirm the report still exposes all eight production probes.
+- Confirm the report exposes all ten production probes, including deterministic economy-balance evidence.
 - Confirm metrics show two supply regions and five renewable stock entries.
 - Confirm malformed supply data produces `supply.invalid` blockers.
 - Confirm review-only supply concerns produce `supply.review` warnings.
@@ -221,6 +221,7 @@ Using a backed-up current-schema old save created before regional supply fields 
 - Confirm renewable recovery stock does not remove all scarcity pressure.
 - Confirm progression equipment prices still matter because those items do not restock.
 - Confirm selling ordinary finds cannot create a repeatable buy-sell profit loop.
+- Compare every positive price spread against stock renewal and confirm only genuinely repeatable arbitrage is release-blocking.
 
 ## Backup recovery
 

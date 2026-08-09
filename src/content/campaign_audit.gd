@@ -7,11 +7,13 @@ const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
+const SupplyRegionCatalog = preload("res://src/content/supply_region_catalog.gd")
 const ProgressionSourceAudit = preload("res://src/content/progression_source_audit.gd")
 const ProgressionAffordabilityAudit = preload("res://src/content/progression_affordability_audit.gd")
 const TemporalShiftAudit = preload("res://src/content/temporal_shift_audit.gd")
+const EconomyBalanceSimulation = preload("res://src/content/economy_balance_simulation.gd")
 
-const PROBE_COUNT := 9
+const PROBE_COUNT := 10
 const SEVERITY_RANK := {"blocker": 0, "warning": 1, "info": 2}
 
 static func audit_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
@@ -64,13 +66,20 @@ static func audit_campaign_path(campaign_path: String) -> Dictionary:
 	var object_result: Dictionary = ObjectCatalog.load_catalogs(campaign_path, campaign)
 	for error_value in object_result.get("errors", []):
 		add_finding(findings, "blocker", "objects.unreadable", str(error_value), campaign_path)
+	var supply_result: Dictionary = SupplyRegionCatalog.load_catalogs(campaign_path, campaign)
+	for error_value in supply_result.get("errors", []):
+		add_finding(findings, "blocker", "supply.unreadable", str(error_value), campaign_path)
 
 	var loaded := audit_loaded(
 		campaign,
 		maps,
 		item_result.get("definitions", {}),
 		{"quests": story_result.get("quests", {}), "conversations": story_result.get("conversations", {})},
-		{"currencies": economy_result.get("currencies", {}), "merchants": economy_result.get("merchants", {})},
+		{
+			"currencies": economy_result.get("currencies", {}),
+			"merchants": economy_result.get("merchants", {}),
+			"supply_regions": supply_result.get("definitions", {})
+		},
 		recipe_result.get("definitions", {}),
 		object_result.get("definitions", {})
 	)
@@ -110,7 +119,19 @@ static func audit_loaded(
 		"progression_capability_count": 0,
 		"progression_source_risk_count": 0,
 		"merchant_only_progression_count": 0,
-		"affordability_risk_count": 0
+		"affordability_risk_count": 0,
+		"economy_balance_scenario_count": 0,
+		"economy_balance_risk_count": 0,
+		"economy_starting_wallet_count": 0,
+		"economy_starting_choice_count": 0,
+		"economy_recovery_safe_choice_count": 0,
+		"economy_optional_dead_end_count": 0,
+		"economy_preparation_category_count": 0,
+		"economy_arbitrage_route_count": 0,
+		"economy_repeatable_arbitrage_count": 0,
+		"economy_renewable_recovery_units": 0,
+		"economy_renewable_ammo_units": 0,
+		"economy_finite_progression_stock_count": 0
 	}
 	var graph := graph_from_maps(maps)
 	var reachable := probe_map_reachability(campaign, maps, graph, findings)
@@ -168,6 +189,16 @@ static func audit_loaded(
 		findings
 	)
 	metrics["affordability_risk_count"] = findings.size() - affordability_finding_start
+
+	var economy_metrics: Dictionary = EconomyBalanceSimulation.audit(
+		campaign,
+		items,
+		economy,
+		findings
+	)
+	for metric_name_value in economy_metrics.keys():
+		var metric_name: String = str(metric_name_value)
+		metrics[metric_name] = economy_metrics.get(metric_name_value)
 	return build_report(str(campaign.get("id", "campaign")), findings, metrics)
 
 

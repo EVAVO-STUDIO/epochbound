@@ -25,7 +25,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 13. Skippable, progression-equivalent cinematic timelines
 14. Versioned save profiles, migrations, checksums, autosave, manual slots, backup recovery and Continue
 15. Deterministic campaign packages with manifests, SHA-256 verification, complete staged validation and safe installation
-16. Repository-wide campaign audits with nine deterministic production probes for reachability, return safety, capability definitions, recovery, quest starts, save safety, progression sources, affordability and meaningful temporal-shift consequences, plus regional supply evidence
+16. Repository-wide campaign audits with ten deterministic production probes for reachability, return safety, capability definitions, recovery, quest starts, save safety, progression sources, affordability, economy balance and meaningful temporal-shift consequences, plus regional supply evidence
 17. Original map and era presentation profiles with camera feel, atmosphere, restrained screen texture and framed HUD
 18. Original procedural music, environmental ambience, dynamic combat layers, mix ducking and event-driven sound feedback
 19. Frame-based Sprite Animation profiles with four-direction timing, attack anticipation, Morrow gait, atlas import and procedural fallbacks
@@ -118,7 +118,7 @@ Authors release metadata and exports or imports data-only `.epochbound.zip` camp
 
 ### Audit
 
-Runs nine deterministic production probes covering structural reachability, recovery, progression-source softlocks, merchant-only affordability and meaningful temporal-shift consequences, then adds regional supply evidence and exports machine-readable blocker and warning reports.
+Runs ten deterministic production probes covering structural reachability, recovery, progression-source softlocks, merchant-only affordability, bounded economy-balance simulation and meaningful temporal-shift consequences, then adds regional supply evidence and exports machine-readable blocker and warning reports.
 
 ### Presentation
 
@@ -291,7 +291,8 @@ The gate performs:
 - focused player-settings, persistent-control and regional-supply compile probes;
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
-- repository-wide nine-probe campaign production audit with progression, affordability, meaningful temporal-shift consequences and supply evidence;
+- repository-wide ten-probe campaign production audit with progression, affordability, deterministic economy balance, meaningful temporal-shift consequences and supply evidence;
+- exact-main schema-2.7 release evidence with `economyBalanceValidation` bound to the validated production SHA;
 - a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
@@ -352,6 +353,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/LOADOUT_STUDIO.md`](docs/LOADOUT_STUDIO.md)
 - [`docs/MERCHANT_ECONOMY_STUDIO.md`](docs/MERCHANT_ECONOMY_STUDIO.md)
 - [`docs/ECONOMY_PLAYTEST_CHECKLIST.md`](docs/ECONOMY_PLAYTEST_CHECKLIST.md)
+- [`docs/ECONOMY_BALANCE_SIMULATION.md`](docs/ECONOMY_BALANCE_SIMULATION.md)
 
 ### Player accessibility and controls
 
@@ -415,7 +417,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, deeper economy-balance simulation and broader multi-boss music authoring previews.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, broader multi-boss music authoring previews, final economy tuning from human playtests and production networking infrastructure.
 
 ### Host-directed disconnect ordering
 

@@ -1,0 +1,48 @@
+name: Temporary Economy Source Export
+
+on:
+  push:
+    branches:
+      - agent/economy-balance-simulation-v2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-economy-source-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    if: ${{ contains(github.event.head_commit.message, 'export recovered economy source') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Apply checksum-locked tracked economy delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/temp_apply_economy_v2.py
+          git diff --check
+          tar \
+            --exclude=.git \
+            --exclude=.godot \
+            --exclude=.godot-bin \
+            --exclude=.godot-download \
+            -czf "${RUNNER_TEMP}/epochbound-economy-recovered-source.tar.gz" .
+
+      - name: Upload recovered source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-economy-recovered-source-${{ github.sha }}
+          path: ${{ runner.temp }}/epochbound-economy-recovered-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

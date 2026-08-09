@@ -239,6 +239,7 @@ func run_host() -> void:
 			receipt["host_shutdown_sequence"] = int(session.get("last_host_shutdown_sequence"))
 			receipt["host_shutdown_expected_count"] = int(session.get("last_host_shutdown_expected_count"))
 			receipt["host_shutdown_ack_count"] = int(session.get("last_host_shutdown_ack_count"))
+			receipt["host_shutdown_disconnect_count"] = int(session.get("last_host_shutdown_disconnect_count"))
 			receipt["host_shutdown_forced"] = bool(session.get("last_host_shutdown_forced"))
 			receipt["host_shutdown_reason"] = str(session.get("last_host_shutdown_reason"))
 			receipt["final_mode"] = str(session.get("mode"))
@@ -246,6 +247,7 @@ func run_host() -> void:
 			if (
 				int(receipt.get("host_shutdown_expected_count", 0)) != 2
 				or int(receipt.get("host_shutdown_ack_count", 0)) != 2
+				or int(receipt.get("host_shutdown_disconnect_count", 0)) != 2
 				or bool(receipt.get("host_shutdown_forced", true))
 			):
 				finish_failure("Loopback host shutdown did not receive both unique peer acknowledgements.")

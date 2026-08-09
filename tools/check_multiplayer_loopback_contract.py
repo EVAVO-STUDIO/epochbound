@@ -162,7 +162,11 @@ require(
         'MAX_GRACEFUL_LEAVE_HISTORY := 8',
         'GRACEFUL_HOST_SHUTDOWN_TIMEOUT_SECONDS := 3.0',
         'HOST_SHUTDOWN_COMMIT_GRACE_SECONDS := 1.0',
+        'HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS := 1.0',
         'func request_graceful_host_shutdown',
+        'func begin_host_shutdown_disconnect',
+        'multiplayer.call("disconnect_peer", peer_id)',
+        'finish_remote_host_shutdown',
         '_host_shutdown_committed.rpc(',
         'or host_shutdown_pending',
         'close_session_immediately(reason, true)',
@@ -173,6 +177,8 @@ require(
         'accept_host_shutdown_ack',
         'last_host_shutdown_expected_count',
         'last_host_shutdown_ack_count',
+        'last_host_shutdown_disconnect_count',
+        'last_host_shutdown_disconnect_observed',
         'last_host_shutdown_forced',
         'last_host_shutdown_ack_sent_sequence',
         'last_host_shutdown_commit_received',
@@ -247,6 +253,7 @@ forbid(
         'SaveProfileStore',
         'Time.get_unix_time',
         'OS.get_unix_time',
+        'network_peer.disconnect_peer(peer_id)',
     ],
 )
 
@@ -320,7 +327,9 @@ require(
         'Test-AllPeersExited',
         'did not complete independent shutdown',
         'host_shutdown_ack_count -ne 2',
+        'host_shutdown_disconnect_count -ne 2',
         'host_shutdown_commit_received',
+        'host_shutdown_disconnect_observed',
         'independent_exit',
         'all three Godot processes exited independently',
         'Forced termination is retained only as bounded failure cleanup',
@@ -419,6 +428,7 @@ require(
         'original invader remains connected',
         '1,200-byte',
         'acknowledged host shutdown',
+        'host-directed disconnect',
         'exit independently with code zero',
         'does not prove host migration',
         'does not prove public Internet reachability',
@@ -440,6 +450,7 @@ print("- SHA-256 envelopes reject malformed packets before object-free Deflate d
 print("- all six reference map and era states fit the 1,200-byte wire budget at maximum authored party size")
 print("- the ally completes a host-acknowledged leave and same-process reconnect while the invader remains online")
 print("- authoritative snapshots reach both clients and restore the ally after reconnect")
-print("- the host collects unique shutdown acknowledgements before reliable commit and bounded close")
+print("- the host collects unique shutdown acknowledgements before reliable commit and host-directed peer disconnect")
+print("- both clients observe the committed shutdown and the host-owned disconnect before going offline")
 print("- all three peers publish atomic final receipts and exit independently with clean runtime disposal")
 print("- host restart recovery, migration, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")

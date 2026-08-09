@@ -12,6 +12,7 @@ const MAX_GRACEFUL_LEAVE_REASON_CHARS := 80
 const MAX_GRACEFUL_LEAVE_HISTORY := 8
 const GRACEFUL_HOST_SHUTDOWN_TIMEOUT_SECONDS := 3.0
 const HOST_SHUTDOWN_COMMIT_GRACE_SECONDS := 1.0
+const HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS := 1.0
 
 var snapshot_broadcast_pending := false
 var last_snapshot_wire_bytes := 0
@@ -32,15 +33,20 @@ var host_shutdown_reason := ""
 var host_shutdown_expected_peer_ids: Array[int] = []
 var host_shutdown_ack_peer_ids: Array[int] = []
 var host_shutdown_commit_sent := false
+var host_shutdown_disconnect_sent := false
+var host_shutdown_disconnect_remaining := 0.0
+var host_shutdown_disconnected_peer_ids: Array[int] = []
 var remote_host_shutdown_pending := false
 var remote_host_shutdown_sequence := -1
 var remote_host_shutdown_reason := ""
 var last_host_shutdown_sequence := -1
 var last_host_shutdown_expected_count := 0
 var last_host_shutdown_ack_count := 0
+var last_host_shutdown_disconnect_count := 0
 var last_host_shutdown_forced := false
 var last_host_shutdown_ack_sent_sequence := -1
 var last_host_shutdown_commit_received := false
+var last_host_shutdown_disconnect_observed := false
 var last_host_shutdown_reason := ""
 
 func _process(delta: float) -> void:
@@ -87,12 +93,47 @@ func post_runtime_process(delta: float) -> void:
 
 
 func _on_server_disconnected() -> void:
-	if session_closing or last_host_shutdown_commit_received:
+	if session_closing:
+		return
+	if last_host_shutdown_commit_received:
+		last_host_shutdown_disconnect_observed = true
+		call_deferred("finish_remote_host_shutdown")
 		return
 	super._on_server_disconnected()
 
+
+func _on_peer_disconnected(peer_id: int) -> void:
+	if (
+		host_shutdown_pending
+		and host_shutdown_expected_peer_ids.has(peer_id)
+		and not host_shutdown_disconnected_peer_ids.has(peer_id)
+	):
+		host_shutdown_disconnected_peer_ids.append(peer_id)
+		host_shutdown_disconnected_peer_ids.sort()
+		last_host_shutdown_disconnect_count = host_shutdown_disconnected_peer_ids.size()
+	if (
+		peer_id == 1
+		and mode == MultiplayerSessionModel.MODE_CLIENT
+		and last_host_shutdown_commit_received
+	):
+		last_host_shutdown_disconnect_observed = true
+		call_deferred("finish_remote_host_shutdown")
+		return
+	super._on_peer_disconnected(peer_id)
+
+
+func finish_remote_host_shutdown() -> void:
+	if mode != MultiplayerSessionModel.MODE_CLIENT or session_closing:
+		return
+	close_session_immediately(last_host_shutdown_reason)
+
+
 func update_client_prediction_and_input(delta: float) -> void:
-	if graceful_leave_pending or remote_host_shutdown_pending:
+	if (
+		graceful_leave_pending
+		or remote_host_shutdown_pending
+		or last_host_shutdown_commit_received
+	):
 		return
 	super.update_client_prediction_and_input(delta)
 
@@ -211,6 +252,7 @@ func _receive_snapshot_wire(payload: PackedByteArray) -> void:
 		or session_closing
 		or graceful_leave_pending
 		or remote_host_shutdown_pending
+		or last_host_shutdown_commit_received
 	):
 		return
 	var snapshot: Dictionary = decode_world_snapshot(payload)
@@ -399,6 +441,9 @@ func reset_host_shutdown_tracking(clear_evidence: bool) -> void:
 	host_shutdown_expected_peer_ids.clear()
 	host_shutdown_ack_peer_ids.clear()
 	host_shutdown_commit_sent = false
+	host_shutdown_disconnect_sent = false
+	host_shutdown_disconnect_remaining = 0.0
+	host_shutdown_disconnected_peer_ids.clear()
 	remote_host_shutdown_pending = false
 	remote_host_shutdown_sequence = -1
 	remote_host_shutdown_reason = ""
@@ -407,9 +452,11 @@ func reset_host_shutdown_tracking(clear_evidence: bool) -> void:
 		last_host_shutdown_sequence = -1
 		last_host_shutdown_expected_count = 0
 		last_host_shutdown_ack_count = 0
+		last_host_shutdown_disconnect_count = 0
 		last_host_shutdown_forced = false
 		last_host_shutdown_ack_sent_sequence = -1
 		last_host_shutdown_commit_received = false
+		last_host_shutdown_disconnect_observed = false
 		last_host_shutdown_reason = ""
 
 
@@ -446,9 +493,13 @@ func request_graceful_host_shutdown(reason: String = "ONLINE SESSION CLOSED") ->
 	host_shutdown_expected_peer_ids = registered_remote_peer_ids()
 	host_shutdown_ack_peer_ids.clear()
 	host_shutdown_commit_sent = false
+	host_shutdown_disconnect_sent = false
+	host_shutdown_disconnect_remaining = 0.0
+	host_shutdown_disconnected_peer_ids.clear()
 	last_host_shutdown_sequence = host_shutdown_sequence
 	last_host_shutdown_expected_count = host_shutdown_expected_peer_ids.size()
 	last_host_shutdown_ack_count = 0
+	last_host_shutdown_disconnect_count = 0
 	last_host_shutdown_forced = false
 	last_host_shutdown_reason = host_shutdown_reason
 	snapshot_broadcast_pending = false
@@ -565,21 +616,60 @@ func _host_shutdown_committed(sequence: int, reason: String) -> void:
 	last_host_shutdown_commit_received = true
 	last_host_shutdown_reason = graceful_leave_reason(reason)
 	remote_host_shutdown_pending = false
-	close_session_immediately(last_host_shutdown_reason)
+	set_notice("HOST SHUTDOWN COMMITTED — WAITING FOR DISCONNECT")
+
+
+func begin_host_shutdown_disconnect() -> void:
+	if not host_shutdown_pending or host_shutdown_disconnect_sent:
+		return
+	host_shutdown_disconnect_sent = true
+	host_shutdown_disconnect_remaining = HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS
+	if test_mode:
+		host_shutdown_disconnected_peer_ids = host_shutdown_expected_peer_ids.duplicate()
+		last_host_shutdown_disconnect_count = host_shutdown_disconnected_peer_ids.size()
+		finish_host_shutdown()
+		return
+	if network_peer != null and multiplayer.is_server():
+		var connected_ids: PackedInt32Array = multiplayer.get_peers()
+		for peer_id in host_shutdown_expected_peer_ids:
+			if not connected_ids.has(peer_id):
+				continue
+			# SceneMultiplayer removes the peer from its relay set before ENet
+			# begins closing. Calling ENet directly leaves stale relay state and
+			# can make Godot send through a peer whose channel count is already 0.
+			multiplayer.call("disconnect_peer", peer_id)
+			if not host_shutdown_disconnected_peer_ids.has(peer_id):
+				host_shutdown_disconnected_peer_ids.append(peer_id)
+		host_shutdown_disconnected_peer_ids.sort()
+		last_host_shutdown_disconnect_count = host_shutdown_disconnected_peer_ids.size()
+	set_notice("ONLINE SESSION SHUTDOWN — DISCONNECTING PEERS")
+	if host_shutdown_remote_connections_closed():
+		finish_host_shutdown()
 
 
 func update_host_shutdown(delta: float) -> void:
 	if not host_shutdown_pending:
 		return
 	if host_shutdown_commit_sent:
-		host_shutdown_commit_remaining = maxf(
-			0.0,
-			host_shutdown_commit_remaining - delta
-		)
-		# Keep the ENet server attached for the full commit grace. Closing as soon
-		# as clients disappear can race Godot's deferred reliable packet flush.
-		if host_shutdown_commit_remaining <= 0.0:
-			finish_host_shutdown()
+		if not host_shutdown_disconnect_sent:
+			host_shutdown_commit_remaining = maxf(
+				0.0,
+				host_shutdown_commit_remaining - delta
+			)
+			# Keep the ENet server attached for the complete reliable-commit flush
+			# window, then make the host own every remote disconnect.
+			if host_shutdown_commit_remaining <= 0.0:
+				begin_host_shutdown_disconnect()
+		else:
+			host_shutdown_disconnect_remaining = maxf(
+				0.0,
+				host_shutdown_disconnect_remaining - delta
+			)
+			if (
+				host_shutdown_remote_connections_closed()
+				or host_shutdown_disconnect_remaining <= 0.0
+			):
+				finish_host_shutdown()
 		return
 	host_shutdown_timeout_remaining = maxf(
 		0.0,
@@ -607,6 +697,7 @@ func finish_host_shutdown() -> void:
 	var reason := host_shutdown_reason
 	last_host_shutdown_expected_count = host_shutdown_expected_peer_ids.size()
 	last_host_shutdown_ack_count = host_shutdown_ack_peer_ids.size()
+	last_host_shutdown_disconnect_count = host_shutdown_disconnected_peer_ids.size()
 	reset_host_shutdown_tracking(false)
 	close_session_immediately(reason, true)
 
@@ -693,6 +784,8 @@ func multiplayer_runtime_contract_ok() -> bool:
 		and GRACEFUL_HOST_SHUTDOWN_TIMEOUT_SECONDS <= 5.0
 		and HOST_SHUTDOWN_COMMIT_GRACE_SECONDS >= 0.25
 		and HOST_SHUTDOWN_COMMIT_GRACE_SECONDS <= 2.0
+		and HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS >= 0.25
+		and HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS <= 2.0
 		and MAX_GRACEFUL_LEAVE_REASON_CHARS >= 32
 		and MAX_GRACEFUL_LEAVE_REASON_CHARS <= 128
 		and graceful_leave_request_count >= 0
@@ -701,6 +794,8 @@ func multiplayer_runtime_contract_ok() -> bool:
 		and last_host_shutdown_expected_count >= 0
 		and last_host_shutdown_ack_count >= 0
 		and last_host_shutdown_ack_count <= last_host_shutdown_expected_count
+		and last_host_shutdown_disconnect_count >= 0
+		and last_host_shutdown_disconnect_count <= last_host_shutdown_expected_count
 		and last_snapshot_wire_bytes >= 0
 		and last_snapshot_uncompressed_bytes >= 0
 		and not session_closing

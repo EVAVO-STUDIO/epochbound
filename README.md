@@ -416,3 +416,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 ## Next production boundaries
 
 The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, deeper economy-balance simulation and broader multi-boss music authoring previews.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.

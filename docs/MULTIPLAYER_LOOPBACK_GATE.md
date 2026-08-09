@@ -116,3 +116,11 @@ The exact-main receipt also records:
 This gate proves graceful client leave, bounded same-process reconnect, acknowledged host shutdown and independent final process exit. It does not prove host migration, reconnect after a host restart, automatic outage recovery, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
 
 It does not prove public Internet reachability merely because loopback succeeds. Those boundaries require dedicated lifecycle, multi-machine and network-condition validation.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.
+
+The final real-socket phase proves a host-directed disconnect after every captured peer acknowledges the same shutdown sequence.
+
+- Host teardown uses a SceneMultiplayer-owned disconnect for every acknowledged peer, clearing relay membership before ENet channel shutdown and preventing zero-channel sends.

@@ -146,6 +146,7 @@ func run_test() -> void:
 	check(str(session.get("mode")) == MultiplayerSessionModel.MODE_OFFLINE, "Committed test host shutdown must return the session offline.")
 	check(int(session.get("last_host_shutdown_expected_count")) == 2, "Host shutdown evidence must retain the expected peer count.")
 	check(int(session.get("last_host_shutdown_ack_count")) == 2, "Host shutdown evidence must retain both unique acknowledgements.")
+	check(int(session.get("last_host_shutdown_disconnect_count")) == 2, "Host shutdown evidence must retain both host-directed peer disconnects.")
 	check(not bool(session.get("last_host_shutdown_forced")), "A fully acknowledged host shutdown must not be marked forced.")
 
 	await cleanup(runtime)

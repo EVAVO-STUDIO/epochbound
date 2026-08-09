@@ -321,6 +321,7 @@ try {
         [int]$hostReceipt.host_shutdown_sequence -le 0 -or
         [int]$hostReceipt.host_shutdown_expected_count -ne 2 -or
         [int]$hostReceipt.host_shutdown_ack_count -ne 2 -or
+        [int]$hostReceipt.host_shutdown_disconnect_count -ne 2 -or
         [bool]$hostReceipt.host_shutdown_forced -or
         [string]$hostReceipt.host_shutdown_reason -ne "LOOPBACK HOST SHUTDOWN" -or
         [string]$hostReceipt.final_mode -ne "offline" -or
@@ -342,6 +343,7 @@ try {
             [int]$receipt.host_shutdown_sequence -ne [int]$hostReceipt.host_shutdown_sequence -or
             [int]$receipt.host_shutdown_ack_sent_sequence -ne [int]$hostReceipt.host_shutdown_sequence -or
             -not [bool]$receipt.host_shutdown_commit_received -or
+            -not [bool]$receipt.host_shutdown_disconnect_observed -or
             [string]$receipt.host_shutdown_reason -ne "LOOPBACK HOST SHUTDOWN" -or
             [string]$receipt.final_mode -ne "offline" -or
             -not [bool]$receipt.independent_exit

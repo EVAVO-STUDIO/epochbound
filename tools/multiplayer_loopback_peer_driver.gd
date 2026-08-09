@@ -132,6 +132,7 @@ func run_client() -> void:
 			pending_receipt["host_shutdown_sequence"] = int(session.get("last_host_shutdown_sequence"))
 			pending_receipt["host_shutdown_ack_sent_sequence"] = int(session.get("last_host_shutdown_ack_sent_sequence"))
 			pending_receipt["host_shutdown_commit_received"] = true
+			pending_receipt["host_shutdown_disconnect_observed"] = bool(session.get("last_host_shutdown_disconnect_observed"))
 			pending_receipt["host_shutdown_reason"] = str(session.get("last_host_shutdown_reason"))
 			pending_receipt["final_mode"] = mode
 			pending_receipt["independent_exit"] = true
@@ -139,6 +140,7 @@ func run_client() -> void:
 				int(pending_receipt.get("host_shutdown_sequence", -1)) <= 0
 				or int(pending_receipt.get("host_shutdown_ack_sent_sequence", -1))
 				!= int(pending_receipt.get("host_shutdown_sequence", -1))
+				or not bool(pending_receipt.get("host_shutdown_disconnect_observed", false))
 			):
 				finish_failure("Loopback client did not preserve the acknowledged host-shutdown sequence.")
 				return

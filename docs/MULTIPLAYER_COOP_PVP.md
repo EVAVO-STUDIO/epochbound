@@ -333,3 +333,7 @@ The current implementation is a validated direct-IP vertical slice. Production I
 - exploit review and authoritative rate limits;
 - platform certification and Android/iOS network permissions;
 - accessibility and controller usability review with multiple real machines.
+
+### Host-directed disconnect ordering
+
+After every registered client acknowledges the shutdown request, the host broadcasts one reliable commit and keeps the ENet server alive for a bounded flush window. Clients become quiescent but remain connected. The host then disconnects each captured peer, waits for those disconnects to be observed or for the bounded disconnect grace to expire, and only then closes the server. This prevents a client-side close from racing a later high-level send and proves that all peers return offline without harness-forced termination.

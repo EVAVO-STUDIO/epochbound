@@ -50,6 +50,13 @@ func runtime_action_hint(action_id: String, fallback: String) -> String:
 	return fallback
 
 
+func runtime_localise(key: String, fallback: String, replacements: Dictionary = {}) -> String:
+	var runtime := runtime_root()
+	if runtime != null and runtime.has_method("localise"):
+		return str(runtime.call("localise", key, fallback, replacements))
+	return fallback
+
+
 func profile_color(key: String, fallback: String) -> Color:
 	var overlay := presentation_overlay()
 	if overlay != null and overlay.has_method("profile_color"):
@@ -94,13 +101,15 @@ func draw_control_settings_panel() -> void:
 	# inherited fixed-row footer at the 640 by 360 base viewport.
 	draw_rect(CONTROL_PANEL, Color(fill, 1.0))
 	draw_panel_frame(CONTROL_PANEL, frame)
-	var title := "OPTIONS"
-	var header := "PLAYER LOCAL  •  VERSIONED  •  RECOVERABLE  •  REMAPPABLE"
+	var title := runtime_localise("ui.options.title", "OPTIONS")
+	var header := runtime_localise("ui.options.header", "PLAYER LOCAL  •  VERSIONED  •  RECOVERABLE  •  REMAPPABLE")
 	if controls_open:
-		title = "CONTROLS — %s" % runtime_string("control_binding_device").replace("gamepad", "controller").to_upper()
-		header = "14 GAMEPLAY ACTIONS  •  ESC / O / START RESERVED"
+		var device := runtime_string("control_binding_device").replace("gamepad", "controller").to_upper()
+		title = runtime_localise("ui.controls.title", "CONTROLS — {device}", {"device": device})
+		header = runtime_localise("ui.controls.header", "14 GAMEPLAY ACTIONS  •  ESC / O / START RESERVED")
 		if capture_active:
-			title = "LISTENING — %s" % runtime_string("control_capture_action_id").replace("_", " ").to_upper()
+			var action := runtime_string("control_capture_action_id").replace("_", " ").to_upper()
+			title = runtime_localise("ui.controls.listening", "LISTENING — {action}", {"action": action})
 	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.position.y + 28.0), title, HORIZONTAL_ALIGNMENT_LEFT, 230, 16, text)
 	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 244.0, CONTROL_PANEL.position.y + 27.0), header, HORIZONTAL_ALIGNMENT_RIGHT, 248, 7, frame.darkened(0.04))
 
@@ -117,16 +126,28 @@ func draw_control_settings_panel() -> void:
 		var label := str(row.get("label", row.get("id", "SETTING"))).to_upper()
 		var value_text := str(row.get("value", ""))
 		if str(row.get("kind", "")) == "action":
-			value_text = "CONFIRM"
+			value_text = runtime_localise("ui.options.confirm", "CONFIRM")
 		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 30.0, y), label, HORIZONTAL_ALIGNMENT_LEFT, 310, 8, text if active else text.darkened(0.24))
 		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 346.0, y), value_text, HORIZONTAL_ALIGNMENT_RIGHT, 196, 8, accent if active else frame.darkened(0.18))
 
 	var notice := runtime_string("player_settings_notice").strip_edges()
 	if not notice.is_empty():
 		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 27.0), notice.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, int(CONTROL_PANEL.size.x - 36.0), 7, frame)
-	var footer := "%s SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK" % runtime_action_hint("interact", "E / A")
+	var footer := runtime_localise(
+		"ui.options.footer",
+		"{confirm} SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK",
+		{"confirm": runtime_action_hint("interact", "E / A")}
+	)
 	if controls_open:
-		footer = "ESC / START CANCEL CAPTURE   •   O REMAINS RESERVED" if capture_active else "%s REBIND   •   LEFT / RIGHT DEVICE   •   ESC BACK" % runtime_action_hint("interact", "E / A")
+		footer = (
+			runtime_localise("ui.controls.capture_footer", "ESC / START CANCEL CAPTURE   •   O REMAINS RESERVED")
+			if capture_active
+			else runtime_localise(
+				"ui.controls.footer",
+				"{confirm} REBIND   •   LEFT / RIGHT DEVICE   •   ESC BACK",
+				{"confirm": runtime_action_hint("interact", "E / A")}
+			)
+		)
 	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 10.0), footer, HORIZONTAL_ALIGNMENT_CENTER, int(CONTROL_PANEL.size.x - 36.0), 7, accent if capture_active else text.darkened(0.18))
 
 

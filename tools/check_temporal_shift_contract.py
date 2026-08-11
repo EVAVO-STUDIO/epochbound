@@ -221,8 +221,8 @@ require(
     workflow,
     [
         "python3 tools/check_temporal_shift_contract.py",
-        '# Receipt schema migrated from: "schemaVersion": "2.7"',
-        '"schemaVersion": "2.8"',
+        '# Receipt schema migrated from: "schemaVersion": "2.9"',
+        '"schemaVersion": "2.9"',
         '"temporalShiftValidation": "passed"',
     ],
 )
@@ -233,7 +233,7 @@ require(
     release_policy,
     [
         "python3 tools/check_temporal_shift_contract.py",
-        '"schemaVersion": "2.8"',
+        '"schemaVersion": "2.9"',
         '"temporalShiftValidation": "passed"',
         "smoke_temporal_shift_audit.gd",
         "meaningful temporal shifts",

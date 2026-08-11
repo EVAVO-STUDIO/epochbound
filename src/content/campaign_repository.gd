@@ -6,6 +6,7 @@ const ItemCatalog = preload("res://src/content/item_catalog.gd")
 const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const EconomyCatalog = preload("res://src/content/economy_catalog.gd")
 const CinematicCatalog = preload("res://src/content/cinematic_catalog.gd")
+const LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")
 const BUILTIN_ROOT := "res://campaigns"
 const USER_ROOT := "user://campaigns"
 const DEFAULT_ROOT := BUILTIN_ROOT
@@ -136,12 +137,20 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 	var cinematic_catalog_result := save_json(cinematic_catalog_path, CinematicCatalog.default_catalog())
 	if not cinematic_catalog_result.get("ok", false):
 		return cinematic_catalog_result
+	var campaign_data := default_campaign(campaign_id, title)
+	var localisation_catalog_path := campaign_directory.path_join("localisation").path_join("core.json")
+	var localisation_catalog_result := save_json(
+		localisation_catalog_path,
+		LocalisationCatalog.default_campaign_catalog(campaign_data)
+	)
+	if not localisation_catalog_result.get("ok", false):
+		return localisation_catalog_result
 	var map_id := "first_crossing"
 	var map_path := campaign_directory.path_join("maps").path_join(map_id + ".json")
 	var map_result := save_json(map_path, default_map(map_id, "First Crossing"))
 	if not map_result.get("ok", false):
 		return map_result
-	var campaign_result := save_json(campaign_path, default_campaign(campaign_id, title))
+	var campaign_result := save_json(campaign_path, campaign_data)
 	if not campaign_result.get("ok", false):
 		return campaign_result
 	return {
@@ -154,6 +163,7 @@ static func create_campaign(raw_id: String, display_name: String = "") -> Dictio
 		"capability_catalog_path": capability_catalog_path,
 		"economy_catalog_path": economy_catalog_path,
 		"cinematic_catalog_path": cinematic_catalog_path,
+		"localisation_catalog_path": localisation_catalog_path,
 		"map_path": map_path,
 		"errors": []
 	}
@@ -219,7 +229,9 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"schema_version": SCHEMA_VERSION,
 		"id": campaign_id,
 		"title": title,
+		"title_key": "campaign.%s.title" % campaign_id,
 		"subtitle": "A New Journey",
+		"subtitle_key": "campaign.%s.subtitle" % campaign_id,
 		"author": "Campaign Author",
 		"description": "An original Epochbound campaign.",
 		"start_map": "first_crossing",
@@ -232,6 +244,7 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 		"capability_files": ["capabilities/core.json"],
 		"economy_files": ["economy/core.json"],
 		"cinematic_files": ["cinematics/core.json"],
+		"localisation_files": ["localisation/core.json"],
 		"intro_cinematic_id": "arrival",
 		"equipment_slots": [
 			{"id": "weapon", "display_name": "Weapon"},
@@ -267,6 +280,7 @@ static func default_campaign(campaign_id: String, title: String) -> Dictionary:
 			"One traveller and one loyal companion cross the threshold.",
 			"What changes in one age will be remembered by the next."
 		],
+		"intro_keys": LocalisationCatalog.campaign_intro_keys(campaign_id, 3),
 		"actors": {
 			"player": {"name": "HERO", "max_health": 32},
 			"companion": {

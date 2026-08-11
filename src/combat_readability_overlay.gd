@@ -29,6 +29,13 @@ func player_settings_is_open() -> bool:
 	return runtime_boolean("player_settings_open")
 
 
+func runtime_localise(key: String, fallback: String, replacements: Dictionary = {}) -> String:
+	var runtime := runtime_root()
+	if runtime != null and runtime.has_method("localise"):
+		return str(runtime.call("localise", key, fallback, replacements))
+	return fallback
+
+
 func animation_should_freeze() -> bool:
 	return player_settings_is_open() or super.animation_should_freeze()
 
@@ -164,7 +171,7 @@ func draw_player_settings_panel() -> void:
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.position.y + 28.0),
-		"OPTIONS",
+		runtime_localise("ui.options.title", "OPTIONS"),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		210,
 		18,
@@ -173,7 +180,7 @@ func draw_player_settings_panel() -> void:
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(PLAYER_SETTINGS_PANEL.position.x + 244.0, PLAYER_SETTINGS_PANEL.position.y + 27.0),
-		"PLAYER-LOCAL  •  VERSIONED  •  RECOVERABLE",
+		runtime_localise("ui.options.header", "PLAYER LOCAL  •  VERSIONED  •  RECOVERABLE  •  REMAPPABLE"),
 		HORIZONTAL_ALIGNMENT_RIGHT,
 		248,
 		7,
@@ -192,7 +199,7 @@ func draw_player_settings_panel() -> void:
 		var label := str(row.get("label", row.get("id", "SETTING"))).to_upper()
 		var value_text := str(row.get("value", ""))
 		if str(row.get("kind", "")) == "action":
-			value_text = "CONFIRM"
+			value_text = runtime_localise("ui.options.confirm", "CONFIRM")
 		draw_string(
 			ThemeDB.fallback_font,
 			Vector2(PLAYER_SETTINGS_PANEL.position.x + 30.0, y),
@@ -225,7 +232,11 @@ func draw_player_settings_panel() -> void:
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 12.0),
-		"LEFT / RIGHT CHANGE   •   E / A SELECT   •   ESC / O BACK",
+		runtime_localise(
+			"ui.options.footer",
+			"{confirm} SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK",
+			{"confirm": "E / A"}
+		),
 		HORIZONTAL_ALIGNMENT_CENTER,
 		int(PLAYER_SETTINGS_PANEL.size.x - 36.0),
 		7,

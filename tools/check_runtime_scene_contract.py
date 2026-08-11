@@ -71,6 +71,9 @@ require(
         '"input_binding_cache_contract_ok"',
         '"control_bindings_contract_ok"',
         '"player_settings_contract_ok"',
+        '"set_localisation_locale"',
+        '"localise"',
+        '"localisation_contract_ok"',
         '"player_settings_overlay_contract_ok"',
         '"player_settings_audio_contract_ok"',
         '"control_remapping_overlay_contract_ok"',
@@ -88,6 +91,8 @@ require(
         'extends "res://src/presentation_runtime_base.gd"',
         'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
         'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
+        'func localisation_changed()',
+        'localised_control_action_label',
         'SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")',
         'SupplyModel = preload("res://src/game/supply_region_model.gd")',
         'control_bindings_open',
@@ -128,6 +133,8 @@ require(
         'open_player_settings',
         'close_player_settings',
         'player_settings_contract_ok',
+        'set_localisation_locale(PlayerSettings.string(player_settings, "language", "en"))',
+        'player_setting_string',
         'func draw_game() -> void:',
         'var preserved_banner := boss_banner',
         'boss_banner = ""',
@@ -196,6 +203,8 @@ require(
         'res://tools/smoke_editor_plugin_icons.gd',
         'res://tools/headless_runtime_cleanup.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/compile_localisation_probe.gd',
+        'res://tools/smoke_localisation.gd',
         'all seventeen editors',
     ],
 )
@@ -212,6 +221,8 @@ require(
         'res://src/content/complete_content_validator.gd',
         'res://src/game/supply_region_model.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/compile_localisation_probe.gd',
+        'res://tools/smoke_localisation.gd',
         'res://tools/smoke_supply_regions.gd',
         'res://src/app.tscn',
     ],
@@ -224,6 +235,8 @@ require(
     [
         'res://src/game/runtime_scene_contract.gd',
         'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/compile_localisation_probe.gd',
+        'res://tools/smoke_localisation.gd',
     ],
 )
 
@@ -235,12 +248,15 @@ require(
         'res://src/game/player_input_bindings.gd',
         'res://src/game/player_settings.gd',
         'res://src/game/player_settings_store.gd',
+        'res://src/content/localisation_catalog.gd',
+        'res://src/content/localisation_validator.gd',
         'res://src/presentation_runtime_base.gd',
         'res://src/presentation_runtime_current.gd',
         'res://src/combat_readability_overlay.gd',
         'res://src/player_controls_overlay.gd',
         'res://src/audio_mood_runtime.gd',
         'res://tools/smoke_input_bindings.gd',
+        'res://tools/smoke_localisation.gd',
         'res://src/app.tscn',
     ],
 )
@@ -257,10 +273,14 @@ require(
         'leaked Godot ObjectDB instances during headless shutdown',
         'Smoke test canonical runtime scene composition',
         'res://tools/smoke_runtime_scene_contract.gd',
+        'res://tools/compile_localisation_probe.gd',
+        'res://tools/smoke_localisation.gd',
         'compile_player_settings_probe.gd',
+        'compile_localisation_probe.gd',
         'compile_supply_region_probe.gd',
         'smoke_player_settings.gd',
         'smoke_input_bindings.gd',
+        'smoke_localisation.gd',
         'smoke_supply_regions.gd',
         'persistent controls',
         'canonical runtime',
@@ -274,6 +294,7 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_localisation_contract.py',
         'python3 tools/check_supply_region_contract.py',
         'scripts/validate.ps1',
         'Run complete seventeen-system validation gate',
@@ -291,10 +312,12 @@ for workflow_path in [
         [
             'python3 tools/check_runtime_scene_contract.py',
             'python3 tools/check_player_settings_contract.py',
+            'python3 tools/check_localisation_contract.py',
             'python3 tools/check_supply_region_contract.py',
             'smoke_runtime_scene_contract.gd',
             'smoke_player_settings.gd',
             'smoke_input_bindings.gd',
+            'smoke_localisation.gd',
             'smoke_supply_regions.gd',
         ],
     )
@@ -306,10 +329,12 @@ require(
     [
         'python3 tools/check_runtime_scene_contract.py',
         'python3 tools/check_player_settings_contract.py',
+        'python3 tools/check_localisation_contract.py',
         'python3 tools/check_supply_region_contract.py',
         'smoke_runtime_scene_contract.gd',
         'smoke_player_settings.gd',
         'smoke_input_bindings.gd',
+        'smoke_localisation.gd',
         'smoke_supply_regions.gd',
     ],
 )
@@ -354,6 +379,7 @@ runtime_cleanup_expectations = {
     "tools/smoke_encounters.gd": 1,
     "tools/smoke_environment_animation.gd": 2,
     "tools/smoke_input_bindings.gd": 1,
+    "tools/smoke_localisation.gd": 1,
     "tools/smoke_item_forge.gd": 2,
     "tools/smoke_loadout_runtime.gd": 2,
     "tools/smoke_multiplayer_connection_profile.gd": 1,
@@ -454,7 +480,7 @@ print("- canonical root, combat overlay, control overlay, camera and Audio scrip
 print("- persistent InputMap bindings, bounded prompt caches and durable regional supply cycles layer above the canonical presentation runtime")
 print("- duplicated Arsenal, Boss, projectile and arena drawing is selectively suppressed")
 print("- inherited quest, companion, notice and system HUD paths remain available")
-print("- player-local settings, controls and Audio remain outside campaign saves and packages")
+print("- player-local settings language controls and Audio remain outside campaign saves and packages")
 print("- all seventeen editor plugins resolve semantic icons through a warning-safe shared fallback contract")
 print("- every full-scene headless test uses bounded Audio-aware runtime disposal before process shutdown")
 print("- primary unified and focused validation gates cover the executable composition")

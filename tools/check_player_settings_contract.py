@@ -94,8 +94,9 @@ require(
     "src/game/player_settings.gd",
     model,
     [
-        "CURRENT_SCHEMA := 2",
+        "CURRENT_SCHEMA := 3",
         'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
+        'LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")',
         '"master_volume"',
         '"music_volume"',
         '"ambience_volume"',
@@ -106,6 +107,10 @@ require(
         '"flash_intensity"',
         '"show_action_prompts"',
         '"high_contrast_ui"',
+        '"language"',
+        '"kind": "choice"',
+        'LocalisationCatalog.supported_player_locales()',
+        'static func string(',
         '"input_bindings"',
         '"controls"',
         '"reset_defaults"',
@@ -172,6 +177,10 @@ require(
         "load_player_settings",
         "apply_player_settings_load_result",
         "player_settings_open_notice",
+        'set_localisation_locale(PlayerSettings.string(player_settings, "language", "en"))',
+        "player_setting_string",
+        "player_setting_label",
+        "player_setting_value_text",
         "open_player_settings",
         "close_player_settings",
         "player_settings_dirty = recovered or migrated",
@@ -189,6 +198,7 @@ require(
     [
         'extends "res://src/presentation_runtime_base.gd"',
         'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
+        "localised_control_action_label",
         "control_bindings_open",
         "control_binding_device",
         "control_capture_active",
@@ -216,6 +226,8 @@ require(
         "control_bindings_contract_ok",
         "PlayerInputBindings.input_map_matches",
         "player_settings_contract_ok",
+        "localisation_changed",
+        "localised_control_action_label",
     ],
 )
 forbid(
@@ -325,11 +337,16 @@ require(
     [
         'TEST_ROOT := "user://epochbound_test_player_settings"',
         "Schema-one player settings must migrate to persistent controls",
+        "Migration must add the safe English locale",
+        "Language must cycle through the Options surface",
+        "Language adjustment must apply pseudo-localisation immediately",
+        "Reset All Defaults must restore the safe English locale",
         "Default player settings must include a complete keyboard and controller binding profile",
         "Runtime must keep InputMap synchronized",
         "Music gain must combine master and music settings",
         "Reset All Defaults must also restore and apply default controls",
         "Options must freeze animation and environment time",
+        "Options rows must refresh immediately in pseudo-localisation",
     ],
 )
 forbid(
@@ -350,6 +367,7 @@ require(
     [
         'TEST_ROOT := "user://epochbound_test_input_bindings"',
         "all fourteen gameplay actions",
+        "Options must expose ten existing preferences, Language, Controls, Reset All Defaults and Back",
         "Keyboard capture must detect modifier chords before InputMap matching",
         "Invalid modifier profiles must fail before InputMap mutation",
         "Small analogue noise must not become a binding",
@@ -396,6 +414,7 @@ require(
         '"player_settings_contract_ok"',
         '"player_settings_overlay_contract_ok"',
         '"player_settings_audio_contract_ok"',
+        '"localisation_contract_ok"',
         "Runtime root did not build complete stable input-binding caches",
     ],
 )
@@ -406,6 +425,8 @@ require(
     local_gate,
     [
         "compile_player_settings_probe.gd",
+        "compile_localisation_probe.gd",
+        "smoke_localisation.gd",
         "smoke_player_settings.gd",
         "smoke_player_settings_recovery_edges.gd",
         "smoke_input_bindings.gd",
@@ -424,6 +445,7 @@ for workflow_path in [
         workflow,
         [
             "python3 tools/check_player_settings_contract.py",
+            "python3 tools/check_localisation_contract.py",
             "compile_player_settings_probe.gd" if workflow_path != ".github/workflows/validate.yml" else "scripts/validate.ps1",
         ],
     )
@@ -439,6 +461,8 @@ require(
     [
         "python3 tools/check_player_settings_contract.py",
         "compile_player_settings_probe.gd",
+        "compile_localisation_probe.gd",
+        "smoke_localisation.gd",
         "smoke_player_settings.gd",
         "smoke_input_bindings.gd",
         "modifier_chord_message",
@@ -453,6 +477,9 @@ require(
     documentation,
     [
         "user://settings/player_settings.json",
+        "schema 3",
+        "Language",
+        "Pseudo-localisation",
         "Keyboard and controller remapping",
         "Physical keys, not modifier chords",
         "Escape, O and Start",
@@ -476,6 +503,8 @@ require(
     [
         "persistent keyboard and controller remapping",
         "Player settings, accessibility and controls",
+        "Language",
+        "Pseudo-localisation",
         "Options → Controls",
         "Field Satchel | I | Back or View",
         "Fixed recovery controls before unrestricted remapping",
@@ -490,7 +519,7 @@ if errors:
     raise SystemExit(1)
 
 print("epochbound_player_settings_contract_passed")
-print("- player-local settings and control bindings are versioned, sanitised and stored atomically")
+print("- player-local schema-three settings and control bindings are versioned sanitised and stored atomically")
 print("- raw control profiles fail before sanitization, temporary-file creation or backup rotation")
 print("- scalar Audio and presentation reads never traverse the nested control profile")
 print("- Escape, O and Start remain fixed recovery inputs while fourteen gameplay actions are remappable")
@@ -498,5 +527,5 @@ print("- modifier chords are rejected because gameplay uses non-exact action mat
 print("- duplicate captures swap bindings instead of creating inaccessible or ambiguous actions")
 print("- validated control rows and prompt labels are cached only at profile mutation boundaries")
 print("- runtime InputMap, dynamic prompts, Audio and presentation all consume the same profile")
-print("- campaign saves and portable campaign packages remain separate")
+print("- language controls campaign saves and portable campaign packages remain separate")
 print("- primary unified, Audio, Sprite and local gates cover the complete integration")

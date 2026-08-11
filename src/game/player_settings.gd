@@ -2,8 +2,9 @@
 extends RefCounted
 
 const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
+const LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")
 
-const CURRENT_SCHEMA := 2
+const CURRENT_SCHEMA := 3
 
 
 static func default_settings() -> Dictionary:
@@ -19,25 +20,27 @@ static func default_settings() -> Dictionary:
 		"flash_intensity": 1.0,
 		"show_action_prompts": true,
 		"high_contrast_ui": false,
+		"language": LocalisationCatalog.DEFAULT_LOCALE,
 		"input_bindings": PlayerInputBindings.default_profile()
 	}
 
 
 static func entries() -> Array:
 	return [
-		{"id": "master_volume", "label": "MASTER VOLUME", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
-		{"id": "music_volume", "label": "MUSIC", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
-		{"id": "ambience_volume", "label": "AMBIENCE", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
-		{"id": "sfx_volume", "label": "SOUND EFFECTS", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
-		{"id": "screen_texture_intensity", "label": "SCREEN TEXTURE", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
-		{"id": "camera_shake_intensity", "label": "CAMERA SHAKE", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
-		{"id": "environment_motion_intensity", "label": "WORLD MOTION", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
-		{"id": "flash_intensity", "label": "SCREEN FLASHES", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
-		{"id": "show_action_prompts", "label": "ACTION PROMPTS", "kind": "boolean"},
-		{"id": "high_contrast_ui", "label": "HIGH CONTRAST UI", "kind": "boolean"},
-		{"id": "controls", "label": "CONTROLS", "kind": "action"},
-		{"id": "reset_defaults", "label": "RESET ALL DEFAULTS", "kind": "action"},
-		{"id": "back", "label": "BACK", "kind": "action"}
+		{"id": "master_volume", "label": "MASTER VOLUME", "label_key": "ui.settings.master_volume", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
+		{"id": "music_volume", "label": "MUSIC", "label_key": "ui.settings.music", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
+		{"id": "ambience_volume", "label": "AMBIENCE", "label_key": "ui.settings.ambience", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
+		{"id": "sfx_volume", "label": "SOUND EFFECTS", "label_key": "ui.settings.sfx", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.1},
+		{"id": "screen_texture_intensity", "label": "SCREEN TEXTURE", "label_key": "ui.settings.screen_texture", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
+		{"id": "camera_shake_intensity", "label": "CAMERA SHAKE", "label_key": "ui.settings.camera_shake", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
+		{"id": "environment_motion_intensity", "label": "WORLD MOTION", "label_key": "ui.settings.world_motion", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
+		{"id": "flash_intensity", "label": "SCREEN FLASHES", "label_key": "ui.settings.screen_flashes", "kind": "range", "minimum": 0.0, "maximum": 1.0, "step": 0.25},
+		{"id": "show_action_prompts", "label": "ACTION PROMPTS", "label_key": "ui.settings.action_prompts", "kind": "boolean"},
+		{"id": "high_contrast_ui", "label": "HIGH CONTRAST UI", "label_key": "ui.settings.high_contrast", "kind": "boolean"},
+		{"id": "language", "label": "LANGUAGE", "label_key": "ui.settings.language", "kind": "choice", "choices": LocalisationCatalog.supported_player_locales()},
+		{"id": "controls", "label": "CONTROLS", "label_key": "ui.settings.controls", "kind": "action"},
+		{"id": "reset_defaults", "label": "RESET ALL DEFAULTS", "label_key": "ui.settings.reset", "kind": "action"},
+		{"id": "back", "label": "BACK", "label_key": "ui.settings.back", "kind": "action"}
 	]
 
 
@@ -68,6 +71,11 @@ static func sanitize(value: Variant) -> Dictionary:
 			output[setting_id] = clampf(float(raw), minimum, maximum)
 		elif kind == "boolean" and typeof(raw) == TYPE_BOOL:
 			output[setting_id] = bool(raw)
+		elif kind == "choice" and typeof(raw) == TYPE_STRING:
+			var choices_value: Variant = definition.get("choices", [])
+			var choices: Array = choices_value if typeof(choices_value) == TYPE_ARRAY else []
+			if choices.has(str(raw)):
+				output[setting_id] = str(raw)
 	output["input_bindings"] = PlayerInputBindings.sanitize_profile(
 		source.get("input_bindings", PlayerInputBindings.default_profile())
 	)
@@ -104,6 +112,11 @@ static func validate(value: Variant) -> Dictionary:
 				errors.append("Player setting '%s' must be between %.2f and %.2f." % [setting_id, minimum, maximum])
 		elif kind == "boolean" and typeof(raw) != TYPE_BOOL:
 			errors.append("Player setting '%s' must be boolean." % setting_id)
+		elif kind == "choice":
+			var choices_value: Variant = definition.get("choices", [])
+			var choices: Array = choices_value if typeof(choices_value) == TYPE_ARRAY else []
+			if typeof(raw) != TYPE_STRING or not choices.has(str(raw)):
+				errors.append("Player setting '%s' must be one of: %s." % [setting_id, ", ".join(PackedStringArray(choices))])
 	if source.has("input_bindings"):
 		var binding_validation := PlayerInputBindings.validate_profile(source.get("input_bindings"))
 		for message in binding_validation.get("errors", []):
@@ -166,6 +179,12 @@ static func boolean(settings: Dictionary, setting_id: String, fallback: bool = f
 	return bool(raw) if typeof(raw) == TYPE_BOOL else default_value
 
 
+static func string(settings: Dictionary, setting_id: String, fallback: String = "") -> String:
+	if setting_id != "language":
+		return fallback
+	return LocalisationCatalog.sanitize_player_locale(settings.get(setting_id, fallback))
+
+
 static func input_bindings(settings: Dictionary) -> Dictionary:
 	return PlayerInputBindings.sanitize_profile(
 		settings.get("input_bindings", PlayerInputBindings.default_profile())
@@ -186,6 +205,14 @@ static func adjusted(settings: Dictionary, setting_id: String, direction: int) -
 		output[setting_id] = clampf(snappedf(number(output, setting_id, minimum) + step * resolved_direction, step), minimum, maximum)
 	elif kind == "boolean":
 		output[setting_id] = not boolean(output, setting_id, false)
+	elif kind == "choice":
+		var choices_value: Variant = definition.get("choices", [])
+		var choices: Array = choices_value if typeof(choices_value) == TYPE_ARRAY else []
+		if not choices.is_empty():
+			var current := choices.find(str(output.get(setting_id, choices[0])))
+			if current < 0:
+				current = 0
+			output[setting_id] = str(choices[posmod(current + (1 if direction > 0 else -1), choices.size())])
 	return output
 
 
@@ -194,6 +221,8 @@ static func value_text(settings: Dictionary, setting_id: String) -> String:
 		return "%d%%" % int(round(number(settings, setting_id, 0.0) * 100.0))
 	if setting_id in ["show_action_prompts", "high_contrast_ui"]:
 		return "ON" if boolean(settings, setting_id, false) else "OFF"
+	if setting_id == "language":
+		return LocalisationCatalog.locale_label(string(settings, setting_id, LocalisationCatalog.DEFAULT_LOCALE))
 	return ""
 
 

@@ -31,6 +31,10 @@ const REQUIRED_RUNTIME_METHODS := [
 	"close_player_settings",
 	"player_setting_number",
 	"player_setting_bool",
+	"player_setting_string",
+	"set_localisation_locale",
+	"localise",
+	"localisation_contract_ok",
 	"player_settings_rows",
 	"player_settings_contract_ok",
 	"apply_input_bindings",
@@ -217,6 +221,8 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 		errors.append("Runtime root did not initialise every regional supply cycle.")
 	if runtime.has_method("player_settings_contract_ok") and not bool(runtime.call("player_settings_contract_ok")):
 		errors.append("Runtime root did not confirm valid player-local settings.")
+	if runtime.has_method("localisation_contract_ok") and not bool(runtime.call("localisation_contract_ok")):
+		errors.append("Runtime root did not load a valid merged localisation catalogue.")
 	if runtime.has_method("input_binding_cache_contract_ok") and not bool(runtime.call("input_binding_cache_contract_ok")):
 		errors.append("Runtime root did not build complete stable input-binding caches.")
 	if runtime.has_method("control_bindings_contract_ok") and not bool(runtime.call("control_bindings_contract_ok")):

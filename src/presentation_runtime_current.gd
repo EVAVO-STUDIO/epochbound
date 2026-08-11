@@ -44,6 +44,19 @@ func _ready() -> void:
 		apply_input_bindings()
 
 
+func localisation_changed() -> void:
+	super.localisation_changed()
+	if not input_binding_profile_cache.is_empty():
+		rebuild_input_binding_cache(input_binding_profile_cache)
+
+
+func localised_control_action_label(action_id: String) -> String:
+	return localise(
+		"ui.controls.action.%s" % action_id,
+		PlayerInputBindings.action_label(action_id).to_upper()
+	)
+
+
 func _input(event: InputEvent) -> void:
 	if handle_control_capture_event(event):
 		control_capture_event_consumed = true
@@ -59,7 +72,11 @@ func apply_input_bindings() -> bool:
 	var profile := PlayerSettings.input_bindings(player_settings)
 	var result := PlayerInputBindings.apply_profile(profile)
 	if not bool(result.get("ok", false)):
-		player_settings_notice = "CONTROLS FAILED: %s" % format_errors(result.get("errors", []))
+		player_settings_notice = localise(
+			"ui.controls.apply_failed",
+			"CONTROLS FAILED: {error}",
+			{"error": format_errors(result.get("errors", []))}
+		)
 		player_settings_notice_timer = 3.0
 		return false
 	var applied_value: Variant = result.get("profile", profile)
@@ -86,7 +103,7 @@ func rebuild_input_binding_cache(profile_value: Variant) -> void:
 			continue
 		var definition: Dictionary = definition_value
 		var action_id := str(definition.get("id", ""))
-		var label := str(definition.get("label", action_id)).to_upper()
+		var label := localised_control_action_label(action_id).to_upper()
 		var events_value: Variant = actions.get(action_id, [])
 		var events: Array = events_value if typeof(events_value) == TYPE_ARRAY else []
 		var keyboard_text := PlayerInputBindings.device_binding_text_from_events(
@@ -147,7 +164,7 @@ func open_control_bindings() -> bool:
 	control_capture_active = false
 	control_capture_action_id = ""
 	control_capture_device = ""
-	player_settings_notice = "LEFT / RIGHT CHOOSES KEYBOARD OR CONTROLLER"
+	player_settings_notice = localise("ui.controls.choose_device", "LEFT / RIGHT CHOOSES KEYBOARD OR CONTROLLER")
 	player_settings_notice_timer = CONTROL_NOTICE_DURATION
 	return true
 
@@ -158,7 +175,11 @@ func close_control_bindings() -> bool:
 	cancel_control_capture(false)
 	control_bindings_open = false
 	player_settings_index = clampi(control_return_index, 0, maxi(0, PlayerSettings.entries().size() - 1))
-	player_settings_notice = "CONTROL CHANGES ARE PENDING SAVE" if player_settings_dirty else "CONTROLS UNCHANGED"
+	player_settings_notice = (
+		localise("ui.controls.pending", "CONTROL CHANGES ARE PENDING SAVE")
+		if player_settings_dirty
+		else localise("ui.controls.unchanged", "CONTROLS UNCHANGED")
+	)
 	player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 	return true
 
@@ -184,12 +205,12 @@ func update_control_bindings_menu() -> void:
 		return
 	if Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("move_left"):
 		control_binding_device = PlayerInputBindings.DEVICE_KEYBOARD
-		player_settings_notice = "KEYBOARD BINDINGS"
+		player_settings_notice = localise("ui.controls.keyboard_bindings", "KEYBOARD BINDINGS")
 		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 		return
 	if Input.is_action_just_pressed("ui_right") or Input.is_action_just_pressed("move_right"):
 		control_binding_device = PlayerInputBindings.DEVICE_GAMEPAD
-		player_settings_notice = "CONTROLLER BINDINGS"
+		player_settings_notice = localise("ui.controls.controller_bindings", "CONTROLLER BINDINGS")
 		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 		return
 	if confirm() or Input.is_action_just_pressed("attack"):
@@ -205,8 +226,8 @@ func cached_control_binding_rows(device: String) -> Array:
 
 func control_binding_entries() -> Array:
 	var rows := cached_control_binding_rows(control_binding_device)
-	rows.append({"id": "reset_controls", "label": "RESET CONTROLS", "kind": "action", "value": ""})
-	rows.append({"id": "back", "label": "BACK TO OPTIONS", "kind": "action", "value": ""})
+	rows.append({"id": "reset_controls", "label": localise("ui.controls.reset", "RESET CONTROLS"), "kind": "action", "value": ""})
+	rows.append({"id": "back", "label": localise("ui.controls.back", "BACK TO OPTIONS"), "kind": "action", "value": ""})
 	return rows
 
 
@@ -261,7 +282,11 @@ func begin_control_capture(action_id: String, device: String) -> bool:
 	control_capture_active = true
 	control_capture_action_id = action_id
 	control_capture_device = device
-	player_settings_notice = "PRESS A KEY — ESC CANCELS" if device == PlayerInputBindings.DEVICE_KEYBOARD else "PRESS A BUTTON OR MOVE AN AXIS — START CANCELS"
+	player_settings_notice = (
+		localise("ui.controls.capture_key", "PRESS A KEY — ESC CANCELS")
+		if device == PlayerInputBindings.DEVICE_KEYBOARD
+		else localise("ui.controls.capture_gamepad", "PRESS A BUTTON OR MOVE AN AXIS — START CANCELS")
+	)
 	player_settings_notice_timer = 3600.0
 	return true
 
@@ -276,7 +301,11 @@ func handle_control_capture_event(event: InputEvent) -> bool:
 	if descriptor.is_empty():
 		return false
 	if PlayerInputBindings.descriptor_device(descriptor) != control_capture_device:
-		player_settings_notice = "PRESS A KEY — ESC CANCELS" if control_capture_device == PlayerInputBindings.DEVICE_KEYBOARD else "PRESS A CONTROLLER INPUT — START CANCELS"
+		player_settings_notice = (
+			localise("ui.controls.capture_key", "PRESS A KEY — ESC CANCELS")
+			if control_capture_device == PlayerInputBindings.DEVICE_KEYBOARD
+			else localise("ui.controls.capture_controller", "PRESS A CONTROLLER INPUT — START CANCELS")
+		)
 		return true
 	if PlayerInputBindings.descriptor_is_reserved(descriptor):
 		player_settings_notice = PlayerInputBindings.reserved_descriptor_message(descriptor).to_upper()
@@ -285,7 +314,11 @@ func handle_control_capture_event(event: InputEvent) -> bool:
 	var rebound_action := control_capture_action_id
 	var result := PlayerInputBindings.rebind(input_binding_profile(), rebound_action, control_capture_device, descriptor)
 	if not bool(result.get("ok", false)):
-		player_settings_notice = "BINDING FAILED: %s" % format_errors(result.get("errors", []))
+		player_settings_notice = localise(
+			"ui.controls.binding_failed",
+			"BINDING FAILED: {error}",
+			{"error": format_errors(result.get("errors", []))}
+		)
 		player_settings_notice_timer = CONTROL_NOTICE_DURATION
 		return true
 	player_settings["input_bindings"] = result.get("profile", input_binding_profile())
@@ -295,9 +328,13 @@ func handle_control_capture_event(event: InputEvent) -> bool:
 	control_capture_action_id = ""
 	control_capture_device = ""
 	var swapped := str(result.get("swapped_with", ""))
-	player_settings_notice = "%s  %s" % [PlayerInputBindings.action_label(rebound_action).to_upper(), PlayerInputBindings.binding_label(descriptor)]
+	player_settings_notice = "%s  %s" % [localised_control_action_label(rebound_action).to_upper(), PlayerInputBindings.binding_label(descriptor)]
 	if not swapped.is_empty():
-		player_settings_notice += "  •  SWAPPED WITH %s" % PlayerInputBindings.action_label(swapped).to_upper()
+		player_settings_notice += "  •  " + localise(
+			"ui.controls.swapped",
+			"SWAPPED WITH {action}",
+			{"action": localised_control_action_label(swapped).to_upper()}
+		)
 	player_settings_notice_timer = CONTROL_NOTICE_DURATION
 	return true
 
@@ -324,7 +361,7 @@ func cancel_control_capture(show_notice: bool = true) -> void:
 	control_capture_action_id = ""
 	control_capture_device = ""
 	if show_notice:
-		player_settings_notice = "CONTROL CAPTURE CANCELLED"
+		player_settings_notice = localise("ui.controls.capture_cancelled", "CONTROL CAPTURE CANCELLED")
 		player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 
 
@@ -332,7 +369,7 @@ func reset_control_bindings() -> bool:
 	player_settings["input_bindings"] = PlayerInputBindings.default_profile()
 	player_settings_dirty = true
 	apply_input_bindings()
-	player_settings_notice = "DEFAULT CONTROLS RESTORED"
+	player_settings_notice = localise("ui.controls.defaults_restored", "DEFAULT CONTROLS RESTORED")
 	player_settings_notice_timer = CONTROL_NOTICE_DURATION
 	return true
 
@@ -370,7 +407,11 @@ func input_action_device_hint(action_id: String, device: String) -> String:
 
 
 func control_binding_device_label() -> String:
-	return "KEYBOARD" if control_binding_device == PlayerInputBindings.DEVICE_KEYBOARD else "CONTROLLER"
+	return (
+		localise("ui.controls.keyboard", "KEYBOARD")
+		if control_binding_device == PlayerInputBindings.DEVICE_KEYBOARD
+		else localise("ui.controls.controller", "CONTROLLER")
+	)
 
 
 func input_binding_cache_contract_ok() -> bool:
@@ -417,7 +458,15 @@ func draw_game() -> void:
 	if player_settings_open or not dialogue.is_empty() or inventory_open or story_journal_open or save_overlay_open or merchant_open:
 		return
 	draw_rect(Rect2(88, 333, 464, 24), Color(0.03, 0.04, 0.05, 0.88))
-	draw_centered("%s USE   •   %s ATTACK   •   %s SHIFT" % [input_action_hint("interact"), input_action_hint("attack"), input_action_hint("era_shift")], 350, 8, Color("d7d0bd"))
+	draw_centered(localise(
+		"ui.game.bound_controls",
+		"{use} USE   •   {attack} ATTACK   •   {shift} SHIFT",
+		{
+			"use": input_action_hint("interact"),
+			"attack": input_action_hint("attack"),
+			"shift": input_action_hint("era_shift")
+		}
+	), 350, 8, Color("d7d0bd"))
 
 
 func draw_title() -> void:
@@ -425,7 +474,11 @@ func draw_title() -> void:
 	if player_settings_open:
 		return
 	draw_rect(Rect2(122, 319, 396, 32), Color(0.03, 0.04, 0.05, 0.86))
-	draw_centered("%s  CONFIRM     ARROWS  SELECT" % input_action_hint("interact"), 339, 9, Color("68747e"))
+	draw_centered(localise(
+		"ui.title.confirm_select",
+		"{confirm}  CONFIRM     ARROWS  SELECT",
+		{"confirm": input_action_hint("interact")}
+	), 339, 9, Color("68747e"))
 
 
 func draw_pause() -> void:
@@ -433,7 +486,11 @@ func draw_pause() -> void:
 	if player_settings_open:
 		return
 	draw_rect(Rect2(202, 168, 236, 30), Color("111820"))
-	draw_centered("%s  OPTIONS" % input_action_hint("interact"), 187, 9, Color("bba76d"))
+	draw_centered(localise(
+		"ui.pause.options",
+		"{confirm}  OPTIONS",
+		{"confirm": input_action_hint("interact")}
+	), 187, 9, Color("bba76d"))
 
 
 func load_campaign(path: String) -> bool:

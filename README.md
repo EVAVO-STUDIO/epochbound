@@ -36,6 +36,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 24. Automated repeated long-form progression playthroughs with eight completed-world laps, deterministic supply time, checksummed checkpoints and destructive restoration probes
 25. Reliable host-shutdown requests, per-peer acknowledgements, committed closure and independent clean ENet process exit
 26. Unexpected-host restart recovery for accepted direct-IP clients with six bounded retries and same-process replacement-host validation
+27. Player-local English and deterministic pseudo-localisation with strict UI and campaign catalogues, stable title/subtitle/intro keys, placeholder parity and staged package validation
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -148,7 +149,7 @@ Trade Studio authors routes and merchant assignments. State Studio exposes exact
 
 ## Player settings, accessibility and controls
 
-Player-local settings are stored separately from campaigns, save profiles and portable packages. Options controls Master, Music, Ambience and SFX volume; screen texture; camera shake; world motion; screen flashes; action prompts; and high-contrast interface treatment.
+Player-local settings are stored separately from campaigns, save profiles and portable packages. Options controls Master, Music, Ambience and SFX volume; screen texture; camera shake; world motion; screen flashes; action prompts; high-contrast interface treatment; and Language between English and deterministic Pseudo-localisation.
 
 The Controls submenu remaps fourteen gameplay actions across physical keyboard keys, controller buttons, D-pad directions and deliberate analogue-axis directions. Escape, O and Start remain fixed recovery inputs, so Pause and Options cannot become inaccessible. Conflicting managed inputs use a device-local swap rather than creating duplicates or leaving an action unbound.
 
@@ -156,7 +157,7 @@ Keyboard capture accepts one physical key at a time. Modifier chords are rejecte
 
 The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
 
-Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts.
+Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, and [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules.
 
 ## Original 16-bit presentation, audio and animation
 
@@ -293,7 +294,7 @@ The gate performs:
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide ten-probe campaign production audit with progression, affordability, deterministic economy balance, meaningful temporal-shift consequences and supply evidence;
-- exact-main schema-2.8 release evidence with `economyBalanceValidation` bound to the validated production SHA;
+- exact-main schema-2.9 release evidence with `economyBalanceValidation` and `localisationValidation` bound to the validated production SHA;
 - a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
@@ -360,6 +361,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 ### Player accessibility and controls
 
 - [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
+- [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md)
 - [`docs/EDITOR_PLUGIN_RELIABILITY.md`](docs/EDITOR_PLUGIN_RELIABILITY.md)
 - [`docs/HEADLESS_RUNTIME_CLEANUP.md`](docs/HEADLESS_RUNTIME_CLEANUP.md)
 - [`docs/MULTIPLAYER_LOOPBACK_GATE.md`](docs/MULTIPLAYER_LOOPBACK_GATE.md)
@@ -421,7 +423,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, broader multi-boss music authoring previews, final economy tuning from human playtests, host migration and production relay, matchmaking and NAT-traversal infrastructure.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, broader multi-boss music authoring previews, final economy tuning from human playtests, production translations beyond English and pseudo-localisation, host migration and production relay, matchmaking and NAT-traversal infrastructure.
 
 ### Host-directed disconnect ordering
 

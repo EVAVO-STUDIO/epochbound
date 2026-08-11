@@ -155,7 +155,7 @@ require(
         'Validate long-form progression integration contract',
         'python3 tools/check_long_form_progression_contract.py',
         '# Receipt schema migrated from: "schemaVersion": "2.9"',
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"longFormProgressionValidation": "passed"',
     ],
 )

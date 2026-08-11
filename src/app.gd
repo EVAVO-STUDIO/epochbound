@@ -8,6 +8,7 @@ const CampaignRepository = preload("res://src/content/campaign_repository.gd")
 const CampaignValidator = preload("res://src/content/campaign_validator.gd")
 const MapModel = preload("res://src/content/map_model.gd")
 const LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")
+const LocalisationLayout = preload("res://src/content/localisation_layout.gd")
 const DEFAULT_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const VIEW := Vector2(640, 360)
 const PLAYER_SPEED := 105.0
@@ -168,6 +169,7 @@ func localisation_contract_ok() -> bool:
 	return (
 		bool(localisation_catalog.get("ok", false))
 		and LocalisationCatalog.supported_player_locales().has(current_locale)
+		and LocalisationLayout.localisation_layout_contract_ok()
 		and LocalisationCatalog.has_message(localisation_catalog, "ui.title.options")
 		and localise("ui.title.options", "OPTIONS") != "ui.title.options"
 	)
@@ -656,7 +658,14 @@ func draw_title() -> void:
 	for index in range(menu.size()):
 		var active := index == selected_menu
 		draw_string(ThemeDB.fallback_font, Vector2(205, 152 + index * 27), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("e7c66b"))
-		draw_string(ThemeDB.fallback_font, Vector2(229, 152 + index * 27), menu[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("fff2c9") if active else Color("76858b"))
+		draw_fitted_line(
+			str(menu[index]),
+			Vector2(229, 152 + index * 27),
+			330.0,
+			16,
+			10,
+			Color("fff2c9") if active else Color("76858b")
+		)
 	draw_centered(localise("ui.title.confirm_select", "E / Z / A  CONFIRM     ARROWS  SELECT", {"confirm": "E / Z / A"}), 336, 10, Color("58656b"))
 
 
@@ -680,8 +689,22 @@ func draw_campaign_select() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(108, y), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e7c66b"))
 		var entry_title := localise_text(String(entry.get("title", entry.get("id", "Campaign"))))
 		var source_label := localise("ui.campaigns.custom", "CUSTOM") if entry.get("source", "built_in") == "user" else localise("ui.campaigns.built_in", "BUILT-IN")
-		draw_string(ThemeDB.fallback_font, Vector2(132, y), entry_title, HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("fff2c9") if active else Color("9aa7aa"))
-		draw_string(ThemeDB.fallback_font, Vector2(455, y), source_label, HORIZONTAL_ALIGNMENT_LEFT, 90, 9, Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c"))
+		draw_fitted_line(
+			entry_title,
+			Vector2(132, y),
+			300.0,
+			15,
+			9,
+			Color("fff2c9") if active else Color("9aa7aa")
+		)
+		draw_fitted_line(
+			source_label,
+			Vector2(455, y),
+			90.0,
+			9,
+			6,
+			Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c")
+		)
 	if not load_error.is_empty():
 		draw_centered(localise("ui.campaigns.load_failed", "SELECTED CAMPAIGN COULD NOT BE LOADED"), 319, 10, Color("d78f84"))
 	else:
@@ -697,7 +720,16 @@ func draw_intro() -> void:
 	draw_line(Vector2(320, 142), Vector2(320 + cos(elapsed) * 29, 142 + sin(elapsed) * 29), Color("f2df9b"), 2.0)
 	var pages := intro_pages()
 	var page_index := clampi(intro_page, 0, maxi(0, pages.size() - 1))
-	draw_multiline_centered(String(pages[page_index]), 226, 15, Color("e8e3d5"))
+	draw_fitted_block(
+		String(pages[page_index]),
+		Rect2(84, 207, 472, 66),
+		15,
+		9,
+		3,
+		5.0,
+		Color("e8e3d5"),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
 	draw_centered(localise("ui.intro.continue_skip", "CONFIRM TO CONTINUE   •   ESC TO SKIP"), 330, 10, Color("68747e"))
 
 
@@ -803,11 +835,39 @@ func draw_player() -> void:
 
 func draw_hud(era_data: Dictionary) -> void:
 	draw_rect(Rect2(10, 9, 236, 46), Color(0.03, 0.04, 0.05, 0.86))
-	draw_string(ThemeDB.fallback_font, Vector2(21, 29), "%s  %d / %d" % [player_name(), actor_health("player", 32), actor_health("player", 32)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("f0e5c7"))
+	draw_fitted_line(
+		"%s  %d / %d" % [player_name(), actor_health("player", 32), actor_health("player", 32)],
+		Vector2(21, 29),
+		214.0,
+		13,
+		8,
+		Color("f0e5c7")
+	)
 	if companion_enabled():
-		draw_string(ThemeDB.fallback_font, Vector2(21, 47), "%s  %d / %d" % [companion_name(), actor_health("companion", 24), actor_health("companion", 24)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c8b998"))
-	draw_string(ThemeDB.fallback_font, Vector2(472, 24), String(era_data.get("display_name", current_era_id.capitalize())).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("f3df9b"))
-	draw_string(ThemeDB.fallback_font, Vector2(472, 42), String(map_data.get("display_name", "MAP")).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("d2c8aa"))
+		draw_fitted_line(
+			"%s  %d / %d" % [companion_name(), actor_health("companion", 24), actor_health("companion", 24)],
+			Vector2(21, 47),
+			214.0,
+			12,
+			8,
+			Color("c8b998")
+		)
+	draw_fitted_line(
+		String(era_data.get("display_name", current_era_id.capitalize())).to_upper(),
+		Vector2(472, 24),
+		156.0,
+		11,
+		7,
+		Color("f3df9b")
+	)
+	draw_fitted_line(
+		String(map_data.get("display_name", "MAP")).to_upper(),
+		Vector2(472, 42),
+		156.0,
+		9,
+		6,
+		Color("d2c8aa")
+	)
 
 
 func draw_dialogue() -> void:
@@ -824,7 +884,15 @@ func draw_pause() -> void:
 
 
 func draw_centered(text: String, y: float, size: int, color: Color) -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(0, y), text, HORIZONTAL_ALIGNMENT_CENTER, int(VIEW.x), size, color)
+	draw_fitted_line(
+		text,
+		Vector2(12, y),
+		VIEW.x - 24.0,
+		size,
+		maxi(6, int(floor(float(size) * 0.6))),
+		color,
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
 
 
 func draw_multiline_centered(text: String, y: float, size: int, color: Color) -> void:
@@ -837,3 +905,72 @@ func draw_text_lines(text: String, start: Vector2, size: int, color: Color) -> v
 	var lines := text.split("\n")
 	for index in range(lines.size()):
 		draw_string(ThemeDB.fallback_font, start + Vector2(0, index * (size + 5)), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+
+
+func draw_fitted_line(
+	text: String,
+	baseline: Vector2,
+	max_width: float,
+	preferred_size: int,
+	minimum_size: int,
+	color: Color,
+	alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
+) -> Dictionary:
+	var result := LocalisationLayout.fit_single_line(
+		ThemeDB.fallback_font,
+		text,
+		preferred_size,
+		minimum_size,
+		max_width
+	)
+	if bool(result.get("ok", false)) and not str(result.get("text", "")).is_empty():
+		draw_string(
+			ThemeDB.fallback_font,
+			baseline,
+			str(result.get("text", "")),
+			alignment,
+			int(floor(max_width)),
+			int(result.get("font_size", minimum_size)),
+			color
+		)
+	return result
+
+
+func draw_fitted_block(
+	text: String,
+	rect: Rect2,
+	preferred_size: int,
+	minimum_size: int,
+	max_lines: int,
+	line_gap: float,
+	color: Color,
+	alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
+) -> Dictionary:
+	var result := LocalisationLayout.fit_block(
+		ThemeDB.fallback_font,
+		text,
+		preferred_size,
+		minimum_size,
+		rect.size.x,
+		max_lines,
+		rect.size.y,
+		line_gap
+	)
+	if not bool(result.get("ok", false)):
+		return result
+	var lines_value: Variant = result.get("lines", [])
+	var lines: Array = lines_value if typeof(lines_value) == TYPE_ARRAY else []
+	var font_size := int(result.get("font_size", minimum_size))
+	var total_height := float(result.get("height", LocalisationLayout.block_height(lines, font_size, line_gap)))
+	var baseline_y := rect.position.y + maxf(0.0, (rect.size.y - total_height) * 0.5) + float(font_size)
+	for index in range(lines.size()):
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(rect.position.x, baseline_y + float(index) * (float(font_size) + line_gap)),
+			str(lines[index]),
+			alignment,
+			int(floor(rect.size.x)),
+			font_size,
+			color
+		)
+	return result

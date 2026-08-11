@@ -69,6 +69,9 @@ jobs:
       - name: Validate localisation integration contract
         run: python3 tools/check_localisation_contract.py
 
+      - name: Validate localisation layout integration contract
+        run: python3 tools/check_localisation_layout_contract.py
+
       - name: Validate regional supply integration contract
         run: python3 tools/check_supply_region_contract.py
 
@@ -114,6 +117,7 @@ jobs:
           run_test res://tools/compile_sprite_animation_probe.gd
           run_test res://tools/compile_player_settings_probe.gd
           run_test res://tools/compile_localisation_probe.gd
+          run_test res://tools/compile_localisation_layout_probe.gd
           run_test res://tools/compile_supply_region_probe.gd
 
       - name: Import project
@@ -159,6 +163,7 @@ jobs:
           run_test res://tools/smoke_player_settings.gd
           run_test res://tools/smoke_input_bindings.gd
           run_test res://tools/smoke_localisation.gd
+          run_test res://tools/smoke_localisation_layout.gd
           run_test res://tools/smoke_supply_regions.gd
           run_test res://tools/smoke_supply_validation_edges.gd
           run_test res://tools/smoke_sprite_animation_runtime.gd

@@ -1,24 +1,14 @@
 extends SceneTree
 
+const LocalisationLayout = preload("res://src/content/localisation_layout.gd")
+
 const TARGETS := [
-	"res://src/game/player_input_bindings.gd",
-	"res://src/game/player_settings.gd",
-	"res://src/game/player_settings_store.gd",
-	"res://src/content/localisation_catalog.gd",
 	"res://src/content/localisation_layout.gd",
-	"res://src/content/localisation_validator.gd",
-	"res://src/presentation_runtime_base.gd",
-	"res://src/presentation_runtime_current.gd",
+	"res://src/app.gd",
 	"res://src/combat_readability_overlay.gd",
 	"res://src/player_controls_overlay.gd",
-	"res://src/audio_mood_runtime.gd",
-	"res://tools/smoke_player_settings.gd",
-	"res://tools/smoke_player_settings_recovery_edges.gd",
-	"res://tools/smoke_input_bindings.gd",
-	"res://tools/compile_localisation_layout_probe.gd",
-	"res://tools/smoke_localisation.gd",
+	"res://src/game/runtime_scene_contract.gd",
 	"res://tools/smoke_localisation_layout.gd",
-	"res://localisation/ui.json",
 	"res://src/app.tscn"
 ]
 
@@ -26,6 +16,8 @@ var failures: Array[String] = []
 
 
 func _initialize() -> void:
+	if not LocalisationLayout.localisation_layout_contract_ok():
+		failures.append("Localisation layout utility contract is invalid.")
 	for path in TARGETS:
 		var resource := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
 		if resource == null:
@@ -36,7 +28,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Player settings compile probe passed: schema-three language storage, persistent controls, strict localisation, measured layout, runtime presentation, Audio and isolated regressions load cleanly.")
+		print("Localisation layout compile probe passed: measured fitting, bounded wrapping, stable ellipsis, fixed-viewport runtime surfaces and regressions load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

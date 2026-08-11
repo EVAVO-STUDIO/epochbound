@@ -1,6 +1,7 @@
 extends SceneTree
 
 const TARGETS := [
+	"res://src/content/localisation_layout.gd",
 	"res://src/content/economy_catalog.gd",
 	"res://src/content/economy_validator.gd",
 	"res://src/content/supply_region_catalog.gd",
@@ -30,7 +31,9 @@ const TARGETS := [
 	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_runtime_scene_contract.gd",
 	"res://tools/compile_localisation_probe.gd",
+	"res://tools/compile_localisation_layout_probe.gd",
 	"res://tools/smoke_localisation.gd",
+	"res://tools/smoke_localisation_layout.gd",
 	"res://tools/smoke_supply_regions.gd",
 	"res://tools/smoke_supply_validation_edges.gd",
 	"res://tools/smoke_trade_studio.gd",
@@ -55,7 +58,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Regional supply compile probe passed: catalogues, validators, deterministic model, canonical runtime, Trade, State, Package, staged installation, Audit and regressions load cleanly.")
+		print("Regional supply compile probe passed: catalogues, validators, deterministic model, canonical runtime, measured localisation layout, Trade, State, Package, staged installation, Audit and regressions load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

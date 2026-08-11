@@ -1,6 +1,8 @@
 @tool
 extends RefCounted
 
+const LocalisationLayout = preload("res://src/content/localisation_layout.gd")
+
 const CURRENT_RUNTIME_SCRIPT := "res://src/presentation_runtime_current.gd"
 const CURRENT_OVERLAY_SCRIPT := "res://src/combat_readability_overlay.gd"
 const CURRENT_CONTROLS_OVERLAY_SCRIPT := "res://src/player_controls_overlay.gd"
@@ -114,6 +116,9 @@ static func validate_runtime_scene(runtime: Node) -> PackedStringArray:
 	if runtime == null:
 		errors.append("Runtime scene did not instantiate.")
 		return errors
+	if not LocalisationLayout.localisation_layout_contract_ok():
+		errors.append("Localisation layout utility contract is invalid.")
+
 	var runtime_path := script_path(runtime)
 	if runtime_path != CURRENT_RUNTIME_SCRIPT:
 		errors.append("Runtime root must use %s, found %s." % [CURRENT_RUNTIME_SCRIPT, runtime_path])

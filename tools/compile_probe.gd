@@ -49,6 +49,7 @@ const TARGETS := [
 	"res://src/content/cinematic_catalog.gd",
 	"res://src/content/cinematic_validator.gd",
 	"res://src/content/localisation_catalog.gd",
+	"res://src/content/localisation_layout.gd",
 	"res://src/content/localisation_validator.gd",
 	"res://src/content/complete_content_validator.gd",
 	"res://src/content/campaign_package.gd",
@@ -128,7 +129,9 @@ const TARGETS := [
 	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_runtime_scene_contract.gd",
 	"res://tools/compile_localisation_probe.gd",
+	"res://tools/compile_localisation_layout_probe.gd",
 	"res://tools/smoke_localisation.gd",
+	"res://tools/smoke_localisation_layout.gd",
 	"res://tools/smoke_editor_plugin_icons.gd",
 	"res://tools/smoke_world_model.gd",
 	"res://tools/smoke_encounters.gd",
@@ -200,7 +203,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Compile probe passed: canonical runtime composition, all seventeen editors, validators, smoke tests and critical resources load cleanly.")
+		print("Compile probe passed: canonical runtime composition, all seventeen editors, validators, measured localisation layout, smoke tests and critical resources load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

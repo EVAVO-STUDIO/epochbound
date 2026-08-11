@@ -254,6 +254,7 @@ require(
     app,
     [
         'LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")',
+        'LocalisationLayout = preload("res://src/content/localisation_layout.gd")',
         'localisation_catalog: Dictionary = LocalisationCatalog.empty_catalog()',
         'current_locale := LocalisationCatalog.DEFAULT_LOCALE',
         'load_localisation_catalogs',
@@ -266,6 +267,9 @@ require(
         'campaign_title_text',
         'campaign_subtitle_text',
         'localisation_contract_ok',
+        'LocalisationLayout.localisation_layout_contract_ok()',
+        'draw_fitted_line',
+        'draw_fitted_block',
         'intro_keys',
     ],
 )
@@ -298,7 +302,16 @@ require(
 )
 for overlay_path in ["src/combat_readability_overlay.gd", "src/player_controls_overlay.gd"]:
     overlay = read(overlay_path)
-    require(overlay_path, overlay, ["runtime_localise", "ui.options.title"])
+    require(
+        overlay_path,
+        overlay,
+        [
+            "runtime_localise",
+            "ui.options.title",
+            'LocalisationLayout = preload("res://src/content/localisation_layout.gd")',
+            "LocalisationLayout.fit_single_line",
+        ],
+    )
 
 compile_probe = read("tools/compile_localisation_probe.gd")
 require(
@@ -306,9 +319,12 @@ require(
     compile_probe,
     [
         "localisation_catalog.gd",
+        "localisation_layout.gd",
         "localisation_validator.gd",
         "player_settings.gd",
         "smoke_localisation.gd",
+        "compile_localisation_layout_probe.gd",
+        "smoke_localisation_layout.gd",
         "localisation/ui.json",
         "campaigns/epochbound_demo/localisation/core.json",
         "app.tscn",
@@ -356,6 +372,7 @@ require(
         '"localise"',
         '"localisation_contract_ok"',
         'Runtime root did not load a valid merged localisation catalogue',
+        'Localisation layout utility contract is invalid.',
     ],
 )
 
@@ -365,7 +382,9 @@ require(
     local_gate,
     [
         "compile_localisation_probe.gd",
+        "compile_localisation_layout_probe.gd",
         "smoke_localisation.gd",
+        "smoke_localisation_layout.gd",
         "localisation",
     ],
 )
@@ -380,7 +399,9 @@ for workflow_path in [
         workflow,
         [
             "python3 tools/check_localisation_contract.py",
+            "python3 tools/check_localisation_layout_contract.py",
             "compile_localisation_probe.gd" if workflow_path != ".github/workflows/validate.yml" else "scripts/validate.ps1",
+            "compile_localisation_layout_probe.gd" if workflow_path != ".github/workflows/validate.yml" else "localisationLayoutValidation",
         ],
     )
 primary_workflow = read(".github/workflows/validate.yml")
@@ -388,8 +409,9 @@ require(
     ".github/workflows/validate.yml",
     primary_workflow,
     [
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"localisationValidation": "passed"',
+        '"localisationLayoutValidation": "passed"',
     ],
 )
 release_policy = read("tools/check_release_workflow_policy.py")
@@ -399,9 +421,12 @@ require(
     [
         "python3 tools/check_localisation_contract.py",
         "compile_localisation_probe.gd",
+        "compile_localisation_layout_probe.gd",
         "smoke_localisation.gd",
-        '"schemaVersion": "2.9"',
+        "smoke_localisation_layout.gd",
+        '"schemaVersion": "2.10"',
         '"localisationValidation": "passed"',
+        '"localisationLayoutValidation": "passed"',
     ],
 )
 
@@ -419,6 +444,8 @@ require(
         "packages",
         "not a machine-translation service",
         "Pseudo-localisation",
+        "Measured fixed-viewport layout",
+        "LOCALISATION_LAYOUT_SAFETY.md",
     ],
 )
 player_docs = read("docs/PLAYER_SETTINGS.md")
@@ -440,9 +467,11 @@ require(
     [
         "English and deterministic pseudo-localisation",
         "LOCALISATION_FOUNDATION.md",
+        "LOCALISATION_LAYOUT_SAFETY.md",
         "production translations beyond English and pseudo-localisation",
-        "schema-2.9",
+        "schema-2.10",
         "localisationValidation",
+        "localisationLayoutValidation",
     ],
 )
 
@@ -460,4 +489,5 @@ print("- campaign title subtitle and intro keys retain required fallback copy")
 print("- new campaigns scaffold a bound localisation catalogue")
 print("- staged package installation validates localisation before promotion")
 print("- runtime menus options controls and campaign intro surfaces refresh immediately on locale changes")
+print("- measured layout protects current English and pseudo-localised copy with deterministic wrapping and ellipsis")
 print("- primary focused and local validation gates cover the complete foundation")

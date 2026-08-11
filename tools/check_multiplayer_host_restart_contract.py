@@ -394,7 +394,7 @@ require(
         "Run real unexpected-host restart recovery",
         "scripts/validate_multiplayer_host_restart.ps1",
         '# Receipt schema migrated from: "schemaVersion": "2.9"',
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"multiplayerHostRestartRecoveryValidation": "passed"',
     ],
 )

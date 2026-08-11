@@ -1,6 +1,7 @@
 extends "res://src/environment_animation_overlay.gd"
 
 const CombatBossCatalog = preload("res://src/content/boss_catalog.gd")
+const LocalisationLayout = preload("res://src/content/localisation_layout.gd")
 
 const COMBAT_FLOW_GAME := 4
 const COMBAT_FLOW_PAUSED := 5
@@ -34,6 +35,35 @@ func runtime_localise(key: String, fallback: String, replacements: Dictionary = 
 	if runtime != null and runtime.has_method("localise"):
 		return str(runtime.call("localise", key, fallback, replacements))
 	return fallback
+
+
+func draw_localised_fitted_line(
+	text_value: String,
+	baseline: Vector2,
+	max_width: float,
+	preferred_size: int,
+	minimum_size: int,
+	color: Color,
+	alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
+) -> Dictionary:
+	var result := LocalisationLayout.fit_single_line(
+		ThemeDB.fallback_font,
+		text_value,
+		preferred_size,
+		minimum_size,
+		max_width
+	)
+	if bool(result.get("ok", false)) and not str(result.get("text", "")).is_empty():
+		draw_string(
+			ThemeDB.fallback_font,
+			baseline,
+			str(result.get("text", "")),
+			alignment,
+			int(floor(max_width)),
+			int(result.get("font_size", minimum_size)),
+			color
+		)
+	return result
 
 
 func animation_should_freeze() -> bool:
@@ -168,23 +198,22 @@ func draw_player_settings_panel() -> void:
 	draw_rect(Rect2(Vector2.ZERO, COMBAT_VIEW), Color(0, 0, 0, 0.76))
 	draw_rect(PLAYER_SETTINGS_PANEL, Color(fill, 0.99))
 	draw_panel_frame(PLAYER_SETTINGS_PANEL, frame)
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.position.y + 28.0),
+	draw_localised_fitted_line(
 		runtime_localise("ui.options.title", "OPTIONS"),
-		HORIZONTAL_ALIGNMENT_LEFT,
-		210,
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.position.y + 28.0),
+		210.0,
 		18,
+		10,
 		text
 	)
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(PLAYER_SETTINGS_PANEL.position.x + 244.0, PLAYER_SETTINGS_PANEL.position.y + 27.0),
+	draw_localised_fitted_line(
 		runtime_localise("ui.options.header", "PLAYER LOCAL  •  VERSIONED  •  RECOVERABLE  •  REMAPPABLE"),
-		HORIZONTAL_ALIGNMENT_RIGHT,
-		248,
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 244.0, PLAYER_SETTINGS_PANEL.position.y + 27.0),
+		248.0,
 		7,
-		frame.darkened(0.04)
+		5,
+		frame.darkened(0.04),
+		HORIZONTAL_ALIGNMENT_RIGHT
 	)
 	var row_start_y := PLAYER_SETTINGS_PANEL.position.y + 58.0
 	for index in range(rows.size()):
@@ -200,47 +229,46 @@ func draw_player_settings_panel() -> void:
 		var value_text := str(row.get("value", ""))
 		if str(row.get("kind", "")) == "action":
 			value_text = runtime_localise("ui.options.confirm", "CONFIRM")
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(PLAYER_SETTINGS_PANEL.position.x + 30.0, y),
+		draw_localised_fitted_line(
 			label,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			300,
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 30.0, y),
+			300.0,
 			9,
+			6,
 			text if active else text.darkened(0.24)
 		)
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(PLAYER_SETTINGS_PANEL.position.x + 350.0, y),
+		draw_localised_fitted_line(
 			value_text,
-			HORIZONTAL_ALIGNMENT_RIGHT,
-			190,
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 350.0, y),
+			190.0,
 			9,
-			accent if active else frame.darkened(0.18)
+			6,
+			accent if active else frame.darkened(0.18),
+			HORIZONTAL_ALIGNMENT_RIGHT
 		)
 	var notice := runtime_string("player_settings_notice").strip_edges()
 	if not notice.is_empty():
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 29.0),
+		draw_localised_fitted_line(
 			notice.to_upper(),
-			HORIZONTAL_ALIGNMENT_CENTER,
-			int(PLAYER_SETTINGS_PANEL.size.x - 36.0),
+			Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 29.0),
+			PLAYER_SETTINGS_PANEL.size.x - 36.0,
 			7,
-			frame
+			5,
+			frame,
+			HORIZONTAL_ALIGNMENT_CENTER
 		)
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 12.0),
+	draw_localised_fitted_line(
 		runtime_localise(
 			"ui.options.footer",
 			"{confirm} SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK",
 			{"confirm": "E / A"}
 		),
-		HORIZONTAL_ALIGNMENT_CENTER,
-		int(PLAYER_SETTINGS_PANEL.size.x - 36.0),
+		Vector2(PLAYER_SETTINGS_PANEL.position.x + 18.0, PLAYER_SETTINGS_PANEL.end.y - 12.0),
+		PLAYER_SETTINGS_PANEL.size.x - 36.0,
 		7,
-		text.darkened(0.18)
+		5,
+		text.darkened(0.18),
+		HORIZONTAL_ALIGNMENT_CENTER
 	)
 
 
@@ -540,6 +568,7 @@ func combat_readability_contract_ok() -> bool:
 func player_settings_overlay_contract_ok() -> bool:
 	return (
 		combat_readability_contract_ok()
+		and LocalisationLayout.localisation_layout_contract_ok()
 		and PLAYER_SETTINGS_PANEL.size.x >= 480.0
 		and PLAYER_SETTINGS_PANEL.size.y >= 300.0
 		and PLAYER_SETTINGS_ROW_HEIGHT >= 18.0

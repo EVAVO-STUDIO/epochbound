@@ -153,8 +153,8 @@ require(
     [
         "Validate deterministic economy balance integration contract",
         "python3 tools/check_economy_balance_contract.py",
-        '# Receipt schema migrated from: "schemaVersion": "2.6"',
-        '"schemaVersion": "2.7"',
+        '# Receipt schema migrated from: "schemaVersion": "2.7"',
+        '"schemaVersion": "2.8"',
         '"economyBalanceValidation": "passed"',
     ],
 )
@@ -229,4 +229,4 @@ print("- deterministic thirty-minute active-play horizon remains fixed")
 print("- opening purchases remain enumerable and recovery-safe")
 print("- repeatable arbitrage remains release-stopping while finite trade rewards stay measurable")
 print("- recovery, ammunition and finite equipment endurance remain visible in Campaign Audit")
-print("- schema-2.7 exact-main evidence records economyBalanceValidation")
+print("- schema-2.8 exact-main evidence records economyBalanceValidation")

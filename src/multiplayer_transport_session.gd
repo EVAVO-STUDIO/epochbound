@@ -13,6 +13,13 @@ const MAX_GRACEFUL_LEAVE_HISTORY := 8
 const GRACEFUL_HOST_SHUTDOWN_TIMEOUT_SECONDS := 3.0
 const HOST_SHUTDOWN_COMMIT_GRACE_SECONDS := 1.0
 const HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS := 1.0
+const HOST_RESTART_RECOVERY_MAX_ATTEMPTS := 6
+const HOST_RESTART_RECOVERY_INITIAL_DELAY_SECONDS := 0.35
+const HOST_RESTART_RECOVERY_MAX_DELAY_SECONDS := 2.0
+const HOST_RESTART_RECOVERY_BACKOFF_MULTIPLIER := 2.0
+const HOST_RESTART_TRANSITION_NONE := ""
+const HOST_RESTART_TRANSITION_BEGIN := "begin"
+const HOST_RESTART_TRANSITION_FAIL := "fail"
 
 var snapshot_broadcast_pending := false
 var last_snapshot_wire_bytes := 0
@@ -48,9 +55,48 @@ var last_host_shutdown_ack_sent_sequence := -1
 var last_host_shutdown_commit_received := false
 var last_host_shutdown_disconnect_observed := false
 var last_host_shutdown_reason := ""
+var host_restart_recovery_armed := false
+var host_restart_recovery_pending := false
+var host_restart_retry_initiated := false
+var host_restart_attempt_count := 0
+var host_restart_delay_remaining := 0.0
+var host_restart_address := ""
+var host_restart_port := 0
+var host_restart_role := MultiplayerSessionModel.ROLE_ALLY
+var host_restart_player_name := ""
+var host_restart_transition_deferred := false
+var host_restart_transition_kind := HOST_RESTART_TRANSITION_NONE
+var host_restart_transition_reason := ""
+var last_host_restart_generation := 0
+var last_host_restart_attempt_count := 0
+var last_host_restart_recovered := false
+var last_host_restart_exhausted := false
+var last_host_restart_reason := ""
+var last_host_restart_address := ""
+var last_host_restart_port := 0
+var last_host_restart_role := ""
 
 func _process(delta: float) -> void:
+	if host_restart_recovery_pending and host_restart_cancel_requested():
+		cancel_host_restart_recovery("HOST RECOVERY CANCELLED")
+		return
 	super._process(delta)
+	if (
+		host_restart_recovery_pending
+		and mode == MultiplayerSessionModel.MODE_CLIENT
+		and not connection_pending
+	):
+		complete_host_restart_recovery()
+	elif (
+		not host_restart_recovery_pending
+		and mode == MultiplayerSessionModel.MODE_CLIENT
+		and not connection_pending
+		and not graceful_leave_pending
+		and not remote_host_shutdown_pending
+		and not last_host_shutdown_commit_received
+	):
+		arm_host_restart_recovery()
+	update_host_restart_recovery(delta)
 	if graceful_leave_pending:
 		graceful_leave_timeout_remaining = maxf(
 			0.0,
@@ -62,6 +108,7 @@ func _process(delta: float) -> void:
 	update_host_shutdown(delta)
 
 func host_session(port: int = -1) -> bool:
+	reset_host_restart_recovery(true)
 	reset_host_shutdown_tracking(true)
 	graceful_leave_request_count = 0
 	last_graceful_leave_peer_id = -1
@@ -76,6 +123,8 @@ func join_session(
 	role: String = MultiplayerSessionModel.ROLE_ALLY,
 	port: int = -1
 ) -> bool:
+	if not host_restart_retry_initiated:
+		reset_host_restart_recovery(true)
 	reset_host_shutdown_tracking(true)
 	return super.join_session(address, role, port)
 
@@ -99,6 +148,27 @@ func _on_server_disconnected() -> void:
 		last_host_shutdown_disconnect_observed = true
 		call_deferred("finish_remote_host_shutdown")
 		return
+	if host_restart_recovery_pending:
+		# A stale peer can emit server_disconnected after the next create_client
+		# has already entered its pending phase. During that phase
+		# connection_failed is the authoritative result for the new peer; consuming
+		# a stale disconnect here would burn the retry before ENet can connect.
+		if connection_pending:
+			return
+		if (
+			mode == MultiplayerSessionModel.MODE_CLIENT
+			or network_peer != null
+		):
+			queue_host_restart_transition(
+				HOST_RESTART_TRANSITION_FAIL,
+				"HOST RESTART ATTEMPT DISCONNECTED"
+			)
+		return
+	if queue_host_restart_transition(
+		HOST_RESTART_TRANSITION_BEGIN,
+		"HOST CONNECTION LOST"
+	):
+		return
 	super._on_server_disconnected()
 
 
@@ -119,7 +189,41 @@ func _on_peer_disconnected(peer_id: int) -> void:
 		last_host_shutdown_disconnect_observed = true
 		call_deferred("finish_remote_host_shutdown")
 		return
+	if peer_id == 1 and host_restart_recovery_pending:
+		if connection_pending:
+			return
+		if (
+			mode == MultiplayerSessionModel.MODE_CLIENT
+			or network_peer != null
+		):
+			queue_host_restart_transition(
+				HOST_RESTART_TRANSITION_FAIL,
+				"HOST RESTART ATTEMPT DISCONNECTED"
+			)
+		return
+	if (
+		peer_id == 1
+		and mode == MultiplayerSessionModel.MODE_CLIENT
+		and queue_host_restart_transition(
+			HOST_RESTART_TRANSITION_BEGIN,
+			"HOST CONNECTION LOST"
+		)
+	):
+		return
 	super._on_peer_disconnected(peer_id)
+
+
+func _on_connection_failed() -> void:
+	if host_restart_transition_deferred:
+		return
+	if host_restart_recovery_pending:
+		if connection_pending:
+			queue_host_restart_transition(
+				HOST_RESTART_TRANSITION_FAIL,
+				"HOST RESTART CONNECTION FAILED"
+			)
+		return
+	super._on_connection_failed()
 
 
 func finish_remote_host_shutdown() -> void:
@@ -133,9 +237,339 @@ func update_client_prediction_and_input(delta: float) -> void:
 		graceful_leave_pending
 		or remote_host_shutdown_pending
 		or last_host_shutdown_commit_received
+		or host_restart_recovery_pending
 	):
 		return
 	super.update_client_prediction_and_input(delta)
+
+
+func host_restart_cancel_requested() -> bool:
+	return (
+		Input.is_action_just_pressed("network_menu")
+		or Input.is_action_just_pressed("ui_cancel")
+		or Input.is_action_just_pressed("pause_game")
+	)
+
+
+func host_restart_address_is_direct(value: String) -> bool:
+	var candidate := value.strip_edges()
+	if candidate.begins_with("[") and candidate.ends_with("]"):
+		candidate = candidate.substr(1, candidate.length() - 2)
+	return candidate.is_valid_ip_address()
+
+
+func arm_host_restart_recovery() -> bool:
+	if (
+		mode != MultiplayerSessionModel.MODE_CLIENT
+		or connection_pending
+		or not host_restart_address_is_direct(connect_address)
+	):
+		host_restart_recovery_armed = false
+		return false
+	host_restart_recovery_armed = true
+	host_restart_address = connect_address
+	host_restart_port = connect_port
+	host_restart_role = local_role
+	host_restart_player_name = local_name
+	return true
+
+
+func can_begin_host_restart_recovery() -> bool:
+	return (
+		mode == MultiplayerSessionModel.MODE_CLIENT
+		and not connection_pending
+		and not session_closing
+		and host_restart_recovery_armed
+		and host_restart_address_is_direct(host_restart_address)
+		and host_restart_port >= 1024
+		and host_restart_port <= 65535
+		and host_restart_role in [
+			MultiplayerSessionModel.ROLE_ALLY,
+			MultiplayerSessionModel.ROLE_INVADER
+		]
+		and not graceful_leave_pending
+		and not remote_host_shutdown_pending
+		and not last_host_shutdown_commit_received
+	)
+
+
+func queue_host_restart_transition(kind: String, reason: String) -> bool:
+	# MultiplayerAPI emits disconnect signals while it is still iterating the
+	# active ENet peer. Replacing or closing that peer from inside the callback
+	# can invalidate native state. Collapse duplicate signals into one deferred
+	# lifecycle transition and mutate transport only after signal dispatch ends.
+	if session_closing:
+		return false
+	if host_restart_transition_deferred:
+		return true
+	if kind == HOST_RESTART_TRANSITION_BEGIN:
+		if host_restart_recovery_pending or not can_begin_host_restart_recovery():
+			return false
+	elif kind == HOST_RESTART_TRANSITION_FAIL:
+		if (
+			not host_restart_recovery_pending
+			or (
+				not connection_pending
+				and mode != MultiplayerSessionModel.MODE_CLIENT
+			)
+		):
+			return false
+	else:
+		return false
+	host_restart_transition_deferred = true
+	host_restart_transition_kind = kind
+	host_restart_transition_reason = graceful_leave_reason(reason)
+	call_deferred("apply_host_restart_transition")
+	return true
+
+
+func apply_host_restart_transition() -> void:
+	if not host_restart_transition_deferred:
+		return
+	var kind := host_restart_transition_kind
+	var reason := host_restart_transition_reason
+	clear_host_restart_transition()
+	if session_closing:
+		return
+	if kind == HOST_RESTART_TRANSITION_BEGIN:
+		if not begin_host_restart_recovery(reason):
+			close_session_immediately("HOST DISCONNECTED")
+	elif kind == HOST_RESTART_TRANSITION_FAIL:
+		fail_host_restart_attempt(reason)
+
+
+func clear_host_restart_transition() -> void:
+	host_restart_transition_deferred = false
+	host_restart_transition_kind = HOST_RESTART_TRANSITION_NONE
+	host_restart_transition_reason = ""
+
+
+func begin_host_restart_recovery(reason: String) -> bool:
+	if not can_begin_host_restart_recovery():
+		return false
+	host_restart_recovery_pending = true
+	host_restart_recovery_armed = false
+	host_restart_retry_initiated = false
+	host_restart_attempt_count = 0
+	host_restart_delay_remaining = HOST_RESTART_RECOVERY_INITIAL_DELAY_SECONDS
+	last_host_restart_attempt_count = 0
+	last_host_restart_recovered = false
+	last_host_restart_exhausted = false
+	last_host_restart_reason = graceful_leave_reason(reason)
+	last_host_restart_address = host_restart_address
+	last_host_restart_port = host_restart_port
+	last_host_restart_role = host_restart_role
+	detach_transport_for_host_restart()
+	set_notice(
+		"HOST LOST — RECOVERY 0/%d" % HOST_RESTART_RECOVERY_MAX_ATTEMPTS
+	)
+	return true
+
+
+func detach_transport_for_host_restart() -> void:
+	if session_closing:
+		return
+	session_closing = true
+	snapshot_broadcast_pending = false
+	graceful_leave_pending = false
+	graceful_leave_timeout_remaining = 0.0
+	var closing_peer: MultiplayerPeer = network_peer
+	mode = MultiplayerSessionModel.MODE_OFFLINE
+	connection_pending = false
+	requested_role = host_restart_role
+	local_role = host_restart_role
+	local_peer_id = 1
+	peers = {}
+	input_sequence = 0
+	input_accumulator = 0.0
+	snapshot_sequence = 0
+	last_snapshot_sequence = -1
+	snapshot_accumulator = 0.0
+	lobby_open = false
+	network_peer = null
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	if closing_peer != null:
+		closing_peer.close()
+	reset_host_shutdown_tracking(false)
+	var runtime := runtime_root()
+	if runtime != null:
+		runtime.set_process(false)
+	session_closing = false
+
+
+func host_restart_retry_delay_after_attempt(completed_attempts: int) -> float:
+	var delay := HOST_RESTART_RECOVERY_INITIAL_DELAY_SECONDS
+	for _index in range(maxi(0, completed_attempts)):
+		delay = minf(
+			delay * HOST_RESTART_RECOVERY_BACKOFF_MULTIPLIER,
+			HOST_RESTART_RECOVERY_MAX_DELAY_SECONDS
+		)
+	return delay
+
+
+func update_host_restart_recovery(delta: float) -> void:
+	if not host_restart_recovery_pending:
+		return
+	if mode == MultiplayerSessionModel.MODE_CLIENT and not connection_pending:
+		complete_host_restart_recovery()
+		return
+	if (
+		connection_pending
+		or network_peer != null
+		or mode != MultiplayerSessionModel.MODE_OFFLINE
+	):
+		return
+	host_restart_delay_remaining = maxf(
+		0.0,
+		host_restart_delay_remaining - delta
+	)
+	if host_restart_delay_remaining > 0.0:
+		return
+	start_host_restart_attempt()
+
+
+func start_host_restart_attempt() -> bool:
+	if not host_restart_recovery_pending:
+		return false
+	if host_restart_attempt_count >= HOST_RESTART_RECOVERY_MAX_ATTEMPTS:
+		exhaust_host_restart_recovery("HOST RECOVERY EXHAUSTED")
+		return false
+	host_restart_attempt_count += 1
+	last_host_restart_attempt_count = host_restart_attempt_count
+	host_restart_retry_initiated = true
+	local_name = host_restart_player_name
+	var started := join_session(
+		host_restart_address,
+		host_restart_role,
+		host_restart_port
+	)
+	host_restart_retry_initiated = false
+	if not started:
+		fail_host_restart_attempt("HOST RESTART CONNECTION COULD NOT START")
+		return false
+	set_notice(
+		"RECONNECTING %d/%d TO %s:%d" % [
+			host_restart_attempt_count,
+			HOST_RESTART_RECOVERY_MAX_ATTEMPTS,
+			host_restart_address,
+			host_restart_port
+		]
+	)
+	return true
+
+
+func fail_host_restart_attempt(reason: String) -> void:
+	if not host_restart_recovery_pending:
+		return
+	last_host_restart_reason = graceful_leave_reason(reason)
+	detach_transport_for_host_restart()
+	if host_restart_attempt_count >= HOST_RESTART_RECOVERY_MAX_ATTEMPTS:
+		exhaust_host_restart_recovery(last_host_restart_reason)
+		return
+	host_restart_delay_remaining = host_restart_retry_delay_after_attempt(
+		host_restart_attempt_count
+	)
+	set_notice(
+		"HOST RECOVERY RETRY %d/%d IN %.2fS" % [
+			host_restart_attempt_count + 1,
+			HOST_RESTART_RECOVERY_MAX_ATTEMPTS,
+			host_restart_delay_remaining
+		]
+	)
+
+
+func complete_host_restart_recovery() -> void:
+	if not host_restart_recovery_pending:
+		return
+	host_restart_recovery_pending = false
+	host_restart_recovery_armed = true
+	host_restart_retry_initiated = false
+	host_restart_delay_remaining = 0.0
+	last_host_restart_generation += 1
+	last_host_restart_attempt_count = host_restart_attempt_count
+	last_host_restart_recovered = true
+	last_host_restart_exhausted = false
+	last_host_restart_reason = "HOST RESTART RECOVERED"
+	set_notice(
+		"HOST RECOVERED AFTER %d ATTEMPT%s" % [
+			host_restart_attempt_count,
+			"" if host_restart_attempt_count == 1 else "S"
+		]
+	)
+
+
+func exhaust_host_restart_recovery(reason: String) -> void:
+	if network_peer != null or connection_pending:
+		detach_transport_for_host_restart()
+	host_restart_recovery_pending = false
+	host_restart_recovery_armed = false
+	host_restart_retry_initiated = false
+	host_restart_delay_remaining = 0.0
+	last_host_restart_attempt_count = host_restart_attempt_count
+	last_host_restart_recovered = false
+	last_host_restart_exhausted = true
+	last_host_restart_reason = graceful_leave_reason(reason)
+	restore_runtime_processing()
+	set_notice("HOST RECOVERY EXHAUSTED — OPEN ONLINE PLAY TO RETRY")
+
+
+func cancel_host_restart_recovery(reason: String) -> void:
+	if not host_restart_recovery_pending:
+		return
+	if network_peer != null or connection_pending:
+		detach_transport_for_host_restart()
+	host_restart_recovery_pending = false
+	host_restart_recovery_armed = false
+	host_restart_retry_initiated = false
+	host_restart_delay_remaining = 0.0
+	last_host_restart_attempt_count = host_restart_attempt_count
+	last_host_restart_recovered = false
+	last_host_restart_exhausted = false
+	last_host_restart_reason = graceful_leave_reason(reason)
+	restore_runtime_processing()
+	set_notice(last_host_restart_reason)
+
+
+func reset_host_restart_recovery(clear_evidence: bool) -> void:
+	clear_host_restart_transition()
+	host_restart_recovery_armed = false
+	host_restart_recovery_pending = false
+	host_restart_retry_initiated = false
+	host_restart_attempt_count = 0
+	host_restart_delay_remaining = 0.0
+	host_restart_address = ""
+	host_restart_port = 0
+	host_restart_role = MultiplayerSessionModel.ROLE_ALLY
+	host_restart_player_name = ""
+	if clear_evidence:
+		last_host_restart_generation = 0
+		last_host_restart_attempt_count = 0
+		last_host_restart_recovered = false
+		last_host_restart_exhausted = false
+		last_host_restart_reason = ""
+		last_host_restart_address = ""
+		last_host_restart_port = 0
+		last_host_restart_role = ""
+
+
+func configure_test_host_restart_client(
+	address: String = DEFAULT_ADDRESS,
+	role: String = MultiplayerSessionModel.ROLE_ALLY,
+	port: int = 27491
+) -> bool:
+	test_mode = true
+	if not load_campaign_multiplayer_contract():
+		return false
+	reset_host_restart_recovery(true)
+	mode = MultiplayerSessionModel.MODE_CLIENT
+	connection_pending = false
+	connect_address = address
+	connect_port = clampi(port, 1024, 65535)
+	requested_role = role
+	local_role = role
+	local_peer_id = 2
+	local_name = "TEST RESTART CLIENT"
+	return arm_host_restart_recovery()
 
 func broadcast_world_snapshot() -> void:
 	if (
@@ -718,6 +1152,12 @@ func advance_test_host_shutdown(delta: float) -> void:
 # still close immediately without attempting a second protocol exchange.
 
 func leave_session(reason: String = "ONLINE SESSION CLOSED") -> void:
+	if host_restart_recovery_pending:
+		if reason.begins_with("JOIN REJECTED"):
+			exhaust_host_restart_recovery(reason)
+		else:
+			cancel_host_restart_recovery(reason)
+		return
 	if reason == "ONLINE SESSION CLOSED":
 		if (
 			mode == MultiplayerSessionModel.MODE_CLIENT
@@ -764,9 +1204,29 @@ func close_session_immediately(
 		# Clients retain the proven detach-first order required for reconnect.
 		closing_peer.close()
 	reset_host_shutdown_tracking(false)
+	reset_host_restart_recovery(false)
 	restore_runtime_processing()
 	set_notice(reason)
 	session_closing = false
+
+
+func online_status_text() -> String:
+	if host_restart_recovery_pending:
+		return "HOST RECOVERY %d/%d  •  %s:%d" % [
+		host_restart_attempt_count,
+		HOST_RESTART_RECOVERY_MAX_ATTEMPTS,
+		host_restart_address,
+		host_restart_port
+	]
+	return super.online_status_text()
+
+
+func blocks_manual_save() -> bool:
+	return host_restart_recovery_pending or super.blocks_manual_save()
+
+
+func blocks_autosave() -> bool:
+	return host_restart_recovery_pending or super.blocks_autosave()
 
 func multiplayer_runtime_contract_ok() -> bool:
 	return (
@@ -786,6 +1246,11 @@ func multiplayer_runtime_contract_ok() -> bool:
 		and HOST_SHUTDOWN_COMMIT_GRACE_SECONDS <= 2.0
 		and HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS >= 0.25
 		and HOST_SHUTDOWN_DISCONNECT_GRACE_SECONDS <= 2.0
+		and HOST_RESTART_RECOVERY_MAX_ATTEMPTS == 6
+		and HOST_RESTART_RECOVERY_INITIAL_DELAY_SECONDS >= 0.25
+		and HOST_RESTART_RECOVERY_INITIAL_DELAY_SECONDS <= 0.5
+		and HOST_RESTART_RECOVERY_MAX_DELAY_SECONDS == 2.0
+		and HOST_RESTART_RECOVERY_BACKOFF_MULTIPLIER == 2.0
 		and MAX_GRACEFUL_LEAVE_REASON_CHARS >= 32
 		and MAX_GRACEFUL_LEAVE_REASON_CHARS <= 128
 		and graceful_leave_request_count >= 0
@@ -796,6 +1261,11 @@ func multiplayer_runtime_contract_ok() -> bool:
 		and last_host_shutdown_ack_count <= last_host_shutdown_expected_count
 		and last_host_shutdown_disconnect_count >= 0
 		and last_host_shutdown_disconnect_count <= last_host_shutdown_expected_count
+		and host_restart_attempt_count >= 0
+		and host_restart_attempt_count <= HOST_RESTART_RECOVERY_MAX_ATTEMPTS
+		and last_host_restart_attempt_count >= 0
+		and last_host_restart_attempt_count <= HOST_RESTART_RECOVERY_MAX_ATTEMPTS
+		and (not host_restart_recovery_pending or not host_restart_recovery_armed)
 		and last_snapshot_wire_bytes >= 0
 		and last_snapshot_uncompressed_bytes >= 0
 		and not session_closing

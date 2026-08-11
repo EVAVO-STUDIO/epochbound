@@ -113,7 +113,7 @@ The exact-main receipt also records:
 
 ## Remaining boundaries
 
-This gate proves graceful client leave, bounded same-process reconnect, acknowledged host shutdown and independent final process exit. It does not prove host migration, reconnect after a host restart, automatic outage recovery, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
+This gate proves graceful client leave, bounded same-process reconnect, acknowledged host shutdown and independent final process exit. Unexpected-host restart recovery is covered by the dedicated [`MULTIPLAYER_HOST_RESTART_RECOVERY.md`](MULTIPLAYER_HOST_RESTART_RECOVERY.md) real-process gate. This loopback gate does not prove host migration, latency or packet-loss tolerance, relay behaviour, NAT traversal, platform invitations, mobile permissions, anti-cheat or moderation.
 
 It does not prove public Internet reachability merely because loopback succeeds. Those boundaries require dedicated lifecycle, multi-machine and network-condition validation.
 

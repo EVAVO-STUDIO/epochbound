@@ -118,9 +118,10 @@ require(
         "python3 tools/check_long_form_progression_contract.py",
         "python3 tools/check_multiplayer_contract.py",
         "python3 tools/check_multiplayer_connection_contract.py",
+        "python3 tools/check_multiplayer_host_restart_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.7"',
+        '"schemaVersion": "2.8"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -135,6 +136,7 @@ require(
         '"multiplayerValidation": "passed"',
         '"multiplayerConnectionValidation": "passed"',
         '"multiplayerHostShutdownValidation": "passed"',
+        '"multiplayerHostRestartRecoveryValidation": "passed"',
         "git merge-base --is-ancestor",
         "git diff --exit-code",
     ],
@@ -256,6 +258,8 @@ require(
         "smoke_multiplayer_connection_profile.gd",
         "Smoke test player-local multiplayer connection setup and recovery",
         "smoke_multiplayer_runtime.gd",
+        "Smoke test bounded unexpected-host restart recovery",
+        "smoke_multiplayer_host_restart_recovery.gd",
         "smoke_multiplayer_validation_edges.gd",
         "host-authoritative co-op",
         "authored PvP invasions",
@@ -430,6 +434,7 @@ require(
         "smoke_multiplayer_session_model.gd",
         "smoke_multiplayer_connection_profile.gd",
         "smoke_multiplayer_runtime.gd",
+        "smoke_multiplayer_host_restart_recovery.gd",
         "smoke_multiplayer_validation_edges.gd",
         "app.tscn",
     ],
@@ -813,6 +818,24 @@ require(
         "close_peer_before_detach",
         "last_host_shutdown_ack_count",
         "last_host_shutdown_forced",
+        "HOST_RESTART_RECOVERY_MAX_ATTEMPTS := 6",
+        "begin_host_restart_recovery",
+        "host_restart_retry_delay_after_attempt",
+        "last_host_restart_recovered",
+        "last_host_restart_exhausted",
+    ],
+)
+
+multiplayer_host_restart_checker = read(
+    "multiplayer_host_restart_checker",
+    ROOT / "tools/check_multiplayer_host_restart_contract.py",
+)
+require(
+    "multiplayer_host_restart_checker",
+    multiplayer_host_restart_checker,
+    [
+        "epochbound_multiplayer_host_restart_contract_passed",
+        "unexpected-host restart recovery",
     ],
 )
 
@@ -828,6 +851,6 @@ print("- focused Audio, Sprite and Linux Agent workflows remain governed manual 
 print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
-print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown and save isolation are guarded before Godot execution")
+print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown, unexpected-host restart recovery and save isolation are guarded before Godot execution")
 print("- runtime composition, player settings, persistent controls, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

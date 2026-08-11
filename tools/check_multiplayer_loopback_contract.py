@@ -387,7 +387,7 @@ require(
         'multiplayer_loopback_peer_driver.gd',
         'smoke_multiplayer_snapshot_transport.gd',
         'bounded ENet transport',
-        'deterministic real loopback peers',
+        'deterministic real loopback and host-restart peers',
         'all-map snapshot matrix',
     ],
 )
@@ -404,9 +404,10 @@ require(
         'smoke_multiplayer_snapshot_transport.gd',
         'Run real ENet host ally and invader loopback',
         'scripts/validate_multiplayer_loopback.ps1',
-        '"schemaVersion": "2.7"',
+        '"schemaVersion": "2.8"',
         '"multiplayerLoopbackValidation": "passed"',
         '"multiplayerHostShutdownValidation": "passed"',
+        '"multiplayerHostRestartRecoveryValidation": "passed"',
     ],
 )
 
@@ -453,4 +454,5 @@ print("- authoritative snapshots reach both clients and restore the ally after r
 print("- the host collects unique shutdown acknowledgements before reliable commit and host-directed peer disconnect")
 print("- both clients observe the committed shutdown and the host-owned disconnect before going offline")
 print("- all three peers publish atomic final receipts and exit independently with clean runtime disposal")
-print("- host restart recovery, migration, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")
+print("- unexpected-host restart recovery is covered by its dedicated real-process gate")
+print("- host migration, public Internet reachability, relay, NAT traversal and platform invitations remain separate boundaries")

@@ -78,6 +78,7 @@ try {
         @("Smoke test player-local multiplayer connection setup and recovery", "res://tools/smoke_multiplayer_connection_profile.gd"),
         @("Smoke test bounded multiplayer snapshot transport across every map and era", "res://tools/smoke_multiplayer_snapshot_transport.gd"),
         @("Smoke test host-authoritative co-op PvP runtime and snapshots", "res://tools/smoke_multiplayer_runtime.gd"),
+        @("Smoke test bounded unexpected-host restart recovery", "res://tools/smoke_multiplayer_host_restart_recovery.gd"),
         @("Smoke test malformed online policies areas and save isolation", "res://tools/smoke_multiplayer_validation_edges.gd"),
         @("Smoke test canonical long-form reference journey", "res://tools/smoke_canonical_journey.gd"),
         @("Smoke test repeated long-form progression endurance", "res://tools/smoke_long_form_progression.gd"),

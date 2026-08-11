@@ -35,6 +35,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 23. Authored boss phase music stems that layer Catalogue Measure, Cinder Measure and Last Accession over the current Underworks era theme
 24. Automated repeated long-form progression playthroughs with eight completed-world laps, deterministic supply time, checksummed checkpoints and destructive restoration probes
 25. Reliable host-shutdown requests, per-peer acknowledgements, committed closure and independent clean ENet process exit
+26. Unexpected-host restart recovery for accepted direct-IP clients with six bounded retries and same-process replacement-host validation
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -292,7 +293,7 @@ The gate performs:
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide ten-probe campaign production audit with progression, affordability, deterministic economy balance, meaningful temporal-shift consequences and supply evidence;
-- exact-main schema-2.7 release evidence with `economyBalanceValidation` bound to the validated production SHA;
+- exact-main schema-2.8 release evidence with `economyBalanceValidation` bound to the validated production SHA;
 - a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
@@ -303,6 +304,7 @@ The gate performs:
 - boss phase stem references, deterministic phase selection, era continuity, clock resets and final-phase escalation;
 - eight completed-world laps covering 32 map transitions, 16 era shifts, 13 supply cycles, eight checkpoints and four destructive restorations without completed-boss re-engagement or duplicate progression rewards;
 - real ENet host shutdown with two unique peer acknowledgements, reliable commit, final offline state and independent zero-exit child processes.
+- real unexpected-host process loss followed by same-client automatic recovery to a replacement ENet host on the same literal endpoint, later production input and snapshot exchange, and acknowledged final shutdown.
 
 Any logged `SCRIPT ERROR:` or top-level `ERROR:` fails the gate even if Godot returns exit code zero. Missing editor-theme icons and `ObjectDB instances leaked at exit` also fail validation, preventing unchecked editor resources or incomplete runtime teardown from returning to the supported Godot editor.
 
@@ -331,7 +333,7 @@ gh workflow run sprite-animation-validation.yml `
     -f request_source=evavo-development-studio
 ```
 
-The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings, passed meaningful temporal-shift validation, `bossMusicStemValidation`, `longFormProgressionValidation`, and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
+The workflows verify the official Godot 4.6.2 archive against published SHA-512 sums, check out the exact commit, run their governed gates and confirm validation leaves tracked source unchanged. The primary receipt records zero reference content warnings, zero reference audit warnings, passed meaningful temporal-shift validation, `bossMusicStemValidation`, `longFormProgressionValidation`, `multiplayerHostRestartRecoveryValidation`, and a passed warning-free release-readiness gate. Runtime composition, player settings, persistent controls and regional supply contracts are checked before Godot starts. None of these validation workflows can publish, deploy, reset, clean or push repository content.
 
 A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and menu-surface checks through the EVAVO Godot test lab.
 
@@ -360,6 +362,8 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 - [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
 - [`docs/EDITOR_PLUGIN_RELIABILITY.md`](docs/EDITOR_PLUGIN_RELIABILITY.md)
 - [`docs/HEADLESS_RUNTIME_CLEANUP.md`](docs/HEADLESS_RUNTIME_CLEANUP.md)
+- [`docs/MULTIPLAYER_LOOPBACK_GATE.md`](docs/MULTIPLAYER_LOOPBACK_GATE.md)
+- [`docs/MULTIPLAYER_HOST_RESTART_RECOVERY.md`](docs/MULTIPLAYER_HOST_RESTART_RECOVERY.md)
 
 ### Combat, bosses and cinematics
 
@@ -417,7 +421,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 ## Next production boundaries
 
-The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, broader multi-boss music authoring previews, final economy tuning from human playtests and production networking infrastructure.
+The next coherent layers build on these contracts rather than replacing them: final original sprite atlases and animation masters, recorded ambience, sound effects and music masters, localisation, broader multi-boss music authoring previews, final economy tuning from human playtests, host migration and production relay, matchmaking and NAT-traversal infrastructure.
 
 ### Host-directed disconnect ordering
 

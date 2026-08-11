@@ -97,4 +97,4 @@ The simulation does not model every reward order, player sale, optional branch, 
 
 ## Automated release gate
 
-The production implementation is protected by `tools/check_economy_balance_contract.py`, the deterministic Godot smoke test, the complete local validation gate and the exact-main schema-2.7 receipt. The contract fails closed if the 30-minute horizon, authored finding identifiers, Campaign Audit integration, compile coverage, human playtest checklist or release evidence drifts.
+The production implementation is protected by `tools/check_economy_balance_contract.py`, the deterministic Godot smoke test, the complete local validation gate and the exact-main schema-2.8 receipt. The contract fails closed if the 30-minute horizon, authored finding identifiers, Campaign Audit integration, compile coverage, human playtest checklist or release evidence drifts.

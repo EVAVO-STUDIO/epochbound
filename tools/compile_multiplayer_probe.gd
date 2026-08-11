@@ -16,9 +16,11 @@ const TARGETS := [
 	"res://src/game/runtime_scene_contract.gd",
 	"res://tools/multiplayer_loopback_peer.gd",
 	"res://tools/multiplayer_loopback_peer_driver.gd",
+	"res://tools/multiplayer_host_restart_peer.gd",
 	"res://tools/smoke_multiplayer_snapshot_transport.gd",
 	"res://tools/smoke_multiplayer_session_model.gd",
 	"res://tools/smoke_multiplayer_runtime.gd",
+	"res://tools/smoke_multiplayer_host_restart_recovery.gd",
 	"res://tools/smoke_multiplayer_connection_profile.gd",
 	"res://tools/smoke_multiplayer_validation_edges.gd",
 	"res://src/app.tscn"
@@ -38,7 +40,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected PackedScene at %s." % path)
 	if failures.is_empty():
-		print("Multiplayer compile probe passed: policy, authored areas, host authority, bounded ENet transport, deterministic real loopback peers, all-map snapshot matrix, save isolation, player-local connection setup, overlays and regressions load cleanly.")
+		print("Multiplayer compile probe passed: policy, authored areas, host authority, bounded ENet transport, deterministic real loopback and host-restart peers, all-map snapshot matrix, save isolation, player-local connection setup, overlays and regressions load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

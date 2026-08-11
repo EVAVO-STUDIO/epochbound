@@ -188,8 +188,8 @@ require(
     [
         "Validate combat telegraph fairness contract",
         "python3 tools/check_combat_fairness_contract.py",
-        '# Receipt schema migrated from: "schemaVersion": "2.7"',
-        '"schemaVersion": "2.8"',
+        '# Receipt schema migrated from: "schemaVersion": "2.9"',
+        '"schemaVersion": "2.9"',
         '"combatFairnessValidation": "passed"',
     ],
 )
@@ -200,7 +200,7 @@ require(
     release_policy,
     [
         "python3 tools/check_combat_fairness_contract.py",
-        '"schemaVersion": "2.8"',
+        '"schemaVersion": "2.9"',
         '"combatFairnessValidation": "passed"',
         "check_combat_fairness_contract.py",
         "locked combat telegraphs",

@@ -1,0 +1,268 @@
+{
+	"schema_version": 1,
+	"default_locale": "en",
+	"locales": {
+		"en": "English",
+		"qps-ploc": "Pseudo-localised"
+	},
+	"messages": {
+		"ui.campaigns.begin_return": {
+			"en": "CONFIRM TO BEGIN   •   ESC TO RETURN"
+		},
+		"ui.campaigns.built_in": {
+			"en": "BUILT-IN"
+		},
+		"ui.campaigns.custom": {
+			"en": "CUSTOM"
+		},
+		"ui.campaigns.heading": {
+			"en": "CHOOSE A CAMPAIGN"
+		},
+		"ui.campaigns.load_failed": {
+			"en": "SELECTED CAMPAIGN COULD NOT BE LOADED"
+		},
+		"ui.campaigns.none": {
+			"en": "NO VALID CAMPAIGNS FOUND"
+		},
+		"ui.campaigns.return": {
+			"en": "ESC TO RETURN"
+		},
+		"ui.campaigns.subtitle": {
+			"en": "Authored journeys share one runtime contract"
+		},
+		"ui.controls.action.attack": {
+			"en": "ATTACK / FIRE"
+		},
+		"ui.controls.action.companion_command": {
+			"en": "MORROW COMMAND"
+		},
+		"ui.controls.action.companion_recall": {
+			"en": "RECALL MORROW"
+		},
+		"ui.controls.action.era_shift": {
+			"en": "SHIFT ERA"
+		},
+		"ui.controls.action.interact": {
+			"en": "INTERACT / CONFIRM"
+		},
+		"ui.controls.action.inventory_toggle": {
+			"en": "FIELD SATCHEL"
+		},
+		"ui.controls.action.move_down": {
+			"en": "MOVE DOWN"
+		},
+		"ui.controls.action.move_left": {
+			"en": "MOVE LEFT"
+		},
+		"ui.controls.action.move_right": {
+			"en": "MOVE RIGHT"
+		},
+		"ui.controls.action.move_up": {
+			"en": "MOVE UP"
+		},
+		"ui.controls.action.quick_item": {
+			"en": "QUICK RESTORATIVE"
+		},
+		"ui.controls.action.reload_weapon": {
+			"en": "RELOAD"
+		},
+		"ui.controls.action.save_profiles": {
+			"en": "SAVE PROFILES"
+		},
+		"ui.controls.action.story_journal": {
+			"en": "JOURNAL"
+		},
+		"ui.controls.apply_failed": {
+			"en": "CONTROLS FAILED: {error}"
+		},
+		"ui.controls.back": {
+			"en": "BACK TO OPTIONS"
+		},
+		"ui.controls.binding_failed": {
+			"en": "BINDING FAILED: {error}"
+		},
+		"ui.controls.capture_cancelled": {
+			"en": "CONTROL CAPTURE CANCELLED"
+		},
+		"ui.controls.capture_controller": {
+			"en": "PRESS A CONTROLLER INPUT — START CANCELS"
+		},
+		"ui.controls.capture_footer": {
+			"en": "ESC / START CANCEL CAPTURE   •   O REMAINS RESERVED"
+		},
+		"ui.controls.capture_gamepad": {
+			"en": "PRESS A BUTTON OR MOVE AN AXIS — START CANCELS"
+		},
+		"ui.controls.capture_key": {
+			"en": "PRESS A KEY — ESC CANCELS"
+		},
+		"ui.controls.choose_device": {
+			"en": "LEFT / RIGHT CHOOSES KEYBOARD OR CONTROLLER"
+		},
+		"ui.controls.controller": {
+			"en": "CONTROLLER"
+		},
+		"ui.controls.controller_bindings": {
+			"en": "CONTROLLER BINDINGS"
+		},
+		"ui.controls.defaults_restored": {
+			"en": "DEFAULT CONTROLS RESTORED"
+		},
+		"ui.controls.footer": {
+			"en": "{confirm} REBIND   •   LEFT / RIGHT DEVICE   •   ESC BACK"
+		},
+		"ui.controls.header": {
+			"en": "14 GAMEPLAY ACTIONS  •  ESC / O / START RESERVED"
+		},
+		"ui.controls.keyboard": {
+			"en": "KEYBOARD"
+		},
+		"ui.controls.keyboard_bindings": {
+			"en": "KEYBOARD BINDINGS"
+		},
+		"ui.controls.listening": {
+			"en": "LISTENING — {action}"
+		},
+		"ui.controls.pending": {
+			"en": "CONTROL CHANGES ARE PENDING SAVE"
+		},
+		"ui.controls.reset": {
+			"en": "RESET CONTROLS"
+		},
+		"ui.controls.swapped": {
+			"en": "SWAPPED WITH {action}"
+		},
+		"ui.controls.title": {
+			"en": "CONTROLS — {device}"
+		},
+		"ui.controls.unchanged": {
+			"en": "CONTROLS UNCHANGED"
+		},
+		"ui.game.basic_controls": {
+			"en": "MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X"
+		},
+		"ui.game.bound_controls": {
+			"en": "{use} USE   •   {attack} ATTACK   •   {shift} SHIFT"
+		},
+		"ui.intro.continue_skip": {
+			"en": "CONFIRM TO CONTINUE   •   ESC TO SKIP"
+		},
+		"ui.options.confirm": {
+			"en": "CONFIRM"
+		},
+		"ui.options.footer": {
+			"en": "{confirm} SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK"
+		},
+		"ui.options.header": {
+			"en": "PLAYER LOCAL  •  VERSIONED  •  RECOVERABLE  •  REMAPPABLE"
+		},
+		"ui.options.title": {
+			"en": "OPTIONS"
+		},
+		"ui.pause.options": {
+			"en": "{confirm}  OPTIONS"
+		},
+		"ui.pause.return": {
+			"en": "ESC / START TO RETURN"
+		},
+		"ui.pause.title": {
+			"en": "JOURNEY PAUSED"
+		},
+		"ui.settings.action_prompts": {
+			"en": "ACTION PROMPTS"
+		},
+		"ui.settings.ambience": {
+			"en": "AMBIENCE"
+		},
+		"ui.settings.back": {
+			"en": "BACK"
+		},
+		"ui.settings.camera_shake": {
+			"en": "CAMERA SHAKE"
+		},
+		"ui.settings.controls": {
+			"en": "CONTROLS"
+		},
+		"ui.settings.defaults_restored": {
+			"en": "DEFAULT SETTINGS RESTORED"
+		},
+		"ui.settings.high_contrast": {
+			"en": "HIGH CONTRAST UI"
+		},
+		"ui.settings.language": {
+			"en": "LANGUAGE"
+		},
+		"ui.settings.language.en": {
+			"en": "ENGLISH"
+		},
+		"ui.settings.language.qps-ploc": {
+			"en": "PSEUDO"
+		},
+		"ui.settings.local": {
+			"en": "SETTINGS ARE SAVED LOCALLY"
+		},
+		"ui.settings.master_volume": {
+			"en": "MASTER VOLUME"
+		},
+		"ui.settings.migrated": {
+			"en": "SETTINGS UPDATED TO CURRENT VERSION"
+		},
+		"ui.settings.music": {
+			"en": "MUSIC"
+		},
+		"ui.settings.off": {
+			"en": "OFF"
+		},
+		"ui.settings.on": {
+			"en": "ON"
+		},
+		"ui.settings.recovered": {
+			"en": "RECOVERED SETTINGS FROM BACKUP"
+		},
+		"ui.settings.reset": {
+			"en": "RESET ALL DEFAULTS"
+		},
+		"ui.settings.save_failed": {
+			"en": "SAVE FAILED: {error}"
+		},
+		"ui.settings.saved": {
+			"en": "SETTINGS SAVED LOCALLY"
+		},
+		"ui.settings.screen_flashes": {
+			"en": "SCREEN FLASHES"
+		},
+		"ui.settings.screen_texture": {
+			"en": "SCREEN TEXTURE"
+		},
+		"ui.settings.sfx": {
+			"en": "SOUND EFFECTS"
+		},
+		"ui.settings.world_motion": {
+			"en": "WORLD MOTION"
+		},
+		"ui.splash.presents": {
+			"en": "PRESENTS"
+		},
+		"ui.title.campaigns": {
+			"en": "CAMPAIGNS"
+		},
+		"ui.title.confirm_select": {
+			"en": "{confirm}  CONFIRM     ARROWS  SELECT"
+		},
+		"ui.title.continue": {
+			"en": "CONTINUE"
+		},
+		"ui.title.new_journey": {
+			"en": "NEW JOURNEY"
+		},
+		"ui.title.options": {
+			"en": "OPTIONS"
+		},
+		"ui.title.quick_start": {
+			"en": "QUICK START"
+		},
+		"ui.title.quit": {
+			"en": "QUIT"
+		}
+	}
+}

@@ -393,8 +393,8 @@ require(
         "python3 tools/check_multiplayer_host_restart_contract.py",
         "Run real unexpected-host restart recovery",
         "scripts/validate_multiplayer_host_restart.ps1",
-        '# Receipt schema migrated from: "schemaVersion": "2.7"',
-        '"schemaVersion": "2.8"',
+        '# Receipt schema migrated from: "schemaVersion": "2.9"',
+        '"schemaVersion": "2.9"',
         '"multiplayerHostRestartRecoveryValidation": "passed"',
     ],
 )

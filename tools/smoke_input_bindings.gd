@@ -134,7 +134,7 @@ func test_runtime_controls() -> void:
 	check(bool(runtime.call("apply_input_bindings")), "Runtime must apply the default binding profile.")
 	check(bool(runtime.call("input_binding_cache_contract_ok")), "Runtime must build complete validated binding, row and prompt caches.")
 	check(bool(runtime.call("control_bindings_contract_ok")), "Runtime control bindings must satisfy the complete InputMap contract.")
-	check(int(runtime.call("player_settings_entry_count")) == 13, "Options must expose ten adjustable values, Controls, Reset All Defaults and Back.")
+	check(int(runtime.call("player_settings_entry_count")) == 14, "Options must expose ten existing preferences, Language, Controls, Reset All Defaults and Back.")
 	var initial_cache_revision := int(runtime.get("input_binding_cache_revision"))
 	check(initial_cache_revision > 0, "Applying a profile must create a positive binding-cache revision.")
 	for _index in range(64):
@@ -157,7 +157,7 @@ func test_runtime_controls() -> void:
 	runtime.set("dialogue", "")
 	runtime.set("active_cinematic_id", "")
 	check(bool(runtime.call("open_player_settings")), "Options must open during safe gameplay for control editing.")
-	runtime.set("player_settings_index", 10)
+	runtime.set("player_settings_index", 11)
 	check(bool(runtime.call("activate_selected_player_setting")), "The Controls row must open the binding editor.")
 	check(bool(runtime.get("control_bindings_open")), "Control binding editor state must be explicit.")
 	var visible_rows: Array = runtime.call("player_settings_rows")

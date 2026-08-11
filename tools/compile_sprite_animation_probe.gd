@@ -17,6 +17,8 @@ const TARGETS := [
 	"res://addons/epochbound_sprite_animation_studio/sprite_animation_studio_current.gd",
 	"res://addons/epochbound_sprite_animation_studio/plugin.gd",
 	"res://tools/smoke_runtime_scene_contract.gd",
+	"res://tools/compile_localisation_probe.gd",
+	"res://tools/smoke_localisation.gd",
 	"res://tools/smoke_sprite_animation_runtime.gd",
 	"res://tools/smoke_environment_animation.gd",
 	"res://tools/smoke_combat_readability_overlay.gd",

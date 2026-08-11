@@ -2,7 +2,9 @@
 	"schema_version": 1,
 	"id": "epochbound_demo",
 	"title": "EPOCHBOUND",
+	"title_key": "campaign.epochbound_demo.title",
 	"subtitle": "THE HOURS BENEATH",
+	"subtitle_key": "campaign.epochbound_demo.subtitle",
 	"author": "EVAVO Studio",
 	"description": "The reference campaign for Epochbound's action RPG and campaign-authoring systems.",
 	"release": {
@@ -30,6 +32,7 @@
 	"audio_files": ["audio/core.json"],
 	"animation_files": ["animation/core.json"],
 	"multiplayer_files": ["multiplayer/core.json"],
+	"localisation_files": ["localisation/core.json"],
 	"multiplayer": {
 		"enabled": true,
 		"transport": "enet",
@@ -73,6 +76,11 @@
 		"1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum.",
 		"Eli Vale entered with one flashlight,\none borrowed key, and his dog Morrow.",
 		"They returned to a world that remembered\nevery age at once."
+	],
+	"intro_keys": [
+		"campaign.epochbound_demo.intro.01",
+		"campaign.epochbound_demo.intro.02",
+		"campaign.epochbound_demo.intro.03"
 	],
 	"actors": {
 		"player": {"name": "ELI", "max_health": 32},

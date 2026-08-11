@@ -27,13 +27,14 @@ func run_test() -> void:
 func test_model_contract() -> void:
 	var defaults: Dictionary = PlayerSettings.default_settings()
 	check(bool(PlayerSettings.validate(defaults).get("ok", false)), "Default player settings must validate.")
-	check(PlayerSettings.entries().size() == 13, "Player settings must expose ten adjustable values, Controls, Reset All Defaults and Back.")
+	check(PlayerSettings.entries().size() == 14, "Player settings must expose ten existing preferences, Language, Controls, Reset All Defaults and Back.")
 	check(is_equal_approx(PlayerSettings.number(defaults, "master_volume"), 1.0), "Default master volume must be full.")
 	check(PlayerSettings.boolean(defaults, "show_action_prompts", false), "Action prompts must be enabled by default.")
 	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(defaults)).get("ok", false)), "Default player settings must include a complete keyboard and controller binding profile.")
 
 	var sanitized: Dictionary = PlayerSettings.sanitize({
-		"schema_version": 2,
+		"schema_version": 3,
+		"language": "invalid",
 		"music_volume": 4.25,
 		"sfx_volume": -2.0,
 		"show_action_prompts": "invalid"
@@ -41,6 +42,7 @@ func test_model_contract() -> void:
 	check(is_equal_approx(PlayerSettings.number(sanitized, "music_volume"), 1.0), "Numeric player settings must clamp at their maximum.")
 	check(is_equal_approx(PlayerSettings.number(sanitized, "sfx_volume"), 0.0), "Numeric player settings must clamp at their minimum.")
 	check(PlayerSettings.boolean(sanitized, "show_action_prompts", false), "Malformed booleans must fall back to safe defaults.")
+	check(PlayerSettings.string(sanitized, "language", "") == "en", "Malformed locale choices must fall back to English.")
 	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(sanitized)).get("ok", false)), "Missing bindings must sanitize to the complete default profile.")
 
 	var migration: Dictionary = PlayerSettings.migrate({"schema_version": 1, "master_volume": 0.4})
@@ -50,6 +52,7 @@ func test_model_contract() -> void:
 	check(int(migrated.get("schema_version", 0)) == PlayerSettings.CURRENT_SCHEMA, "Migrated player settings must use the current schema.")
 	check(is_equal_approx(PlayerSettings.number(migrated, "master_volume"), 0.4), "Migration must preserve recognised values.")
 	check(PlayerSettings.boolean(migrated, "show_action_prompts", false), "Migration must fill newly introduced settings.")
+	check(PlayerSettings.string(migrated, "language", "") == "en", "Migration must add the safe English locale.")
 	check(bool(PlayerInputBindings.validate_profile(PlayerSettings.input_bindings(migrated)).get("ok", false)), "Migration must add complete default input bindings.")
 
 	var future: Dictionary = PlayerSettings.migrate({"schema_version": PlayerSettings.CURRENT_SCHEMA + 1})
@@ -58,6 +61,8 @@ func test_model_contract() -> void:
 	check(is_equal_approx(PlayerSettings.number(adjusted, "screen_texture_intensity"), 0.75), "Range adjustment must follow the authored step.")
 	adjusted = PlayerSettings.adjusted(adjusted, "high_contrast_ui", 1)
 	check(PlayerSettings.boolean(adjusted, "high_contrast_ui", false), "Boolean adjustment must toggle deterministically.")
+	adjusted = PlayerSettings.adjusted(adjusted, "language", 1)
+	check(PlayerSettings.string(adjusted, "language", "") == "qps-ploc", "Choice adjustment must cycle to the deterministic pseudo locale.")
 
 
 func test_isolated_atomic_storage() -> void:
@@ -120,7 +125,7 @@ func test_runtime_integration() -> void:
 	var title_value: Variant = runtime.call("title_menu")
 	var title_entries: Array = title_value as Array if typeof(title_value) == TYPE_ARRAY else []
 	check(title_entries.has("OPTIONS"), "Title menu must expose Options.")
-	check(int(runtime.call("player_settings_entry_count")) == 13, "Runtime Options surface must expose every authored row.")
+	check(int(runtime.call("player_settings_entry_count")) == 14, "Runtime Options surface must expose every authored row, including Language.")
 
 	var custom: Dictionary = PlayerSettings.default_settings()
 	custom["master_volume"] = 0.8
@@ -133,6 +138,7 @@ func test_runtime_integration() -> void:
 	custom["flash_intensity"] = 0.5
 	custom["show_action_prompts"] = false
 	custom["high_contrast_ui"] = true
+	custom["language"] = "en"
 	runtime.set("player_settings", PlayerSettings.sanitize(custom))
 	check(bool(runtime.call("apply_input_bindings")), "Runtime must keep InputMap synchronized after settings replacement.")
 
@@ -184,10 +190,18 @@ func test_runtime_integration() -> void:
 	runtime.set("player_settings_index", 8)
 	check(bool(runtime.call("activate_selected_player_setting")), "Confirm must toggle a selected boolean setting.")
 	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Action prompts must toggle back on.")
-	runtime.set("player_settings_index", 11)
+	runtime.set("player_settings_index", 10)
+	var cache_revision_before_locale := int(runtime.get("input_binding_cache_revision"))
+	check(bool(runtime.call("activate_selected_player_setting")), "Language must cycle through the Options surface.")
+	check(str(runtime.get("current_locale")) == "qps-ploc", "Language adjustment must apply pseudo-localisation immediately.")
+	check(int(runtime.get("input_binding_cache_revision")) > cache_revision_before_locale, "Language changes must rebuild cached control labels only at the setting mutation boundary.")
+	var localized_rows: Array = runtime.call("player_settings_rows")
+	check(localized_rows.size() == 14 and str((localized_rows[10] as Dictionary).get("label", "")).begins_with("⟦"), "Options rows must refresh immediately in pseudo-localisation.")
+	runtime.set("player_settings_index", 12)
 	check(bool(runtime.call("activate_selected_player_setting")), "Reset All Defaults must activate.")
 	check(is_equal_approx(float(runtime.call("player_setting_number", "master_volume", 0.0)), 1.0), "Reset All Defaults must restore master volume.")
 	check(bool(runtime.call("player_setting_bool", "show_action_prompts", false)), "Reset All Defaults must restore action prompts.")
+	check(str(runtime.get("current_locale")) == "en", "Reset All Defaults must restore the safe English locale.")
 	check(PlayerInputBindings.input_map_matches(runtime.call("input_binding_profile")), "Reset All Defaults must also restore and apply default controls.")
 
 	# Persistence is exercised against isolated stores above. Avoid touching a
@@ -211,7 +225,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Player settings smoke test passed: schema migration, isolated atomic storage, backup recovery, Options controls, persistent remapping, accessibility presentation and audio gains are coherent.")
+		print("Player settings smoke test passed: schema-three language migration, isolated atomic storage, backup recovery, Options controls, persistent remapping, accessibility presentation, localisation and audio gains are coherent.")
 		quit(0)
 		return
 	for failure in failures:

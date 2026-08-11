@@ -7,6 +7,7 @@ extends Node2D
 const CampaignRepository = preload("res://src/content/campaign_repository.gd")
 const CampaignValidator = preload("res://src/content/campaign_validator.gd")
 const MapModel = preload("res://src/content/map_model.gd")
+const LocalisationCatalog = preload("res://src/content/localisation_catalog.gd")
 const DEFAULT_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const VIEW := Vector2(640, 360)
 const PLAYER_SPEED := 105.0
@@ -36,6 +37,9 @@ var map_data: Dictionary = {}
 var current_era_id := ""
 var campaign_catalog: Array = []
 var load_error := ""
+var localisation_catalog: Dictionary = LocalisationCatalog.empty_catalog()
+var current_locale := LocalisationCatalog.DEFAULT_LOCALE
+var localisation_load_error := ""
 
 
 func _ready() -> void:
@@ -67,6 +71,12 @@ func load_campaign(path: String) -> bool:
 		return false
 	campaign_path = path
 	campaign = campaign_result.get("data", {})
+	if not load_localisation_catalogs():
+		load_error = localisation_load_error
+		push_error("Localisation load failed: %s" % load_error)
+		if map_data.is_empty():
+			load_fallback_campaign()
+		return false
 	var start_map := String(campaign.get("start_map", ""))
 	var start_era := String(campaign.get("start_era", ""))
 	if not activate_map(start_map, "", start_era, false):
@@ -83,9 +93,84 @@ func load_campaign(path: String) -> bool:
 func load_fallback_campaign() -> void:
 	campaign_path = ""
 	campaign = CampaignRepository.default_campaign("epochbound_fallback", "EPOCHBOUND")
+	load_localisation_catalogs()
 	map_data = CampaignRepository.default_map("first_crossing", "First Crossing")
 	current_era_id = first_era_id()
 	reset_actor_positions()
+
+
+func load_localisation_catalogs() -> bool:
+	var result := LocalisationCatalog.load_catalogs(campaign_path, campaign)
+	if not bool(result.get("ok", false)):
+		localisation_catalog = LocalisationCatalog.empty_catalog()
+		localisation_load_error = format_errors(result.get("errors", []))
+		return false
+	localisation_catalog = result
+	localisation_load_error = ""
+	localisation_changed()
+	return true
+
+
+func set_localisation_locale(locale_value: Variant) -> String:
+	var resolved := LocalisationCatalog.sanitize_player_locale(locale_value)
+	var changed := resolved != current_locale
+	current_locale = resolved
+	TranslationServer.set_locale(current_locale)
+	if changed:
+		localisation_changed()
+	return current_locale
+
+
+func localisation_changed() -> void:
+	queue_redraw()
+
+
+func localise(key: String, fallback: String = "", replacements: Dictionary = {}) -> String:
+	return LocalisationCatalog.resolve(
+		localisation_catalog,
+		current_locale,
+		key,
+		fallback,
+		replacements
+	)
+
+
+func localise_text(fallback: String, replacements: Dictionary = {}) -> String:
+	return LocalisationCatalog.resolve(
+		localisation_catalog,
+		current_locale,
+		"",
+		fallback,
+		replacements
+	)
+
+
+func localise_record(
+	record: Dictionary,
+	key_field: String,
+	text_field: String,
+	fallback: String = ""
+) -> String:
+	var text := str(record.get(text_field, fallback))
+	var key := str(record.get(key_field, ""))
+	return localise(key, text)
+
+
+func campaign_title_text() -> String:
+	return localise_record(campaign, "title_key", "title", "EPOCHBOUND")
+
+
+func campaign_subtitle_text() -> String:
+	return localise_record(campaign, "subtitle_key", "subtitle", "A NEW JOURNEY")
+
+
+func localisation_contract_ok() -> bool:
+	return (
+		bool(localisation_catalog.get("ok", false))
+		and LocalisationCatalog.supported_player_locales().has(current_locale)
+		and LocalisationCatalog.has_message(localisation_catalog, "ui.title.options")
+		and localise("ui.title.options", "OPTIONS") != "ui.title.options"
+	)
 
 
 func activate_map(
@@ -183,7 +268,12 @@ func confirm() -> bool:
 
 
 func title_menu() -> Array[String]:
-	return ["NEW JOURNEY", "CAMPAIGNS", "QUICK START", "QUIT"]
+	return [
+		localise("ui.title.new_journey", "NEW JOURNEY"),
+		localise("ui.title.campaigns", "CAMPAIGNS"),
+		localise("ui.title.quick_start", "QUICK START"),
+		localise("ui.title.quit", "QUIT")
+	]
 
 
 func update_title() -> void:
@@ -373,9 +463,11 @@ func interact() -> void:
 			closest_distance = distance
 	if closest.is_empty():
 		if companion_enabled():
-			dialogue = "%s sniffs the wind, then looks toward the nearest unfinished story." % companion_name().capitalize()
+			dialogue = localise_text(
+				"%s sniffs the wind, then looks toward the nearest unfinished story." % companion_name().capitalize()
+			)
 		else:
-			dialogue = "Nothing answers yet."
+			dialogue = localise_text("Nothing answers yet.")
 	else:
 		if authored_requirements_met(closest):
 			dialogue = dialogue_for(closest)
@@ -392,24 +484,43 @@ func authored_requirements_met(_record: Dictionary) -> bool:
 
 
 func authored_blocked_message(record: Dictionary) -> String:
-	return str(record.get("blocked_dialogue", "You cannot use this yet."))
+	return localise_record(
+		record,
+		"blocked_dialogue_key",
+		"blocked_dialogue",
+		"You cannot use this yet."
+	)
 
 
 func dialogue_for(interaction: Dictionary) -> String:
 	var value: Variant = interaction.get("dialogue", "")
 	if typeof(value) == TYPE_STRING:
-		return String(value)
+		return localise(
+			str(interaction.get("dialogue_key", "")),
+			String(value)
+		)
 	if typeof(value) == TYPE_DICTIONARY:
 		var dialogue_by_era: Dictionary = value
-		return String(dialogue_by_era.get(current_era_id, dialogue_by_era.get("default", "...")))
-	return "..."
+		var fallback := String(dialogue_by_era.get(current_era_id, dialogue_by_era.get("default", "...")))
+		var keys_value: Variant = interaction.get("dialogue_keys", {})
+		var keys: Dictionary = keys_value if typeof(keys_value) == TYPE_DICTIONARY else {}
+		var key := str(keys.get(current_era_id, keys.get("default", "")))
+		return localise(key, fallback)
+	return localise_text("...")
 
 
 func intro_pages() -> Array:
-	var pages: Variant = campaign.get("intro", [])
-	if typeof(pages) == TYPE_ARRAY and not Array(pages).is_empty():
-		return pages
-	return ["A journey begins beyond the edge of the authored world."]
+	var pages_value: Variant = campaign.get("intro", [])
+	var pages: Array = pages_value if typeof(pages_value) == TYPE_ARRAY else []
+	if pages.is_empty():
+		return [localise_text("A journey begins beyond the edge of the authored world.")]
+	var keys_value: Variant = campaign.get("intro_keys", [])
+	var keys: Array = keys_value if typeof(keys_value) == TYPE_ARRAY else []
+	var output: Array = []
+	for index in range(pages.size()):
+		var key := str(keys[index]) if index < keys.size() else ""
+		output.append(localise(key, str(pages[index])))
+	return output
 
 
 func ruleset() -> Dictionary:
@@ -524,7 +635,7 @@ func draw_splash() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("070a0f"))
 	var pulse := 0.84 + sin(elapsed * 3.0) * 0.12
 	draw_centered("EVAVO STUDIO", 148, 28, Color(0.91, 0.93, 0.96, pulse))
-	draw_centered("PRESENTS", 190, 12, Color("788598"))
+	draw_centered(localise("ui.splash.presents", "PRESENTS"), 190, 12, Color("788598"))
 
 
 func draw_title() -> void:
@@ -539,23 +650,23 @@ func draw_title() -> void:
 		]),
 		Color("18282d")
 	)
-	draw_centered(String(campaign.get("title", "EPOCHBOUND")), 65, 40, Color("e7d7a2"))
-	draw_centered(String(campaign.get("subtitle", "A NEW JOURNEY")), 98, 12, Color("8fa9a5"))
+	draw_centered(campaign_title_text(), 65, 40, Color("e7d7a2"))
+	draw_centered(campaign_subtitle_text(), 98, 12, Color("8fa9a5"))
 	var menu := title_menu()
 	for index in range(menu.size()):
 		var active := index == selected_menu
 		draw_string(ThemeDB.fallback_font, Vector2(205, 152 + index * 27), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("e7c66b"))
 		draw_string(ThemeDB.fallback_font, Vector2(229, 152 + index * 27), menu[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("fff2c9") if active else Color("76858b"))
-	draw_centered("E / Z / A  CONFIRM     ARROWS  SELECT", 336, 10, Color("58656b"))
+	draw_centered(localise("ui.title.confirm_select", "E / Z / A  CONFIRM     ARROWS  SELECT", {"confirm": "E / Z / A"}), 336, 10, Color("58656b"))
 
 
 func draw_campaign_select() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color("0a0e14"))
-	draw_centered("CHOOSE A CAMPAIGN", 42, 24, Color("e7d7a2"))
-	draw_centered("Authored journeys share one runtime contract", 65, 11, Color("7f939b"))
+	draw_centered(localise("ui.campaigns.heading", "CHOOSE A CAMPAIGN"), 42, 24, Color("e7d7a2"))
+	draw_centered(localise("ui.campaigns.subtitle", "Authored journeys share one runtime contract"), 65, 11, Color("7f939b"))
 	if campaign_catalog.is_empty():
-		draw_centered("NO VALID CAMPAIGNS FOUND", 170, 16, Color("cc8d82"))
-		draw_centered("ESC TO RETURN", 210, 11, Color("78858c"))
+		draw_centered(localise("ui.campaigns.none", "NO VALID CAMPAIGNS FOUND"), 170, 16, Color("cc8d82"))
+		draw_centered(localise("ui.campaigns.return", "ESC TO RETURN"), 210, 11, Color("78858c"))
 		return
 	var visible_count := mini(7, campaign_catalog.size())
 	var start_index := clampi(selected_campaign_index - 3, 0, maxi(0, campaign_catalog.size() - visible_count))
@@ -567,12 +678,14 @@ func draw_campaign_select() -> void:
 		if active:
 			draw_rect(Rect2(90, y - 20, 460, 26), Color("1f2a2f"))
 		draw_string(ThemeDB.fallback_font, Vector2(108, y), "◆" if active else "", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e7c66b"))
-		draw_string(ThemeDB.fallback_font, Vector2(132, y), String(entry.get("title", entry.get("id", "Campaign"))), HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("fff2c9") if active else Color("9aa7aa"))
-		draw_string(ThemeDB.fallback_font, Vector2(455, y), "CUSTOM" if entry.get("source", "built_in") == "user" else "BUILT-IN", HORIZONTAL_ALIGNMENT_LEFT, 90, 9, Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c"))
+		var entry_title := localise_text(String(entry.get("title", entry.get("id", "Campaign"))))
+		var source_label := localise("ui.campaigns.custom", "CUSTOM") if entry.get("source", "built_in") == "user" else localise("ui.campaigns.built_in", "BUILT-IN")
+		draw_string(ThemeDB.fallback_font, Vector2(132, y), entry_title, HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("fff2c9") if active else Color("9aa7aa"))
+		draw_string(ThemeDB.fallback_font, Vector2(455, y), source_label, HORIZONTAL_ALIGNMENT_LEFT, 90, 9, Color("88b8a1") if entry.get("source", "built_in") == "user" else Color("78858c"))
 	if not load_error.is_empty():
-		draw_centered("SELECTED CAMPAIGN COULD NOT BE LOADED", 319, 10, Color("d78f84"))
+		draw_centered(localise("ui.campaigns.load_failed", "SELECTED CAMPAIGN COULD NOT BE LOADED"), 319, 10, Color("d78f84"))
 	else:
-		draw_centered("CONFIRM TO BEGIN   •   ESC TO RETURN", 329, 10, Color("68747e"))
+		draw_centered(localise("ui.campaigns.begin_return", "CONFIRM TO BEGIN   •   ESC TO RETURN"), 329, 10, Color("68747e"))
 
 
 func draw_intro() -> void:
@@ -585,7 +698,7 @@ func draw_intro() -> void:
 	var pages := intro_pages()
 	var page_index := clampi(intro_page, 0, maxi(0, pages.size() - 1))
 	draw_multiline_centered(String(pages[page_index]), 226, 15, Color("e8e3d5"))
-	draw_centered("CONFIRM TO CONTINUE   •   ESC TO SKIP", 330, 10, Color("68747e"))
+	draw_centered(localise("ui.intro.continue_skip", "CONFIRM TO CONTINUE   •   ESC TO SKIP"), 330, 10, Color("68747e"))
 
 
 func draw_game() -> void:
@@ -610,7 +723,7 @@ func draw_game() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	draw_hud(era_data)
 	if dialogue.is_empty():
-		draw_centered("MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X", 348, 9, Color("d7d0bd"))
+		draw_centered(localise("ui.game.basic_controls", "MOVE: WASD / ARROWS   INTERACT: E / Z   SHIFT: Q / X"), 348, 9, Color("d7d0bd"))
 	else:
 		draw_dialogue()
 	if transition_lock > 0.0:
@@ -706,8 +819,8 @@ func draw_dialogue() -> void:
 func draw_pause() -> void:
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0, 0, 0, 0.62))
 	draw_rect(Rect2(202, 116, 236, 118), Color("111820"))
-	draw_centered("JOURNEY PAUSED", 159, 22, Color("f0dfad"))
-	draw_centered("ESC / START TO RETURN", 207, 11, Color("87949b"))
+	draw_centered(localise("ui.pause.title", "JOURNEY PAUSED"), 159, 22, Color("f0dfad"))
+	draw_centered(localise("ui.pause.return", "ESC / START TO RETURN"), 207, 11, Color("87949b"))
 
 
 func draw_centered(text: String, y: float, size: int, color: Color) -> void:

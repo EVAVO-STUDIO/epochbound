@@ -2,7 +2,7 @@ extends SceneTree
 
 const CampaignStudio = preload("res://addons/epochbound_campaign_studio/campaign_studio_animation_current.gd")
 const Repository = preload("res://src/content/campaign_repository.gd")
-const Validator = preload("res://src/content/sprite_animation_strict_validator.gd")
+const Validator = preload("res://src/content/complete_content_validator.gd")
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
 
 const CAMPAIGN_ID := "sprite_scaffold_smoke"
@@ -10,6 +10,7 @@ const CAMPAIGN_ROOT := "res://campaigns/" + CAMPAIGN_ID
 const CAMPAIGN_PATH := CAMPAIGN_ROOT + "/campaign.json"
 const AUDIO_PATH := CAMPAIGN_ROOT + "/audio/core.json"
 const ANIMATION_PATH := CAMPAIGN_ROOT + "/animation/core.json"
+const LOCALISATION_PATH := CAMPAIGN_ROOT + "/localisation/core.json"
 
 var failures: Array[String] = []
 
@@ -31,16 +32,21 @@ func run_test() -> void:
 	check(FileAccess.file_exists(CAMPAIGN_PATH), "New Campaign must create campaign.json.")
 	check(FileAccess.file_exists(AUDIO_PATH), "New Campaign must retain Audio and Mood scaffolding.")
 	check(FileAccess.file_exists(ANIMATION_PATH), "New Campaign must create animation/core.json.")
+	check(FileAccess.file_exists(LOCALISATION_PATH), "New Campaign must create localisation/core.json.")
 	if FileAccess.file_exists(CAMPAIGN_PATH):
 		var campaign_result := Repository.read_json(CAMPAIGN_PATH)
 		check(bool(campaign_result.get("ok", false)), "Scaffolded campaign manifest must parse.")
 		var campaign: Dictionary = campaign_result.get("data", {})
+		var localisation_value: Variant = campaign.get("localisation_files", [])
+		var localisation_files: Array = localisation_value as Array if typeof(localisation_value) == TYPE_ARRAY else []
+		check(localisation_files == ["localisation/core.json"], "Scaffolded campaign must bind its localisation catalogue.")
 		var animation_value: Variant = campaign.get("animation_files", [])
 		var animation_files: Array = animation_value as Array if typeof(animation_value) == TYPE_ARRAY else []
 		check(animation_files == ["animation/core.json"], "Scaffolded campaign must bind its animation catalogue.")
 		var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 		check(bool(validation.get("ok", false)), "Scaffolded campaign must pass the strict sprite-animation validator.")
 		check(int(validation.get("animation_profile_count", 0)) == 6, "Default animation catalogue must provide six reusable profiles.")
+		check(int(validation.get("localisation_message_count", 0)) == 5, "Default localisation catalogue must provide title, subtitle and three intro messages.")
 	root.remove_child(studio)
 	studio.free()
 	CampaignPackage.remove_tree(CAMPAIGN_ROOT)
@@ -54,7 +60,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Sprite campaign scaffold smoke test passed: new campaigns receive bound Audio and Sprite Animation catalogues and pass strict validation.")
+		print("Sprite campaign scaffold smoke test passed: new campaigns receive bound Audio, Sprite Animation and Localisation catalogues and pass strict validation.")
 		quit(0)
 		return
 	for failure in failures:

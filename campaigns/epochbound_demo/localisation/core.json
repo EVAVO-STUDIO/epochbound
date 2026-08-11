@@ -1,0 +1,21 @@
+{
+	"schema_version": 1,
+	"default_locale": "en",
+	"messages": {
+		"campaign.epochbound_demo.title": {
+			"en": "EPOCHBOUND"
+		},
+		"campaign.epochbound_demo.subtitle": {
+			"en": "THE HOURS BENEATH"
+		},
+		"campaign.epochbound_demo.intro.01": {
+			"en": "1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum."
+		},
+		"campaign.epochbound_demo.intro.02": {
+			"en": "Eli Vale entered with one flashlight,\none borrowed key, and his dog Morrow."
+		},
+		"campaign.epochbound_demo.intro.03": {
+			"en": "They returned to a world that remembered\nevery age at once."
+		}
+	}
+}

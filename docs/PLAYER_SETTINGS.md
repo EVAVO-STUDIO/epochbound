@@ -8,9 +8,9 @@ Player settings live at:
 user://settings/player_settings.json
 ```
 
-They apply across built-in and installed campaigns. Campaign authors cannot force a player to use a particular volume, screen texture, camera shake, environmental-motion, flash, prompt, contrast or control-binding level.
+They apply across built-in and installed campaigns. Campaign authors cannot force a player to use a particular volume, screen texture, camera shake, environmental-motion, flash, prompt, contrast, language or control-binding level.
 
-Campaign saves remain separate under `user://save_profiles`, and portable `.epochbound.zip` campaign packages do not contain player settings or input bindings.
+Campaign saves remain separate under `user://save_profiles`, and portable `.epochbound.zip` campaign packages do not contain player settings, language selection or input bindings. The localisation setting remains separate from campaign saves and campaign content.
 
 ## Opening Options
 
@@ -51,6 +51,13 @@ These controls do not change collision, actor movement, projectile timing, comba
 
 - **Action Prompts** enables or disables nearest-target prompt boxes and their matching world pulse. Interactions remain usable when prompts are hidden.
 - **High Contrast UI** uses black interface fills, white text, a brighter gold frame and a stronger danger colour. It does not rewrite campaign palettes or final sprite art.
+
+### Language
+
+- **English** preserves Epochbound's exact authored fallback copy.
+- **Pseudo-localisation** uses the deterministic `qps-ploc` development locale to accent and expand text while preserving placeholders. It exposes clipped labels, stale caches and hard-coded runtime strings without pretending to be a real translation.
+
+Language is player-local and updates title, campaign, intro, Options and Controls surfaces immediately. Real production translations remain authored catalogue work governed by the strict localisation schema. Read [`LOCALISATION_FOUNDATION.md`](LOCALISATION_FOUNDATION.md) for catalogue, fallback and package rules.
 
 ## Keyboard and controller remapping
 
@@ -118,7 +125,7 @@ Scalar Audio and presentation reads are also isolated from the nested control pr
 
 ## Atomic persistence
 
-Player settings use schema `2`. The nested control profile uses its own schema so input descriptors can evolve independently.
+Player settings use schema `3`. The nested control profile uses its own schema so input descriptors can evolve independently.
 
 The guarded write sequence is:
 
@@ -137,7 +144,7 @@ An invalid primary file is never rotated over a known-good backup. On startup, t
 
 When startup uses a valid backup or migrates an older supported schema, the sanitized settings remain marked as a pending repair. Options names the recovery or migration source instead of presenting it as an ordinary load. The next deliberate Options close writes the current complete settings through the same atomic path, recreates the primary file and prevents later launches from repeating the same recovery. Startup itself remains read-only.
 
-Schema-one settings migrate by preserving every recognised Audio, presentation and readability value and adding the complete default keyboard/controller profile. Unknown future schemas are rejected rather than guessed.
+Schema-one settings migrate by preserving every recognised Audio, presentation and readability value and adding the complete default keyboard/controller profile. Schema-two settings additionally migrate by adding the safe English Language value. Unknown future schemas are rejected rather than guessed.
 
 ## Test isolation
 
@@ -153,7 +160,9 @@ They do not edit a developer or player’s real `user://settings` directory.
 
 The regression suite verifies:
 
-- schema-one migration into schema two;
+- schema-one and schema-two migration into schema 3;
+- safe English Language fallback and deterministic Pseudo-localisation switching;
+- invalid locale rejection before persistence;
 - range clamping and boolean fallback;
 - future-schema rejection;
 - temporary-file promotion and backup rotation;
@@ -189,7 +198,7 @@ The regression suite verifies:
 
 ## Production rules
 
-- Keep player preferences and input bindings outside campaign JSON, save-profile payloads and campaign packages.
+- Keep player preferences, language and input bindings outside campaign JSON, save-profile payloads and campaign packages.
 - Never allow campaign data to erase, replace or require a local binding.
 - Keep Escape, O and Start reserved for recovery.
 - Persist physical keyboard locations rather than language-specific typed characters.
@@ -203,7 +212,7 @@ The regression suite verifies:
 - Keep scalar Audio and presentation reads independent from nested control descriptors.
 - Apply presentation settings at draw time or through bounded runtime multipliers.
 - Do not let accessibility settings change durable progression outcomes.
-- Add new settings or actions with safe defaults and an explicit migration path.
+- Add new settings, locales or actions with safe defaults and an explicit migration path.
 - Treat unknown future schemas as incompatible.
 - Preserve the last complete valid settings file before replacement.
 - Keep startup reads non-destructive; promote recovered or migrated values only through the atomic writer.

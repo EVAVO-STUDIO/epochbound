@@ -29,6 +29,8 @@ const TARGETS := [
 	"res://tools/validate_content.gd",
 	"res://tools/audit_campaigns.gd",
 	"res://tools/smoke_runtime_scene_contract.gd",
+	"res://tools/compile_localisation_probe.gd",
+	"res://tools/smoke_localisation.gd",
 	"res://tools/smoke_supply_regions.gd",
 	"res://tools/smoke_supply_validation_edges.gd",
 	"res://tools/smoke_trade_studio.gd",

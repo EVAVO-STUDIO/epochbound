@@ -47,6 +47,7 @@ func load_player_settings(root_path: String = PlayerSettingsStore.ROOT) -> void:
 
 func apply_player_settings_load_result(result: Dictionary) -> void:
 	player_settings = PlayerSettings.sanitize(result.get("settings", {}))
+	set_localisation_locale(PlayerSettings.string(player_settings, "language", "en"))
 	var recovered := bool(result.get("recovered_from_backup", false))
 	var migrated := bool(result.get("migrated", false))
 	if recovered:
@@ -65,16 +66,23 @@ func apply_player_settings_load_result(result: Dictionary) -> void:
 func player_settings_open_notice() -> String:
 	match player_settings_load_status:
 		"recovered":
-			return "RECOVERED SETTINGS FROM BACKUP"
+			return localise("ui.settings.recovered", "RECOVERED SETTINGS FROM BACKUP")
 		"migrated":
-			return "SETTINGS UPDATED TO CURRENT VERSION"
+			return localise("ui.settings.migrated", "SETTINGS UPDATED TO CURRENT VERSION")
 		"saved":
-			return "SETTINGS SAVED LOCALLY"
-	return "SETTINGS ARE SAVED LOCALLY"
+			return localise("ui.settings.saved", "SETTINGS SAVED LOCALLY")
+	return localise("ui.settings.local", "SETTINGS ARE SAVED LOCALLY")
 
 
 func title_menu() -> Array[String]:
-	return ["CONTINUE", "NEW JOURNEY", "CAMPAIGNS", "QUICK START", "OPTIONS", "QUIT"]
+	return [
+		localise("ui.title.continue", "CONTINUE"),
+		localise("ui.title.new_journey", "NEW JOURNEY"),
+		localise("ui.title.campaigns", "CAMPAIGNS"),
+		localise("ui.title.quick_start", "QUICK START"),
+		localise("ui.title.options", "OPTIONS"),
+		localise("ui.title.quit", "QUIT")
+	]
 
 
 func update_title() -> void:
@@ -142,7 +150,11 @@ func close_player_settings(root_path: String = PlayerSettingsStore.ROOT) -> bool
 	if player_settings_dirty:
 		var result := PlayerSettingsStore.write_settings(player_settings, root_path)
 		if not bool(result.get("ok", false)):
-			player_settings_notice = "SAVE FAILED: %s" % format_errors(result.get("errors", []))
+			player_settings_notice = localise(
+				"ui.settings.save_failed",
+				"SAVE FAILED: {error}",
+				{"error": format_errors(result.get("errors", []))}
+			)
 			player_settings_notice_timer = 3.0
 			return false
 		player_settings = PlayerSettings.sanitize(result.get("settings", player_settings))
@@ -198,8 +210,13 @@ func adjust_selected_player_setting(direction: int) -> bool:
 	if setting_id.is_empty() or kind == "action":
 		return false
 	player_settings = PlayerSettings.adjusted(player_settings, setting_id, direction)
+	if setting_id == "language":
+		set_localisation_locale(PlayerSettings.string(player_settings, "language", "en"))
 	player_settings_dirty = true
-	player_settings_notice = "%s  %s" % [str(definition.get("label", setting_id)).to_upper(), PlayerSettings.value_text(player_settings, setting_id)]
+	player_settings_notice = "%s  %s" % [
+		player_setting_label(definition).to_upper(),
+		player_setting_value_text(setting_id)
+	]
 	player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 	return true
 
@@ -210,15 +227,16 @@ func activate_selected_player_setting() -> bool:
 	match setting_id:
 		"reset_defaults":
 			player_settings = PlayerSettings.default_settings()
+			set_localisation_locale(PlayerSettings.string(player_settings, "language", "en"))
 			player_settings_dirty = true
-			player_settings_notice = "DEFAULT SETTINGS RESTORED"
+			player_settings_notice = localise("ui.settings.defaults_restored", "DEFAULT SETTINGS RESTORED")
 			player_settings_notice_timer = PLAYER_SETTINGS_NOTICE_DURATION
 			return true
 		"back":
 			return close_player_settings()
 	if str(definition.get("kind", "")) == "boolean":
 		return adjust_selected_player_setting(1)
-	if str(definition.get("kind", "")) == "range":
+	if str(definition.get("kind", "")) in ["range", "choice"]:
 		return adjust_selected_player_setting(1)
 	return false
 
@@ -231,8 +249,42 @@ func player_setting_bool(setting_id: String, fallback: bool = false) -> bool:
 	return PlayerSettings.boolean(player_settings, setting_id, fallback)
 
 
+func player_setting_string(setting_id: String, fallback: String = "") -> String:
+	return PlayerSettings.string(player_settings, setting_id, fallback)
+
+
+func player_setting_label(definition: Dictionary) -> String:
+	return localise(
+		str(definition.get("label_key", "")),
+		str(definition.get("label", definition.get("id", "SETTING")))
+	)
+
+
+func player_setting_value_text(setting_id: String) -> String:
+	if setting_id in ["show_action_prompts", "high_contrast_ui"]:
+		return localise(
+			"ui.settings.on" if PlayerSettings.boolean(player_settings, setting_id, false) else "ui.settings.off",
+			"ON" if PlayerSettings.boolean(player_settings, setting_id, false) else "OFF"
+		)
+	if setting_id == "language":
+		var locale := PlayerSettings.string(player_settings, setting_id, "en")
+		return localise(
+			"ui.settings.language.%s" % locale,
+			PlayerSettings.value_text(player_settings, setting_id)
+		)
+	return PlayerSettings.value_text(player_settings, setting_id)
+
+
 func player_settings_rows() -> Array:
-	return PlayerSettings.rows(player_settings)
+	var output: Array = []
+	for value in PlayerSettings.rows(player_settings):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var row: Dictionary = (value as Dictionary).duplicate(true)
+		row["label"] = player_setting_label(row)
+		row["value"] = player_setting_value_text(str(row.get("id", "")))
+		output.append(row)
+	return output
 
 
 func player_settings_snapshot() -> Dictionary:
@@ -250,6 +302,8 @@ func player_settings_contract_ok() -> bool:
 		and player_settings_index >= 0
 		and player_settings_index < player_settings_entry_count()
 		and ["defaults", "loaded", "recovered", "migrated", "saved"].has(player_settings_load_status)
+		and player_setting_string("language", "en") == current_locale
+		and localisation_contract_ok()
 	)
 
 
@@ -264,7 +318,12 @@ func can_flush_autosave() -> bool:
 func draw_pause() -> void:
 	super.draw_pause()
 	if not player_settings_open:
-		draw_centered("E / A  OPTIONS", 187, 10, Color("bba76d"))
+		draw_centered(
+			localise("ui.pause.options", "{confirm}  OPTIONS", {"confirm": "E / A"}),
+			187,
+			10,
+			Color("bba76d")
+		)
 
 
 func presentation_overlay_handles_combat_readability() -> bool:

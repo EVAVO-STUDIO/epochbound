@@ -113,6 +113,9 @@ jobs:
       - name: Validate real ENet loopback integration contract
         run: python3 tools/check_multiplayer_loopback_contract.py
 
+      - name: Validate unexpected host restart recovery contract
+        run: python3 tools/check_multiplayer_host_restart_contract.py
+
       - name: Validate Sprite Animation integration contract
         run: python3 tools/check_sprite_animation_contract.py
 
@@ -160,6 +163,14 @@ jobs:
             -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
             -ProjectRoot "$env:GITHUB_WORKSPACE"
 
+      - name: Run real unexpected-host restart recovery
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_host_restart.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE"
+
       - name: Confirm validation did not modify tracked source
         if: always()
         shell: bash
@@ -180,9 +191,9 @@ jobs:
           import os
           from pathlib import Path
 
-          # Receipt schema migrated from: "schemaVersion": "2.6"
+          # Receipt schema migrated from: "schemaVersion": "2.7"
           payload = {
-              "schemaVersion": "2.7",
+              "schemaVersion": "2.8",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -196,6 +207,7 @@ jobs:
               "multiplayerConnectionValidation": "passed",
               "multiplayerLoopbackValidation": "passed",
               "multiplayerHostShutdownValidation": "passed",
+              "multiplayerHostRestartRecoveryValidation": "passed",
               "campaignAudit": "passed",
               "referenceContentWarnings": 0,
               "referenceAuditWarnings": 0,

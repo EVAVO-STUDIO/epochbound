@@ -1,0 +1,46 @@
+name: Temporary Hideaway Stewardship Source Export
+
+on:
+  push:
+    branches:
+      - agent/hideaway-stewardship-source
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epochbound-temp-hideaway-stewardship-source-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Package exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude=.git \
+            --exclude=.godot \
+            --exclude=.godot-bin \
+            --exclude=.godot-download \
+            -czf "${RUNNER_TEMP}/epochbound-hideaway-source.tar.gz" .
+          sha256sum "${RUNNER_TEMP}/epochbound-hideaway-source.tar.gz"
+
+      - name: Upload exact source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-hideaway-source-${{ github.sha }}
+          path: ${{ runner.temp }}/epochbound-hideaway-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

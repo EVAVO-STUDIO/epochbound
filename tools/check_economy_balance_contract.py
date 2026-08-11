@@ -154,7 +154,7 @@ require(
         "Validate deterministic economy balance integration contract",
         "python3 tools/check_economy_balance_contract.py",
         '# Receipt schema migrated from: "schemaVersion": "2.9"',
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"economyBalanceValidation": "passed"',
     ],
 )

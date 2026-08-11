@@ -2,6 +2,7 @@ extends SceneTree
 
 const TARGETS := [
 	"res://src/content/localisation_catalog.gd",
+	"res://src/content/localisation_layout.gd",
 	"res://src/content/localisation_validator.gd",
 	"res://src/content/complete_content_validator.gd",
 	"res://src/content/campaign_repository.gd",
@@ -11,7 +12,9 @@ const TARGETS := [
 	"res://src/presentation_runtime_current.gd",
 	"res://src/combat_readability_overlay.gd",
 	"res://src/player_controls_overlay.gd",
+	"res://tools/compile_localisation_layout_probe.gd",
 	"res://tools/smoke_localisation.gd",
+	"res://tools/smoke_localisation_layout.gd",
 	"res://localisation/ui.json",
 	"res://campaigns/epochbound_demo/localisation/core.json",
 	"res://src/app.tscn"
@@ -35,7 +38,7 @@ func _initialize() -> void:
 		elif path.ends_with(".tscn") and not resource is PackedScene:
 			failures.append("Expected a PackedScene resource at %s." % path)
 	if failures.is_empty():
-		print("Localisation compile probe passed: strict catalogues, schema-three settings, deterministic fallback, pseudo-localisation, package validation and runtime presentation load cleanly.")
+		print("Localisation compile probe passed: strict catalogues, schema-three settings, deterministic fallback, pseudo-localisation, measured fixed-viewport layout, package validation and runtime presentation load cleanly.")
 		quit(0)
 		return
 	for failure in failures:

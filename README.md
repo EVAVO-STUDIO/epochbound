@@ -37,6 +37,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 25. Reliable host-shutdown requests, per-peer acknowledgements, committed closure and independent clean ENet process exit
 26. Unexpected-host restart recovery for accepted direct-IP clients with six bounded retries and same-process replacement-host validation
 27. Player-local English and deterministic pseudo-localisation with strict UI and campaign catalogues, stable title/subtitle/intro keys, placeholder parity and staged package validation
+28. Measured localisation layout safety with bounded font reduction, deterministic wrapping and visible ellipsis across fixed 640 by 360 UI surfaces
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -157,7 +158,7 @@ Keyboard capture accepts one physical key at a time. Modifier chords are rejecte
 
 The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
 
-Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, and [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules.
+Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules, and [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md) for measured fixed-viewport fitting, wrapping and ellipsis.
 
 ## Original 16-bit presentation, audio and animation
 
@@ -294,10 +295,11 @@ The gate performs:
 - strict headless project import;
 - complete content validation through Sprite Animation plus regional supply;
 - repository-wide ten-probe campaign production audit with progression, affordability, deterministic economy balance, meaningful temporal-shift consequences and supply evidence;
-- exact-main schema-2.9 release evidence with `economyBalanceValidation` and `localisationValidation` bound to the validated production SHA;
+- exact-main schema-2.10 release evidence with `economyBalanceValidation`, `localisationValidation` and `localisationLayoutValidation` bound to the validated production SHA;
 - a strict reference-campaign release gate requiring zero content errors, audit blockers or review warnings;
 - every inherited world, combat, companion, item, story, save, loadout, economy, Arsenal, Boss, Cinematic, Package, Audit, Presentation and Audio regression;
 - schema migration, atomic settings recovery, fixed recovery inputs, physical-key-only capture, conflict-safe swaps, exact `InputMap` replacement and bounded control-cache regressions;
+- measured English and pseudo-localised fixed-viewport layout, deterministic font reduction, bounded wrapping and visible ellipsis regressions;
 - deterministic supply intervals, bounded catch-up, target caps, full-stock cursor persistence, old-save safety and malformed-content regressions;
 - Sprite runtime, editor, atlas, malformed-content, scaffolding and package-promotion regressions;
 - animated-terrain, movement-response, pause-freezing, era-reset and bounded-environment regressions;
@@ -362,6 +364,7 @@ A separate pinned Linux Agent QA workflow performs visual, keyboard, gamepad and
 
 - [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md)
 - [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md)
+- [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md)
 - [`docs/EDITOR_PLUGIN_RELIABILITY.md`](docs/EDITOR_PLUGIN_RELIABILITY.md)
 - [`docs/HEADLESS_RUNTIME_CLEANUP.md`](docs/HEADLESS_RUNTIME_CLEANUP.md)
 - [`docs/MULTIPLAYER_LOOPBACK_GATE.md`](docs/MULTIPLAYER_LOOPBACK_GATE.md)

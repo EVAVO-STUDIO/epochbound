@@ -1,5 +1,7 @@
 extends Node2D
 
+const LocalisationLayout = preload("res://src/content/localisation_layout.gd")
+
 const VIEW := Vector2(640, 360)
 const PROMPT_VERTICAL_OFFSET := 31.0
 const CONTROL_PANEL := Rect2(64, 18, 512, 324)
@@ -74,6 +76,35 @@ func draw_panel_frame(rect: Rect2, color: Color) -> void:
 		draw_rect(rect, color, false, 1.0)
 
 
+func draw_fitted_line(
+	text: String,
+	baseline: Vector2,
+	max_width: float,
+	preferred_size: int,
+	minimum_size: int,
+	color: Color,
+	alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
+) -> Dictionary:
+	var result := LocalisationLayout.fit_single_line(
+		ThemeDB.fallback_font,
+		text,
+		preferred_size,
+		minimum_size,
+		max_width
+	)
+	if bool(result.get("ok", false)) and not str(result.get("text", "")).is_empty():
+		draw_string(
+			ThemeDB.fallback_font,
+			baseline,
+			str(result.get("text", "")),
+			alignment,
+			int(floor(max_width)),
+			int(result.get("font_size", minimum_size)),
+			color
+		)
+	return result
+
+
 func _draw() -> void:
 	draw_dynamic_context_prompt()
 	draw_dynamic_reload_hint()
@@ -110,8 +141,23 @@ func draw_control_settings_panel() -> void:
 		if capture_active:
 			var action := runtime_string("control_capture_action_id").replace("_", " ").to_upper()
 			title = runtime_localise("ui.controls.listening", "LISTENING — {action}", {"action": action})
-	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.position.y + 28.0), title, HORIZONTAL_ALIGNMENT_LEFT, 230, 16, text)
-	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 244.0, CONTROL_PANEL.position.y + 27.0), header, HORIZONTAL_ALIGNMENT_RIGHT, 248, 7, frame.darkened(0.04))
+	draw_fitted_line(
+		title,
+		Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.position.y + 28.0),
+		230.0,
+		16,
+		9,
+		text
+	)
+	draw_fitted_line(
+		header,
+		Vector2(CONTROL_PANEL.position.x + 244.0, CONTROL_PANEL.position.y + 27.0),
+		248.0,
+		7,
+		5,
+		frame.darkened(0.04),
+		HORIZONTAL_ALIGNMENT_RIGHT
+	)
 
 	var row_start_y := CONTROL_PANEL.position.y + 54.0
 	for index in range(rows.size()):
@@ -127,12 +173,35 @@ func draw_control_settings_panel() -> void:
 		var value_text := str(row.get("value", ""))
 		if str(row.get("kind", "")) == "action":
 			value_text = runtime_localise("ui.options.confirm", "CONFIRM")
-		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 30.0, y), label, HORIZONTAL_ALIGNMENT_LEFT, 310, 8, text if active else text.darkened(0.24))
-		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 346.0, y), value_text, HORIZONTAL_ALIGNMENT_RIGHT, 196, 8, accent if active else frame.darkened(0.18))
+		draw_fitted_line(
+			label,
+			Vector2(CONTROL_PANEL.position.x + 30.0, y),
+			310.0,
+			8,
+			6,
+			text if active else text.darkened(0.24)
+		)
+		draw_fitted_line(
+			value_text,
+			Vector2(CONTROL_PANEL.position.x + 346.0, y),
+			196.0,
+			8,
+			6,
+			accent if active else frame.darkened(0.18),
+			HORIZONTAL_ALIGNMENT_RIGHT
+		)
 
 	var notice := runtime_string("player_settings_notice").strip_edges()
 	if not notice.is_empty():
-		draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 27.0), notice.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, int(CONTROL_PANEL.size.x - 36.0), 7, frame)
+		draw_fitted_line(
+			notice.to_upper(),
+			Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 27.0),
+			CONTROL_PANEL.size.x - 36.0,
+			7,
+			5,
+			frame,
+			HORIZONTAL_ALIGNMENT_CENTER
+		)
 	var footer := runtime_localise(
 		"ui.options.footer",
 		"{confirm} SELECT   •   LEFT / RIGHT CHANGE   •   ESC / O BACK",
@@ -148,7 +217,15 @@ func draw_control_settings_panel() -> void:
 				{"confirm": runtime_action_hint("interact", "E / A")}
 			)
 		)
-	draw_string(ThemeDB.fallback_font, Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 10.0), footer, HORIZONTAL_ALIGNMENT_CENTER, int(CONTROL_PANEL.size.x - 36.0), 7, accent if capture_active else text.darkened(0.18))
+	draw_fitted_line(
+		footer,
+		Vector2(CONTROL_PANEL.position.x + 18.0, CONTROL_PANEL.end.y - 10.0),
+		CONTROL_PANEL.size.x - 36.0,
+		7,
+		5,
+		accent if capture_active else text.darkened(0.18),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
 
 
 func draw_dynamic_context_prompt() -> void:
@@ -181,9 +258,10 @@ func draw_dynamic_context_prompt() -> void:
 	var text := profile_color("ui_text", "eee3c6")
 	var fill := profile_color("ui_fill", "15191b")
 	var label := "%s  %s" % [runtime_action_hint("interact", "E / A"), action]
-	var original_label := "E / A  %s" % action
-	var label_width := maxf(ThemeDB.fallback_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x, ThemeDB.fallback_font.get_string_size(original_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x)
-	var name_width := ThemeDB.fallback_font.get_string_size(target_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+	var label_layout := LocalisationLayout.fit_single_line(ThemeDB.fallback_font, label, 9, 6, 196.0)
+	var name_layout := LocalisationLayout.fit_single_line(ThemeDB.fallback_font, target_name.to_upper(), 7, 5, 196.0)
+	var label_width := float(label_layout.get("width", 0.0))
+	var name_width := float(name_layout.get("width", 0.0))
 	var width := clampf(maxf(label_width, name_width) + 24.0, 82.0, 220.0)
 	var height := 30.0 if not target_name.is_empty() else 22.0
 	var left := clampf(screen_position.x - width * 0.5, 8.0, VIEW.x - width - 8.0)
@@ -191,9 +269,25 @@ func draw_dynamic_context_prompt() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(screen_position.x - 4.0, target_y), Vector2(screen_position.x + 4.0, target_y), Vector2(screen_position.x, target_y + 5.0)]), Color(frame, 0.94 * alpha))
 	draw_rect(rect, Color(fill, 0.94 * alpha))
 	draw_rect(rect, Color(frame, 0.92 * alpha), false, 1.0)
-	draw_string(ThemeDB.fallback_font, Vector2(rect.position.x + 8.0, rect.position.y + 14.0), label, HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x - 16.0), 9, Color(text, alpha))
+	draw_fitted_line(
+		str(label_layout.get("text", label)),
+		Vector2(rect.position.x + 8.0, rect.position.y + 14.0),
+		rect.size.x - 16.0,
+		int(label_layout.get("font_size", 9)),
+		6,
+		Color(text, alpha),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
 	if not target_name.is_empty():
-		draw_string(ThemeDB.fallback_font, Vector2(rect.position.x + 8.0, rect.position.y + 25.0), target_name.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x - 16.0), 7, Color(frame, 0.82 * alpha))
+		draw_fitted_line(
+			str(name_layout.get("text", target_name.to_upper())),
+			Vector2(rect.position.x + 8.0, rect.position.y + 25.0),
+			rect.size.x - 16.0,
+			int(name_layout.get("font_size", 7)),
+			5,
+			Color(frame, 0.82 * alpha),
+			HORIZONTAL_ALIGNMENT_CENTER
+		)
 
 
 func draw_dynamic_reload_hint() -> void:
@@ -209,8 +303,24 @@ func draw_dynamic_reload_hint() -> void:
 	var accent := profile_color("accent", "d49a45")
 	var cover := Rect2(548, 61, 78, 18)
 	draw_rect(cover, Color(fill, 1.0))
-	draw_string(ThemeDB.fallback_font, Vector2(cover.position.x, cover.position.y + 12.0), runtime_action_hint("reload_weapon", "G / RT"), HORIZONTAL_ALIGNMENT_RIGHT, int(cover.size.x - 4.0), 8, accent)
+	draw_fitted_line(
+		runtime_action_hint("reload_weapon", "G / RT"),
+		Vector2(cover.position.x, cover.position.y + 12.0),
+		cover.size.x - 4.0,
+		8,
+		5,
+		accent,
+		HORIZONTAL_ALIGNMENT_RIGHT
+	)
 
 
 func control_remapping_overlay_contract_ok() -> bool:
-	return presentation_overlay() != null and CONTROL_PANEL.size.x >= 480.0 and CONTROL_PANEL.size.y >= 300.0 and CONTROL_ROW_HEIGHT >= 17.0 and CONTROL_ROW_HEIGHT <= 20.0 and runtime_root() != null
+	return (
+		LocalisationLayout.localisation_layout_contract_ok()
+		and presentation_overlay() != null
+		and CONTROL_PANEL.size.x >= 480.0
+		and CONTROL_PANEL.size.y >= 300.0
+		and CONTROL_ROW_HEIGHT >= 17.0
+		and CONTROL_ROW_HEIGHT <= 20.0
+		and runtime_root() != null
+	)

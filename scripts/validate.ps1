@@ -66,6 +66,7 @@ try {
         @("Compile Sprite Animation runtime editors and tests", "res://tools/compile_sprite_animation_probe.gd"),
         @("Compile player settings controls storage presentation and tests", "res://tools/compile_player_settings_probe.gd"),
         @("Compile strict localisation catalogues runtime and tests", "res://tools/compile_localisation_probe.gd"),
+        @("Compile deterministic localisation layout utility and regressions", "res://tools/compile_localisation_layout_probe.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
         @("Compile host-authoritative co-op PvP runtime validators and tests", "res://tools/compile_multiplayer_probe.gd"),
         @("Smoke test canonical runtime scene composition", "res://tools/smoke_runtime_scene_contract.gd"),
@@ -73,6 +74,7 @@ try {
         @("Smoke test player settings crash recovery and modal freeze edges", "res://tools/smoke_player_settings_recovery_edges.gd"),
         @("Smoke test persistent keyboard and controller remapping", "res://tools/smoke_input_bindings.gd"),
         @("Smoke test strict localisation fallback pseudo locale and runtime switching", "res://tools/smoke_localisation.gd"),
+        @("Smoke test fixed-viewport localisation layout safety", "res://tools/smoke_localisation_layout.gd"),
         @("Validate campaign content", "res://tools/validate_content.gd"),
         @("Run deterministic campaign production audit", "res://tools/audit_campaigns.gd"),
         @("Smoke test meaningful temporal shift consequences", "res://tools/smoke_temporal_shift_audit.gd"),
@@ -147,7 +149,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, measured localisation layout with deterministic wrapping and ellipsis, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

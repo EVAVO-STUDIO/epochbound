@@ -81,6 +81,13 @@ The fallback fields remain required. Validation rejects a declared key when:
 
 New Campaign scaffolding writes a bound `localisation/core.json` containing title, subtitle and three intro messages without changing the campaign's original English copy.
 
+
+## Measured fixed-viewport layout
+
+The 640 by 360 runtime does not draw critical localised strings at unchecked fixed sizes. Title, campaign, introduction, HUD, Options, Controls and prompt surfaces use real Godot font measurement with authored preferred and minimum sizes. Blocks wrap inside declared line and height budgets; impossible single-line or block copy uses a visible deterministic ellipsis instead of silent clipping.
+
+The current English and pseudo-localised catalogues are measured in the permanent gate. Pseudo-localisation remains a development locale, but its expansion now proves the production layout path before human translations are authored. See [`LOCALISATION_LAYOUT_SAFETY.md`](LOCALISATION_LAYOUT_SAFETY.md) for the complete contract and deliberate boundaries.
+
 ## Strict validation
 
 Localisation fails closed before runtime or package promotion when:
@@ -157,4 +164,4 @@ The permanent gate proves:
 - live English-to-pseudo-to-English runtime switching;
 - control-label cache rebuild only at locale mutation boundaries;
 - staged package validation before promotion;
-- repository-wide content counts and exact-main schema `2.9` evidence through `localisationValidation`.
+- repository-wide content counts and exact-main schema `2.10` evidence through `localisationValidation` and `localisationLayoutValidation`.

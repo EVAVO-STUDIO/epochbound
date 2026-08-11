@@ -114,6 +114,7 @@ require(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_localisation_contract.py",
+        "python3 tools/check_localisation_layout_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_canonical_journey_contract.py",
         "python3 tools/check_long_form_progression_contract.py",
@@ -122,8 +123,9 @@ require(
         "python3 tools/check_multiplayer_host_restart_contract.py",
         "scripts/validate.ps1",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"localisationValidation": "passed"',
+        '"localisationLayoutValidation": "passed"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -169,14 +171,17 @@ require(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_localisation_contract.py",
+        "python3 tools/check_localisation_layout_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "compile_player_settings_probe.gd",
         "compile_localisation_probe.gd",
+        "compile_localisation_layout_probe.gd",
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
         "smoke_input_bindings.gd",
         "smoke_localisation.gd",
+        "smoke_localisation_layout.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_audio_mood_runtime.gd",
@@ -203,16 +208,19 @@ require(
         "python3 tools/check_runtime_scene_contract.py",
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_localisation_contract.py",
+        "python3 tools/check_localisation_layout_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_sprite_animation_contract.py",
         "compile_sprite_animation_probe.gd",
         "compile_player_settings_probe.gd",
         "compile_localisation_probe.gd",
+        "compile_localisation_layout_probe.gd",
         "compile_supply_region_probe.gd",
         "smoke_runtime_scene_contract.gd",
         "smoke_player_settings.gd",
         "smoke_input_bindings.gd",
         "smoke_localisation.gd",
+        "smoke_localisation_layout.gd",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_sprite_animation_runtime.gd",
@@ -234,12 +242,14 @@ require(
     [
         "compile_player_settings_probe.gd",
         "compile_localisation_probe.gd",
+        "compile_localisation_layout_probe.gd",
         "compile_supply_region_probe.gd",
         "compile_multiplayer_probe.gd",
         "smoke_player_settings.gd",
         "smoke_player_settings_recovery_edges.gd",
         "smoke_input_bindings.gd",
         "smoke_localisation.gd",
+        "smoke_localisation_layout.gd",
         "Smoke test warning-safe editor plugin icon resolution",
         "smoke_editor_plugin_icons.gd",
         "Trying to access a non-existing editor theme icon",
@@ -247,8 +257,11 @@ require(
         "leak-free headless shutdown",
         "Smoke test persistent keyboard and controller remapping",
         "Compile strict localisation catalogues runtime and tests",
+        "Compile deterministic localisation layout utility and regressions",
         "Smoke test strict localisation fallback pseudo locale and runtime switching",
+        "Smoke test fixed-viewport localisation layout safety",
         "strict localisation with English fallback and pseudo-localisation",
+        "measured localisation layout",
         "smoke_supply_regions.gd",
         "smoke_supply_validation_edges.gd",
         "smoke_progression_affordability.gd",
@@ -415,6 +428,7 @@ require(
         "smoke_player_settings_recovery_edges.gd",
         "smoke_input_bindings.gd",
         "smoke_localisation.gd",
+        "smoke_localisation_layout.gd",
     ],
 )
 
@@ -625,8 +639,24 @@ require(
         "epochbound_localisation_contract_passed",
         "placeholder parity",
         "schema-three",
-        '"schemaVersion": "2.9"',
+        '"schemaVersion": "2.10"',
         '"localisationValidation": "passed"',
+        '"localisationLayoutValidation": "passed"',
+    ],
+)
+
+localisation_layout_contract = read(
+    "localisation_layout_contract",
+    ROOT / "tools/check_localisation_layout_contract.py",
+)
+require(
+    "localisation_layout_contract",
+    localisation_layout_contract,
+    [
+        "epochbound_localisation_layout_contract_passed",
+        "real Godot font measurement",
+        "schema-2.10",
+        '"localisationLayoutValidation": "passed"',
     ],
 )
 
@@ -886,5 +916,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown, unexpected-host restart recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, strict localisation, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, strict localisation, measured localisation layout, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

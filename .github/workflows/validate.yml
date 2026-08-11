@@ -98,6 +98,9 @@ jobs:
       - name: Validate localisation integration contract
         run: python3 tools/check_localisation_contract.py
 
+      - name: Validate localisation layout integration contract
+        run: python3 tools/check_localisation_layout_contract.py
+
       - name: Validate regional supply integration contract
         run: python3 tools/check_supply_region_contract.py
 
@@ -196,7 +199,7 @@ jobs:
 
           # Receipt schema migrated from: "schemaVersion": "2.9"
           payload = {
-              "schemaVersion": "2.9",
+              "schemaVersion": "2.10",
               "repository": "EVAVO-STUDIO/epochbound",
               "candidateSha": os.environ["EXPECTED_SHA"],
               "godotVersion": "4.6.2",
@@ -204,6 +207,7 @@ jobs:
               "runtimeCompositionValidation": "passed",
               "playerSettingsValidation": "passed",
               "localisationValidation": "passed",
+              "localisationLayoutValidation": "passed",
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
               "longFormProgressionValidation": "passed",

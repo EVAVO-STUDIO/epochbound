@@ -1,0 +1,309 @@
+name: Temporary Archive Hideaway Stewardship Release
+
+on:
+  push:
+    branches:
+      - agent/hideaway-stewardship-validation
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: epochbound-temp-hideaway-stewardship-release
+  cancel-in-progress: false
+
+env:
+  BASE_SHA: acf0c725fcd8e586c7e01abe3f4fe065746bfb0a
+  PRODUCTION_BRANCH: agent/hideaway-stewardship-foundation
+  VERIFIED_BRANCH: agent/hideaway-stewardship-verified
+  GODOT_ARCHIVE: Godot_v4.6.2-stable_linux.x86_64.zip
+  GODOT_BINARY: Godot_v4.6.2-stable_linux.x86_64
+  GODOT_RELEASE_URL: https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  validate-publish-certify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out release controller
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Check out exact permanent candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main "${PRODUCTION_BRANCH}"
+          current_main="$(git rev-parse origin/main)"
+          [[ "${current_main}" == "${BASE_SHA}" ]] || {
+            echo "main moved from ${BASE_SHA} to ${current_main}; rebase the Hideaway slice" >&2
+            exit 1
+          }
+          candidate_sha="$(git rev-parse "origin/${PRODUCTION_BRANCH}")"
+          echo "CANDIDATE_SHA=${candidate_sha}" >> "${GITHUB_ENV}"
+          git checkout --detach "${candidate_sha}"
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+
+      - name: Verify exact permanent scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "${RUNNER_TEMP}/expected-files.txt" <<'FILES'
+          campaigns/epochbound_demo/hideaway_stewardship.json
+          docs/ARCHIVE_HIDEAWAY_STEWARDSHIP.md
+          src/content/hideaway_stewardship_validator.gd
+          src/game/hideaway_stewardship.gd
+          tools/check_hideaway_stewardship_contract.py
+          tools/compile_hideaway_stewardship_probe.gd
+          tools/smoke_hideaway_stewardship.gd
+          FILES
+          sed -i 's/^          //' "${RUNNER_TEMP}/expected-files.txt"
+          sort -u "${RUNNER_TEMP}/expected-files.txt" > "${RUNNER_TEMP}/expected-files-sorted.txt"
+          git diff --name-only "${BASE_SHA}" "${CANDIDATE_SHA}" | sort -u > "${RUNNER_TEMP}/candidate-files.txt"
+          diff -u "${RUNNER_TEMP}/expected-files-sorted.txt" "${RUNNER_TEMP}/candidate-files.txt"
+          test "$(wc -l < "${RUNNER_TEMP}/expected-files-sorted.txt")" -eq 7
+          git diff --check "${BASE_SHA}" "${CANDIDATE_SHA}"
+
+      - name: Run fail-closed Hideaway source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/check_hideaway_stewardship_contract.py
+          rm -rf tools/__pycache__
+          python3 tools/check_hideaway_stewardship_contract.py | tee "${RUNNER_TEMP}/hideaway-source-contract.log"
+          python3 -m json.tool campaigns/epochbound_demo/hideaway_stewardship.json >/dev/null
+
+      - name: Run all existing fail-closed source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/*.py
+          rm -rf tools/__pycache__
+          python3 tools/check_release_workflow_policy.py
+          for checker in tools/check_*_contract.py; do
+            python3 "$checker"
+          done
+
+      - name: Download and verify official Godot 4.6.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin .godot-download
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output .godot-download/SHA512-SUMS.txt \
+            "${GODOT_RELEASE_URL}/SHA512-SUMS.txt"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --retry-all-errors \
+            --output ".godot-download/${GODOT_ARCHIVE}" \
+            "${GODOT_RELEASE_URL}/${GODOT_ARCHIVE}"
+          grep -F "  ${GODOT_ARCHIVE}" .godot-download/SHA512-SUMS.txt \
+            > .godot-download/selected-SHA512-SUMS.txt
+          (cd .godot-download && sha512sum --check selected-SHA512-SUMS.txt)
+          unzip -q ".godot-download/${GODOT_ARCHIVE}" -d .godot-bin
+          mv ".godot-bin/${GODOT_BINARY}" .godot-bin/godot
+          chmod +x .godot-bin/godot
+          version="$(.godot-bin/godot --version)"
+          [[ "${version}" =~ ^4\.6\.2 ]] || {
+            echo "Unexpected Godot version: ${version}" >&2
+            exit 1
+          }
+          command -v pwsh >/dev/null || {
+            echo "PowerShell is required" >&2
+            exit 1
+          }
+          rm -rf .godot-download
+
+      - name: Compile Archive Hideaway stewardship model
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RUNNER_TEMP}/hideaway-compile.log"
+          set +e
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/compile_hideaway_stewardship_probe.gd 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Run Archive Hideaway stewardship regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RUNNER_TEMP}/hideaway-smoke.log"
+          set +e
+          timeout 90s .godot-bin/godot --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tools/smoke_hideaway_stewardship.gd 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq 'SCRIPT ERROR:|^ERROR:' "$log_file"; then exit 1; fi
+
+      - name: Run complete leak-free seventeen-system gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/full-validation.log"
+
+      - name: Run real ENet graceful reconnect and shutdown gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_loopback.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE" `
+            *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/multiplayer-loopback.log"
+
+      - name: Run real unexpected-host restart recovery gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "$env:GITHUB_WORKSPACE/scripts/validate_multiplayer_host_restart.ps1" `
+            -GodotExecutable "$env:GITHUB_WORKSPACE/.godot-bin/godot" `
+            -ProjectRoot "$env:GITHUB_WORKSPACE" `
+            *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/host-restart.log"
+
+      - name: Publish one clean fast-forward commit to main
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .godot-bin .godot-download .godot tools/__pycache__
+          git ls-files --others --exclude-standard -z -- '*.uid' | xargs -0 -r rm -f
+          tar -cf "${RUNNER_TEMP}/hideaway-production-files.tar" \
+            -T "${RUNNER_TEMP}/expected-files-sorted.txt"
+          git checkout -B hideaway-release origin/main
+          git clean -fdx
+          tar -xf "${RUNNER_TEMP}/hideaway-production-files.tar"
+          git add --pathspec-from-file="${RUNNER_TEMP}/expected-files-sorted.txt"
+          git diff --cached --check
+          git diff --cached --name-only | sort -u > "${RUNNER_TEMP}/published-files.txt"
+          diff -u "${RUNNER_TEMP}/expected-files-sorted.txt" "${RUNNER_TEMP}/published-files.txt"
+          git config user.name "EVAVO Release Agent"
+          git config user.email "evavo.studio@gmail.com"
+          git commit -m "feat: add Archive Hideaway stewardship foundation"
+          main_sha="$(git rev-parse HEAD)"
+          main_tree="$(git rev-parse HEAD^{tree})"
+          git push origin HEAD:refs/heads/main
+          echo "main_sha=${main_sha}" >> "${GITHUB_OUTPUT}"
+          echo "main_tree=${main_tree}" >> "${GITHUB_OUTPUT}"
+
+      - name: Dispatch and require exact-main validation
+        id: certify
+        shell: bash
+        env:
+          MAIN_SHA: ${{ steps.publish.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          gh workflow run validate.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f expected_sha="$MAIN_SHA" \
+            -f request_source=evavo-development-studio
+          run_id=""
+          for attempt in $(seq 1 120); do
+            run_id="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow validate.yml \
+              --branch main \
+              --event workflow_dispatch \
+              --limit 30 \
+              --json databaseId,headSha,status,conclusion \
+              --jq '.[] | select(.headSha == env.MAIN_SHA) | .databaseId' \
+              | head -n 1)"
+            if [ -n "$run_id" ]; then
+              status="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json status --jq .status)"
+              if [ "$status" = "completed" ]; then
+                conclusion="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)"
+                [ "$conclusion" = "success" ] || {
+                  gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log-failed || true
+                  exit 1
+                }
+                break
+              fi
+            fi
+            sleep 10
+          done
+          [ -n "$run_id" ] || { echo "Exact-main validation run was not found" >&2; exit 1; }
+          status="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json status --jq .status)"
+          [ "$status" = "completed" ] || { echo "Exact-main validation timed out" >&2; exit 1; }
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          mkdir -p "${RUNNER_TEMP}/exact-main-artifact"
+          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --dir "${RUNNER_TEMP}/exact-main-artifact"
+
+      - name: Write release record and align verified branch
+        shell: bash
+        env:
+          MAIN_SHA: ${{ steps.publish.outputs.main_sha }}
+          MAIN_TREE: ${{ steps.publish.outputs.main_tree }}
+          EXACT_RUN_ID: ${{ steps.certify.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          paths = [
+              line.strip()
+              for line in Path(os.environ["RUNNER_TEMP"], "expected-files-sorted.txt")
+              .read_text(encoding="utf-8")
+              .splitlines()
+              if line.strip()
+          ]
+          payload = {
+              "schemaVersion": "hideaway-stewardship-1.0",
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "sourceCandidateSha": os.environ["CANDIDATE_SHA"],
+              "mainSha": os.environ["MAIN_SHA"],
+              "mainTree": os.environ["MAIN_TREE"],
+              "godotVersion": "4.6.2",
+              "exactMainValidationRunId": int(os.environ["EXACT_RUN_ID"]),
+              "permanentFileCount": len(paths),
+              "permanentFiles": paths,
+              "hideawayStewardshipValidation": "passed",
+              "fullRegressionGate": "passed",
+              "multiplayerLoopback": "passed",
+              "hostRestartRecovery": "passed",
+              "designBoundary": "expedition refuge without chores or offline progress",
+          }
+          Path(os.environ["RUNNER_TEMP"], "epochbound-hideaway-stewardship-release.json").write_text(
+              json.dumps(payload, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          git push origin "${MAIN_SHA}:refs/heads/${VERIFIED_BRANCH}" --force
+          git push origin "${MAIN_SHA}:refs/heads/${PRODUCTION_BRANCH}" --force
+
+      - name: Upload complete release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-hideaway-stewardship-${{ steps.publish.outputs.main_sha }}
+          path: |
+            ${{ runner.temp }}/epochbound-hideaway-stewardship-release.json
+            ${{ runner.temp }}/exact-main-artifact
+            ${{ runner.temp }}/hideaway-source-contract.log
+            ${{ runner.temp }}/hideaway-compile.log
+            ${{ runner.temp }}/hideaway-smoke.log
+            ${{ runner.temp }}/full-validation.log
+            ${{ runner.temp }}/multiplayer-loopback.log
+            ${{ runner.temp }}/host-restart.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epochbound-hideaway-stewardship-failure-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/*.log
+            ${{ runner.temp }}/expected-files-sorted.txt
+            ${{ runner.temp }}/candidate-files.txt
+          if-no-files-found: warn
+          retention-days: 7

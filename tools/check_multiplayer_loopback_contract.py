@@ -267,6 +267,7 @@ require(
         '"bellweather_crossing"',
         '"clockwood_edge"',
         '"museum_underworks"',
+        '"archive_hideaway"',
         '"verdant"',
         '"ashen"',
         'register the second ally',
@@ -277,7 +278,7 @@ require(
         'Snapshot transport must reject checksum mismatches before decompression',
         'deterministic_noise(8192)',
         'fail closed when compressed state exceeds its wire budget',
-        'all six reference map/era states',
+        'all eight reference map/era states',
     ],
 )
 forbid(
@@ -421,7 +422,7 @@ require(
         'real ENet UDP sockets',
         'bounded input retries',
         'SHA-256 wire envelope',
-        'six reference map/era states',
+        'eight reference map/era states',
         'remote input reaches host authority',
         'authoritative snapshots reach both clients',
         'host-acknowledged graceful leave',
@@ -448,7 +449,7 @@ print("epochbound_multiplayer_loopback_contract_passed")
 print("- three independent Godot processes use real ENet UDP sockets")
 print("- bounded repeated input RPCs make host-authority evidence deterministic")
 print("- SHA-256 envelopes reject malformed packets before object-free Deflate decompression")
-print("- all six reference map and era states fit the 1,200-byte wire budget at maximum authored party size")
+print("- all eight reference map and era states fit the 1,200-byte wire budget at maximum authored party size")
 print("- the ally completes a host-acknowledged leave and same-process reconnect while the invader remains online")
 print("- authoritative snapshots reach both clients and restore the ally after reconnect")
 print("- the host collects unique shutdown acknowledgements before reliable commit and host-directed peer disconnect")

@@ -19,7 +19,7 @@ func _initialize() -> void:
 func run_smoke_test() -> void:
 	var validation := Validator.validate_campaign_path(CAMPAIGN_PATH)
 	check(validation.get("ok", false), "Reference campaign must pass Companion Studio validation.")
-	check(int(validation.get("cue_count", 0)) == 4, "Reference campaign must expose four companion cues.")
+	check(int(validation.get("cue_count", 0)) == 6, "Reference campaign must expose six companion cues including two Hideaway observations.")
 	check(int(validation.get("zone_count", 0)) == 3, "Companion validation must retain the three encounter zones.")
 
 	var campaign_result := Repository.read_json(CAMPAIGN_PATH)

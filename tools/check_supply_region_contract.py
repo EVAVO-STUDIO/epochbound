@@ -138,7 +138,7 @@ require(
     "src/presentation_runtime_current.gd",
     runtime,
     [
-        'extends "res://src/presentation_runtime_base.gd"',
+        'extends "res://src/hideaway_runtime.gd"',
         'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
         'SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")',
         'SupplyModel = preload("res://src/game/supply_region_model.gd")',

@@ -44,7 +44,7 @@ func run_smoke_test() -> void:
 		check("weapon = brass_hook" in (starting_equipment_value as TextEdit).text, "Campaign form must expose starting weapon equipment.")
 		check("tool = museum_flashlight" in (starting_equipment_value as TextEdit).text, "Campaign form must expose starting tool equipment.")
 	if gate_map_selector_value is OptionButton:
-		check((gate_map_selector_value as OptionButton).item_count == 3, "Gate editor must discover all three reference maps.")
+		check((gate_map_selector_value as OptionButton).item_count == 4, "Gate editor must discover all four reference maps.")
 
 	studio.call("select_equipment_id", "museum_coat")
 	check(str(studio.get("selected_equipment_id")) == "museum_coat", "Equipment form must select a stable item ID.")

@@ -53,6 +53,19 @@
 			"allow_invaders": false,
 			"friendly_fire": false,
 			"ally_spawn": {"x": 136, "y": 238}
+		},
+		{
+			"id": "archive_hideaway_sanctuary",
+			"display_name": "Archive Hideaway Sanctuary",
+			"map_id": "archive_hideaway",
+			"kind": "sanctuary",
+			"priority": 0,
+			"bounds": {"left": 32, "right": 608, "top": 96, "bottom": 328},
+			"available_eras": [],
+			"allow_allies": true,
+			"allow_invaders": false,
+			"friendly_fire": false,
+			"ally_spawn": {"x": 286, "y": 246}
 		}
 	]
 }

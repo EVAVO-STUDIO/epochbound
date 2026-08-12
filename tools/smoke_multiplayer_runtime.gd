@@ -19,7 +19,7 @@ func _initialize() -> void:
 func run_test() -> void:
 	var validation := CompleteValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(bool(validation.get("ok", false)), "Reference campaign must pass complete multiplayer-aware validation.")
-	check(int(validation.get("multiplayer_area_count", 0)) == 4, "Reference campaign must expose four authored online areas.")
+	check(int(validation.get("multiplayer_area_count", 0)) == 5, "Reference campaign must expose five authored online areas.")
 	check(int(validation.get("pvp_area_count", 0)) == 1, "Reference campaign must expose one intentional invasion area.")
 
 	var runtime := await instantiate_runtime()

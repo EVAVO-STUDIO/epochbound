@@ -1,0 +1,955 @@
+{
+	"schema_version": 1,
+	"id": "archive_hideaway",
+	"display_name": "Archive Hideaway",
+	"canvas": {
+		"width": 640,
+		"height": 360,
+		"grid_size": 16
+	},
+	"bounds": {
+		"left": 32,
+		"right": 608,
+		"top": 96,
+		"bottom": 328
+	},
+	"spawns": {
+		"player": {
+			"x": 320,
+			"y": 236
+		},
+		"companion": {
+			"x": 286,
+			"y": 246
+		}
+	},
+	"eras": [
+		{
+			"id": "verdant",
+			"display_name": "Verdant Refuge",
+			"palette": {
+				"sky": "2d3029",
+				"ground": "4b4032",
+				"accent": "d4aa63",
+				"structure": "705b43"
+			},
+			"landmarks": [
+				{
+					"id": "archive_shelves",
+					"kind": "ruin",
+					"position": {
+						"x": 322,
+						"y": 142
+					},
+					"size": 92
+				},
+				{
+					"id": "hearth_stone",
+					"kind": "well",
+					"position": {
+						"x": 166,
+						"y": 210
+					},
+					"size": 24
+				}
+			]
+		},
+		{
+			"id": "ashen",
+			"display_name": "Ashen Refuge",
+			"palette": {
+				"sky": "241e1b",
+				"ground": "3b3029",
+				"accent": "c9794b",
+				"structure": "5b4638"
+			},
+			"landmarks": [
+				{
+					"id": "archive_shelves",
+					"kind": "ruin",
+					"position": {
+						"x": 322,
+						"y": 142
+					},
+					"size": 92
+				},
+				{
+					"id": "hearth_stone",
+					"kind": "well",
+					"position": {
+						"x": 166,
+						"y": 210
+					},
+					"size": 24
+				}
+			]
+		}
+	],
+	"terrain_palette": [
+		{
+			"id": "floor",
+			"display_name": "Old Timber",
+			"colors": {
+				"default": "4b4032",
+				"verdant": "514536",
+				"ashen": "3f322c"
+			},
+			"blocked": false
+		},
+		{
+			"id": "rug",
+			"display_name": "Worn Rug",
+			"colors": {
+				"default": "795d43",
+				"verdant": "856948",
+				"ashen": "684a3c"
+			},
+			"blocked": false
+		},
+		{
+			"id": "wall",
+			"display_name": "Archive Wall",
+			"colors": {
+				"default": "322a24",
+				"verdant": "3a3129",
+				"ashen": "2d2421"
+			},
+			"blocked": true
+		}
+	],
+	"terrain_cells": [],
+	"collision_cells": [],
+	"navigation_cells": [
+		{
+			"x": 10,
+			"y": 8,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 8,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 8,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 9,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 9,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 9,
+			"available_eras": []
+		},
+		{
+			"x": 7,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 8,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 9,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 11,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 12,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 13,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 14,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 15,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 16,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 17,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 18,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 20,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 21,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 22,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 23,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 24,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 25,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 26,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 28,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 29,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 30,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 31,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 32,
+			"y": 10,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 11,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 11,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 11,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 12,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 12,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 12,
+			"available_eras": []
+		},
+		{
+			"x": 7,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 8,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 9,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 11,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 12,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 13,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 14,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 15,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 16,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 17,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 18,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 20,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 21,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 22,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 23,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 24,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 25,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 26,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 28,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 29,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 30,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 31,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 32,
+			"y": 13,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 14,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 14,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 14,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 15,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 15,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 15,
+			"available_eras": []
+		},
+		{
+			"x": 7,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 8,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 9,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 11,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 12,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 13,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 14,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 15,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 16,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 17,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 18,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 20,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 21,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 22,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 23,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 24,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 25,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 26,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 28,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 29,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 30,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 31,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 32,
+			"y": 16,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 17,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 17,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 17,
+			"available_eras": []
+		},
+		{
+			"x": 7,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 8,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 9,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 11,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 12,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 13,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 14,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 15,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 16,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 17,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 18,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 20,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 21,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 22,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 23,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 24,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 25,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 26,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 28,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 29,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 30,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 31,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 32,
+			"y": 18,
+			"available_eras": []
+		},
+		{
+			"x": 10,
+			"y": 19,
+			"available_eras": []
+		},
+		{
+			"x": 19,
+			"y": 19,
+			"available_eras": []
+		},
+		{
+			"x": 27,
+			"y": 19,
+			"available_eras": []
+		}
+	],
+	"recovery_anchors": [
+		{
+			"id": "door_recovery",
+			"position": {
+				"x": 116,
+				"y": 280
+			},
+			"available_eras": []
+		},
+		{
+			"id": "central_recovery",
+			"position": {
+				"x": 320,
+				"y": 236
+			},
+			"available_eras": []
+		}
+	],
+	"entry_points": [
+		{
+			"id": "start",
+			"player": {
+				"x": 320,
+				"y": 236
+			},
+			"companion": {
+				"x": 286,
+				"y": 246
+			},
+			"available_eras": []
+		},
+		{
+			"id": "from_bellweather",
+			"player": {
+				"x": 112,
+				"y": 280
+			},
+			"companion": {
+				"x": 144,
+				"y": 292
+			},
+			"available_eras": []
+		}
+	],
+	"layers": [
+		{
+			"id": "ground",
+			"type": "terrain",
+			"z_index": 0,
+			"visible": true,
+			"locked": false
+		},
+		{
+			"id": "objects",
+			"type": "objects",
+			"z_index": 10,
+			"visible": true,
+			"locked": false
+		},
+		{
+			"id": "collision",
+			"type": "collision",
+			"z_index": 20,
+			"visible": true,
+			"locked": false
+		},
+		{
+			"id": "navigation",
+			"type": "navigation",
+			"z_index": 30,
+			"visible": true,
+			"locked": false
+		}
+	],
+	"object_placements": [],
+	"interactions": [
+		{
+			"id": "archive_hearth_station",
+			"kind": "hideaway_facility",
+			"facility_id": "archive_hearth",
+			"position": {
+				"x": 168,
+				"y": 218
+			},
+			"radius": 44,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "Dry cedar waits beside the Archive Hearth. Morrow has already claimed the warmest flagstone.",
+				"ashen": "Cinders tap the chimney stone, but the Archive Hearth keeps one clean pocket of heat.",
+				"default": "The Archive Hearth can turn salvage and a safe return into preparation."
+			}
+		},
+		{
+			"id": "sheltered_coldframe_station",
+			"kind": "hideaway_facility",
+			"facility_id": "sheltered_coldframe",
+			"position": {
+				"x": 300,
+				"y": 182
+			},
+			"radius": 44,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "The Sheltered Coldframe holds hardy leaves gathered between expeditions, not a chore calendar.",
+				"ashen": "The panes are filmed with ash; a few stubborn medicinal leaves still hold their colour.",
+				"default": "The Sheltered Coldframe preserves a small reserve for the road."
+			}
+		},
+		{
+			"id": "salvage_workbench_station",
+			"kind": "hideaway_facility",
+			"facility_id": "salvage_workbench",
+			"position": {
+				"x": 438,
+				"y": 218
+			},
+			"radius": 46,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "Brass teeth, leather wraps and bent museum fittings wait in careful little rows.",
+				"ashen": "The Salvage Workbench smells of hot metal. Every useful piece has been cleaned twice.",
+				"default": "The Salvage Workbench turns recovered scraps into expedition readiness."
+			}
+		},
+		{
+			"id": "morrows_corner_station",
+			"kind": "hideaway_facility",
+			"facility_id": "morrows_corner",
+			"position": {
+				"x": 314,
+				"y": 274
+			},
+			"radius": 46,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "Morrow's blanket, bowl and chewed leather strap make this corner more home than museum.",
+				"ashen": "Morrow sleeps lightly here, one ear turned toward the impossible weather outside.",
+				"default": "Morrow's Corner is a place to settle before asking him to face the road again."
+			}
+		}
+	],
+	"connections": [
+		{
+			"id": "return_to_bellweather",
+			"position": {
+				"x": 72,
+				"y": 288
+			},
+			"radius": 30,
+			"target_map": "bellweather_crossing",
+			"target_entry": "from_hideaway",
+			"target_era": "same",
+			"trigger": "interact",
+			"available_eras": []
+		}
+	],
+	"encounter_zones": [],
+	"companion_cues": [
+		{
+			"id": "morrow_settles_verdant",
+			"kind": "clue",
+			"position": {
+				"x": 314,
+				"y": 274
+			},
+			"reveal_radius": 26,
+			"message": "Morrow circles his blanket twice, sighs, and finally lets the road leave his shoulders.",
+			"reward": 0,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"verdant"
+			],
+			"state_key": "hideaway:companion:settles:verdant"
+		},
+		{
+			"id": "morrow_listens_ashen",
+			"kind": "clue",
+			"position": {
+				"x": 314,
+				"y": 274
+			},
+			"reveal_radius": 26,
+			"message": "Morrow rests his chin on the blanket but keeps listening to the cinders beyond the door.",
+			"reward": 0,
+			"visible_before_discovery": false,
+			"available_eras": [
+				"ashen"
+			],
+			"state_key": "hideaway:companion:listens:ashen"
+		}
+	]
+}

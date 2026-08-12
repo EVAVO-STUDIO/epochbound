@@ -1,4 +1,4 @@
-extends "res://src/presentation_runtime_base.gd"
+extends "res://src/hideaway_runtime.gd"
 
 const PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")
 const ControlsPlayerSettingsStore = preload("res://src/game/player_settings_store.gd")

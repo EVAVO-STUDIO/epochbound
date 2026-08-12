@@ -31,7 +31,7 @@ func run_smoke_test() -> void:
 	if cinematic_list_value is ItemList:
 		check((cinematic_list_value as ItemList).item_count == 3, "Reference campaign must expose three cinematics in the editor.")
 	if map_selector_value is OptionButton:
-		check((map_selector_value as OptionButton).item_count == 3, "Cinematic map selector must expose all three reference maps.")
+		check((map_selector_value as OptionButton).item_count == 4, "Cinematic map selector must expose all four reference maps.")
 
 	studio.call("select_cinematic_id", "storm_door_opening")
 	check(str(studio.get("selected_cinematic_id")) == "storm_door_opening", "Editor must select a stable cinematic ID.")

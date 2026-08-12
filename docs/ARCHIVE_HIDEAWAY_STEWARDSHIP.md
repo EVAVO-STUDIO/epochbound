@@ -29,6 +29,6 @@ The useful life-simulation influence is the feeling of returning to a familiar p
 
 This foundation does not add hunger, thirst, forced sleep, watering schedules, crop maintenance, offline growth, wall-clock deliveries, facility decay, or punishment for staying away. Those systems would turn the refuge into an obligation and conflict with Epochbound's action-RPG cadence.
 
-## Next integration boundary
+## Live runtime bridge
 
-The model is deliberately isolated from campaign save and map-transition authority in this release. A later runtime bridge can start expeditions when the player leaves the authored Hideaway map, record a return on re-entry, publish facility interactions, and consume preparation effects through existing combat, supply and companion systems. Keeping that bridge separate makes the state contract testable before it can affect a live campaign.
+The stewardship model is now connected to the authored `archive_hideaway` map. Leaving the refuge starts one active-play expedition, returning after at least 90 seconds awards bounded salvage and a preparation opportunity, and the four facilities are visible interaction points. `INTERACT` prepares a restored facility while `ATTACK` restores or upgrades it. Preparation remains optional and one-use: recovery restores a bounded amount of health, warmth softens one incoming hit, repair strengthens one successful Eli strike, and Morrow focus strengthens one successful companion strike. The complete state lives inside the existing durable session payload and is semantically save-validated; online clients cannot mutate it, and the Hideaway itself is an invasion-free sanctuary.

@@ -46,7 +46,7 @@ The host must simultaneously prove that:
 
 ## All-map snapshot matrix
 
-A separate focused regression covers all six reference map/era states:
+A separate focused regression covers all eight reference map/era states:
 
 ```text
 Bellweather Crossing / Verdant

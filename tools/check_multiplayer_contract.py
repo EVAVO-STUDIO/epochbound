@@ -329,13 +329,15 @@ except json.JSONDecodeError as exc:
     errors.append(f"{area_path}: invalid JSON: {exc}")
 if area_catalog:
     areas = area_catalog.get("areas", [])
-    if len(areas) != 4:
-        errors.append(f"{area_path}: expected 4 authored areas, found {len(areas)}")
+    if len(areas) != 5:
+        errors.append(f"{area_path}: expected 5 authored areas, found {len(areas)}")
     pvp = [area for area in areas if area.get("kind") == "pvp"]
     if len(pvp) != 1 or pvp[0].get("id") != "clockwood_ashen_hunt":
         errors.append(f"{area_path}: expected one clockwood_ashen_hunt PvP area")
     if not any(area.get("kind") == "sanctuary" for area in areas):
         errors.append(f"{area_path}: expected at least one sanctuary")
+    if not any(area.get("id") == "archive_hideaway_sanctuary" and area.get("kind") == "sanctuary" for area in areas):
+        errors.append(f"{area_path}: Archive Hideaway must remain an explicit sanctuary")
     if any(area.get("kind") != "pvp" and area.get("allow_invaders") for area in areas):
         errors.append(f"{area_path}: non-PvP area allows invaders")
 

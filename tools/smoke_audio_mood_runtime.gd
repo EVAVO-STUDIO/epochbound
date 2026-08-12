@@ -20,8 +20,8 @@ func _initialize() -> void:
 func run_test() -> void:
 	var validation: Dictionary = AudioMoodValidator.validate_campaign_path(CAMPAIGN_PATH)
 	check(bool(validation.get("ok", false)), "Reference campaign must pass Audio and Mood validation.")
-	check(int(validation.get("audio_profile_count", 0)) == 7, "Reference campaign must expose seven audio profiles.")
-	check(int(validation.get("audio_binding_count", 0)) == 6, "Reference campaign must bind all six map/era contexts.")
+	check(int(validation.get("audio_profile_count", 0)) == 9, "Reference campaign must expose nine audio profiles.")
+	check(int(validation.get("audio_binding_count", 0)) == 8, "Reference campaign must bind all eight map/era contexts.")
 	var campaign_result: Dictionary = Repository.read_json(CAMPAIGN_PATH)
 	check(bool(campaign_result.get("ok", false)), "Reference campaign must load.")
 	var campaign: Dictionary = campaign_result.get("data", {})
@@ -32,6 +32,8 @@ func run_test() -> void:
 	var bindings: Array = bindings_value as Array if typeof(bindings_value) == TYPE_ARRAY else []
 	var profile: Dictionary = AudioMoodCatalog.resolved_profile(definitions, bindings, "clockwood_edge", "ashen")
 	check(str(profile.get("id", "")) == "clockwood_ashen", "Clockwood Ashen must resolve its authored audio profile.")
+	var hideaway_profile: Dictionary = AudioMoodCatalog.resolved_profile(definitions, bindings, "archive_hideaway", "verdant")
+	check(str(hideaway_profile.get("id", "")) == "hideaway_verdant", "Archive Hideaway must resolve its low-pressure authored audio profile.")
 	var packed: Resource = ResourceLoader.load(RUNTIME_SCENE, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
 	check(packed is PackedScene, "Audio-aware runtime scene must load.")
 	if not packed is PackedScene:

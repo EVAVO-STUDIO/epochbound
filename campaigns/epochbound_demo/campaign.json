@@ -19,7 +19,8 @@
 	"map_files": [
 		"maps/bellweather_crossing.json",
 		"maps/clockwood_edge.json",
-		"maps/museum_underworks.json"
+		"maps/museum_underworks.json",
+		"maps/archive_hideaway.json"
 	],
 	"object_files": ["objects/core.json"],
 	"item_files": ["items/core.json"],

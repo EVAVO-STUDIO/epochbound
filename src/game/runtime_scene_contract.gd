@@ -45,7 +45,11 @@ const REQUIRED_RUNTIME_METHODS := [
 	"input_binding_cache_contract_ok",
 	"control_bindings_contract_ok",
 	"presentation_overlay_handles_combat_readability",
-	"root_presentation_suppression_contract_ok"
+	"root_presentation_suppression_contract_ok",
+	"hideaway_runtime_contract_ok",
+	"hideaway_state_snapshot",
+	"upgrade_hideaway_facility",
+	"prepare_hideaway_facility"
 ]
 
 const REQUIRED_OVERLAY_METHODS := [

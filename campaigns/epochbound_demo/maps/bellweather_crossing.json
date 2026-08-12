@@ -566,6 +566,18 @@
 				"y": 286
 			},
 			"available_eras": []
+		},
+		{
+			"id": "from_hideaway",
+			"player": {
+				"x": 112,
+				"y": 288
+			},
+			"companion": {
+				"x": 144,
+				"y": 296
+			},
+			"available_eras": []
 		}
 	],
 	"layers": [
@@ -723,6 +735,19 @@
 				"illuminate_dark"
 			],
 			"blocked_dialogue": "The service stairs disappear into absolute darkness. Eli needs a dependable light before taking Morrow below."
+		},
+		{
+			"id": "west_to_hideaway",
+			"position": {
+				"x": 72,
+				"y": 288
+			},
+			"radius": 30,
+			"target_map": "archive_hideaway",
+			"target_entry": "from_bellweather",
+			"target_era": "same",
+			"trigger": "interact",
+			"available_eras": []
 		}
 	],
 	"encounter_zones": [

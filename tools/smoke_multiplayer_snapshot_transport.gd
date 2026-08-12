@@ -42,6 +42,18 @@ const SNAPSHOT_CASES := [
 		"era_id": "ashen",
 		"position": Vector2(136, 238),
 		"invader": false
+	},
+	{
+		"map_id": "archive_hideaway",
+		"era_id": "verdant",
+		"position": Vector2(286, 246),
+		"invader": false
+	},
+	{
+		"map_id": "archive_hideaway",
+		"era_id": "ashen",
+		"position": Vector2(286, 246),
+		"invader": false
 	}
 ]
 
@@ -283,7 +295,7 @@ func check(condition: bool, message: String) -> void:
 func finish() -> void:
 	if failures.is_empty():
 		print(
-			"Multiplayer snapshot transport matrix passed: all six reference map/era states and maximum authored parties fit the 1,200-byte wire budget; largest %s was %d -> %d bytes." % [
+			"Multiplayer snapshot transport matrix passed: all eight reference map/era states and maximum authored parties fit the 1,200-byte wire budget; largest %s was %d -> %d bytes." % [
 				maximum_context,
 				maximum_uncompressed_bytes,
 				maximum_wire_bytes

@@ -216,6 +216,30 @@
 				"movement_bob": 1.6,
 				"shadow_scale": 1.12
 			}
+		},
+		{
+			"id": "hideaway_verdant",
+			"display_name": "Archive Hideaway Verdant",
+			"palette": {
+				"ink": "14120f", "shadow": "29231c", "midtone": "675946", "light": "e2d3a7",
+				"accent": "d6a45a", "danger": "a24c42", "ui_fill": "17130f", "ui_frame": "b08d57", "ui_text": "f1e7cf"
+			},
+			"camera": {"follow_strength": 6.0, "deadzone": 26.0, "look_ahead": 8.0, "maximum_shake": 2.0},
+			"atmosphere": {"kind": "motes", "density": 10, "speed": 2.4, "opacity": 0.16},
+			"screen": {"scanline_alpha": 0.022, "vignette_alpha": 0.18, "dither_alpha": 0.045},
+			"actors": {"movement_bob": 1.1, "shadow_scale": 1.0}
+		},
+		{
+			"id": "hideaway_ashen",
+			"display_name": "Archive Hideaway Ashen",
+			"palette": {
+				"ink": "17110f", "shadow": "2e211d", "midtone": "60473b", "light": "d8b88f",
+				"accent": "c47749", "danger": "b64a3e", "ui_fill": "19120f", "ui_frame": "9d6848", "ui_text": "ead8c2"
+			},
+			"camera": {"follow_strength": 6.5, "deadzone": 24.0, "look_ahead": 8.0, "maximum_shake": 3.0},
+			"atmosphere": {"kind": "cinders", "density": 10, "speed": 4.0, "opacity": 0.18},
+			"screen": {"scanline_alpha": 0.026, "vignette_alpha": 0.24, "dither_alpha": 0.055},
+			"actors": {"movement_bob": 1.1, "shadow_scale": 1.04}
 		}
 	],
 	"bindings": [
@@ -224,6 +248,8 @@
 		{"map_id": "clockwood_edge", "era_id": "verdant", "profile_id": "clockwood_verdant"},
 		{"map_id": "clockwood_edge", "era_id": "ashen", "profile_id": "clockwood_ashen"},
 		{"map_id": "museum_underworks", "era_id": "verdant", "profile_id": "underworks_verdant"},
-		{"map_id": "museum_underworks", "era_id": "ashen", "profile_id": "underworks_ashen"}
+		{"map_id": "museum_underworks", "era_id": "ashen", "profile_id": "underworks_ashen"},
+		{"map_id": "archive_hideaway", "era_id": "verdant", "profile_id": "hideaway_verdant"},
+		{"map_id": "archive_hideaway", "era_id": "ashen", "profile_id": "hideaway_ashen"}
 	]
 }

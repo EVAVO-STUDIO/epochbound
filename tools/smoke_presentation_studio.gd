@@ -16,7 +16,7 @@ func run_test() -> void:
 	var profile_ids_value: Variant = studio.get("profile_ids")
 	check(profile_ids_value is PackedStringArray, "Presentation Studio must expose deterministic profile IDs.")
 	if profile_ids_value is PackedStringArray:
-		check((profile_ids_value as PackedStringArray).size() == 6, "Reference Presentation Studio must load six profiles.")
+		check((profile_ids_value as PackedStringArray).size() == 8, "Reference Presentation Studio must load eight profiles including both Hideaway eras.")
 	var profile: Dictionary = studio.call("profile_by_id", "clockwood_ashen")
 	check(str(profile.get("display_name", "")) == "Clockwood Ashen", "Presentation Studio must preserve authored profile names.")
 	var palette_value: Variant = profile.get("palette", {})

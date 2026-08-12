@@ -150,7 +150,7 @@ require(
     studio_smoke,
     [
         "all ten production probes",
-        "Temporal maps 3/3 authored",
+        "Temporal maps 4/4 authored",
         "Temporal outcomes",
     ],
 )

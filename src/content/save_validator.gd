@@ -9,6 +9,7 @@ const StoryCatalog = preload("res://src/content/story_catalog.gd")
 const StoryModel = preload("res://src/game/story_model.gd")
 const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const EquipmentModel = preload("res://src/game/equipment_model.gd")
+const HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")
 
 const ALLOWED_QUEST_STATUSES := [
 	StoryModel.STATUS_NOT_STARTED,
@@ -235,6 +236,9 @@ static func validate_session_state(payload: Dictionary, errors: Array[String], w
 	if typeof(value) != TYPE_DICTIONARY:
 		return
 	var state: Dictionary = value
+	if state.has("hideaway:stewardship"):
+		for code in HideawayStewardship.validate_state(state.get("hideaway:stewardship")):
+			errors.append("Save hideaway stewardship state is invalid: %s." % str(code))
 	for key_value in state.keys():
 		var key := str(key_value).strip_edges()
 		if key.is_empty():

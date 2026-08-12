@@ -196,7 +196,7 @@ require(
     "src/presentation_runtime_current.gd",
     runtime,
     [
-        'extends "res://src/presentation_runtime_base.gd"',
+        'extends "res://src/hideaway_runtime.gd"',
         'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
         "localised_control_action_label",
         "control_bindings_open",

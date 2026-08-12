@@ -472,6 +472,30 @@
 				"pause_duck": 0.13,
 				"crossfade_seconds": 1.0
 			}
+		},
+		{
+			"id": "hideaway_verdant",
+			"display_name": "Archive Hideaway Verdant",
+			"music": {
+				"tempo_bpm": 64.0, "root_midi": 45, "scale": [0, 2, 4, 7, 9],
+				"melody_steps": [0, -99, -99, 2, -99, 4, -99, -99, 3, -99, 2, -99, 0, -99, -99, -99],
+				"bass_steps": [0, -99, -99, -99, 3, -99, -99, -99, 4, -99, -99, -99, 2, -99, -99, -99],
+				"waveform": "triangle", "pulse_width": 0.4, "gain": 0.12, "combat_gain": 0.025
+			},
+			"ambience": {"kind": "room_tone", "gain": 0.045, "tone_hz": 48.0, "motion": 0.12},
+			"mix": {"menu_duck": 0.48, "cinematic_duck": 0.30, "pause_duck": 0.24, "crossfade_seconds": 1.1}
+		},
+		{
+			"id": "hideaway_ashen",
+			"display_name": "Archive Hideaway Ashen",
+			"music": {
+				"tempo_bpm": 60.0, "root_midi": 41, "scale": [0, 1, 3, 7, 8],
+				"melody_steps": [0, -99, 1, -99, -99, 3, -99, -99, 2, -99, 1, -99, 0, -99, -99, -99],
+				"bass_steps": [0, -99, -99, -99, 3, -99, -99, -99, 1, -99, -99, -99, 0, -99, -99, -99],
+				"waveform": "sine", "pulse_width": 0.5, "gain": 0.11, "combat_gain": 0.025
+			},
+			"ambience": {"kind": "room_tone", "gain": 0.05, "tone_hz": 39.0, "motion": 0.16},
+			"mix": {"menu_duck": 0.46, "cinematic_duck": 0.28, "pause_duck": 0.22, "crossfade_seconds": 1.15}
 		}
 	],
 	"bindings": [
@@ -504,6 +528,16 @@
 			"map_id": "museum_underworks",
 			"era_id": "ashen",
 			"profile_id": "underworks_ashen"
+		},
+		{
+			"map_id": "archive_hideaway",
+			"era_id": "verdant",
+			"profile_id": "hideaway_verdant"
+		},
+		{
+			"map_id": "archive_hideaway",
+			"era_id": "ashen",
+			"profile_id": "hideaway_ashen"
 		}
 	],
 	"boss_stems": [

@@ -150,7 +150,7 @@ require(
     "src/presentation_runtime_current.gd",
     presentation_adapter,
     [
-        'extends "res://src/presentation_runtime_base.gd"',
+        'extends "res://src/hideaway_runtime.gd"',
         "supply_runtime_contract_ok",
         "CompleteValidator.validate_profile",
     ],

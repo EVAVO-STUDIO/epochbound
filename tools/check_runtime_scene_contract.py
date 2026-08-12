@@ -86,12 +86,26 @@ require(
     ],
 )
 
+hideaway_runtime = read("src/hideaway_runtime.gd")
+require(
+    "src/hideaway_runtime.gd",
+    hideaway_runtime,
+    [
+        'extends "res://src/presentation_runtime_base.gd"',
+        'HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")',
+        'hideaway_runtime_contract_ok',
+        'hideaway_state_snapshot',
+        'upgrade_hideaway_facility',
+        'prepare_hideaway_facility',
+    ],
+)
+
 runtime = read("src/presentation_runtime_current.gd")
 require(
     "src/presentation_runtime_current.gd",
     runtime,
     [
-        'extends "res://src/presentation_runtime_base.gd"',
+        'extends "res://src/hideaway_runtime.gd"',
         'PlayerInputBindings = preload("res://src/game/player_input_bindings.gd")',
         'CompleteValidator = preload("res://src/content/complete_content_validator.gd")',
         'func localisation_changed()',

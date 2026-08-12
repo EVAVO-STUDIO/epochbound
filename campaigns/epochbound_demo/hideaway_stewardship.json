@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "hideaway_id": "archive_hideaway",
+  "minimum_expedition_seconds": 90,
+  "max_banked_returns": 3,
+  "max_salvage": 99,
+  "facilities": [
+    {
+      "id": "archive_hearth",
+      "display_name": "Archive Hearth",
+      "effect_id": "warmth",
+      "upgrade_costs": [2, 4, 7]
+    },
+    {
+      "id": "sheltered_coldframe",
+      "display_name": "Sheltered Coldframe",
+      "effect_id": "recovery",
+      "upgrade_costs": [2, 5, 8]
+    },
+    {
+      "id": "salvage_workbench",
+      "display_name": "Salvage Workbench",
+      "effect_id": "repair",
+      "upgrade_costs": [3, 5, 8]
+    },
+    {
+      "id": "morrows_corner",
+      "display_name": "Morrow's Corner",
+      "effect_id": "companion_focus",
+      "upgrade_costs": [2, 4, 6]
+    }
+  ],
+  "design_boundaries": {
+    "active_play_only": true,
+    "offline_progress": false,
+    "hunger": false,
+    "thirst": false,
+    "forced_sleep": false,
+    "daily_chore_calendar": false
+  }
+}

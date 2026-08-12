@@ -42,14 +42,16 @@ func _init() -> void:
 	_assert(int(state["prepared"]["warmth"]) == 0, "consumption must decrement exactly once")
 	var encoded := JSON.stringify(state)
 	var decoded: Variant = JSON.parse_string(encoded)
+	_assert(decoded is Dictionary, "JSON round trip must restore a dictionary")
 	_assert(MODEL.validate_state(decoded).is_empty(), "JSON round trip must preserve valid durable state")
-	var fractional := decoded.duplicate(true)
+	var restored: Dictionary = decoded as Dictionary
+	var fractional: Dictionary = restored.duplicate(true)
 	fractional["banked_returns"] = 1.5
 	_assert(not MODEL.validate_state(fractional).is_empty(), "fractional durable counters must fail closed")
-	var unchanged := state.duplicate(true)
+	var unchanged: Dictionary = state.duplicate(true)
 	var later_time := 999999.0
 	_assert(state == unchanged and later_time > float(state["last_return_play_time"]), "time alone must not create offline progress")
-	var invalid := state.duplicate(true)
+	var invalid: Dictionary = state.duplicate(true)
 	invalid["banked_returns"] = 4
 	_assert(not MODEL.validate_state(invalid).is_empty(), "out-of-range return bank must fail closed")
 	print("Archive Hideaway stewardship smoke test passed: short trips cannot farm rewards; qualifying active-play expeditions bank bounded opportunities; salvage restores facilities; preparations consume exactly once; JSON numeric round trips remain strict; and elapsed time alone grants nothing.")

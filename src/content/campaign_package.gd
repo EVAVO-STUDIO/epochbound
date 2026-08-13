@@ -4,6 +4,7 @@ extends RefCounted
 const Repository = preload("res://src/content/campaign_repository.gd")
 const CampaignValidator = preload("res://src/content/cinematic_validator.gd")
 const LocalisationValidator = preload("res://src/content/localisation_validator.gd")
+const HideawayValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 
 const PACKAGE_SCHEMA := 1
 const PACKAGE_FORMAT := "epochbound-campaign"
@@ -254,17 +255,23 @@ static func install_package(package_path: String, replace_existing: bool = false
 	var staged_campaign_path := staging.path_join("campaign.json")
 	var validation := CampaignValidator.validate_campaign_path(staged_campaign_path)
 	var localisation_validation := LocalisationValidator.validate_localisation_only(staged_campaign_path)
+	var hideaway_validation := HideawayValidator.validate_hideaway_only(staged_campaign_path)
 	var validation_errors: Array[String] = []
 	var validation_warnings: Array[String] = []
 	append_messages(validation_errors, validation.get("errors", []))
 	append_messages(validation_errors, localisation_validation.get("errors", []))
+	append_messages(validation_errors, hideaway_validation.get("errors", []))
 	append_messages(validation_warnings, validation.get("warnings", []))
 	append_messages(validation_warnings, localisation_validation.get("warnings", []))
+	append_messages(validation_warnings, hideaway_validation.get("warnings", []))
 	if not validation_errors.is_empty():
 		remove_tree(staging)
 		return {"ok": false, "errors": validation_errors, "warnings": validation_warnings}
 	validation["localisation_locale_count"] = localisation_validation.get("localisation_locale_count", 0)
 	validation["localisation_message_count"] = localisation_validation.get("campaign_localisation_message_count", 0)
+	validation["hideaway_campaign_count"] = hideaway_validation.get("hideaway_campaign_count", 0)
+	validation["hideaway_facility_count"] = hideaway_validation.get("hideaway_facility_count", 0)
+	validation["hideaway_memento_count"] = hideaway_validation.get("hideaway_memento_count", 0)
 	var backup := target + ".backup"
 	remove_tree(backup)
 	if DirAccess.open(target) != null and DirAccess.rename_absolute(target, backup) != OK:

@@ -1,41 +1,190 @@
 {
-  "schema_version": 1,
-  "hideaway_id": "archive_hideaway",
-  "minimum_expedition_seconds": 90,
-  "max_banked_returns": 3,
-  "max_salvage": 99,
-  "facilities": [
-    {
-      "id": "archive_hearth",
-      "display_name": "Archive Hearth",
-      "effect_id": "warmth",
-      "upgrade_costs": [2, 4, 7]
-    },
-    {
-      "id": "sheltered_coldframe",
-      "display_name": "Sheltered Coldframe",
-      "effect_id": "recovery",
-      "upgrade_costs": [2, 5, 8]
-    },
-    {
-      "id": "salvage_workbench",
-      "display_name": "Salvage Workbench",
-      "effect_id": "repair",
-      "upgrade_costs": [3, 5, 8]
-    },
-    {
-      "id": "morrows_corner",
-      "display_name": "Morrow's Corner",
-      "effect_id": "companion_focus",
-      "upgrade_costs": [2, 4, 6]
-    }
-  ],
-  "design_boundaries": {
-    "active_play_only": true,
-    "offline_progress": false,
-    "hunger": false,
-    "thirst": false,
-    "forced_sleep": false,
-    "daily_chore_calendar": false
-  }
+	"schema_version": 1,
+	"hideaway_id": "archive_hideaway",
+	"minimum_expedition_seconds": 90,
+	"max_banked_returns": 3,
+	"max_salvage": 99,
+	"facilities": [
+		{
+			"id": "archive_hearth",
+			"display_name": "Archive Hearth",
+			"effect_id": "warmth",
+			"upgrade_costs": [
+				2,
+				4,
+				7
+			]
+		},
+		{
+			"id": "sheltered_coldframe",
+			"display_name": "Sheltered Coldframe",
+			"effect_id": "recovery",
+			"upgrade_costs": [
+				2,
+				5,
+				8
+			]
+		},
+		{
+			"id": "salvage_workbench",
+			"display_name": "Salvage Workbench",
+			"effect_id": "repair",
+			"upgrade_costs": [
+				3,
+				5,
+				8
+			]
+		},
+		{
+			"id": "morrows_corner",
+			"display_name": "Morrow's Corner",
+			"effect_id": "companion_focus",
+			"upgrade_costs": [
+				2,
+				4,
+				6
+			]
+		}
+	],
+	"design_boundaries": {
+		"active_play_only": true,
+		"offline_progress": false,
+		"hunger": false,
+		"thirst": false,
+		"forced_sleep": false,
+		"daily_chore_calendar": false,
+		"memento_unlocks_derived": true,
+		"memento_rewards": false
+	},
+	"memento_shelf": {
+		"interaction_id": "memento_shelf_station",
+		"kind": "hideaway_memento_shelf",
+		"maximum_slots": 6
+	},
+	"mementos": [
+		{
+			"id": "first_safe_return",
+			"display_name_key": "ui.hideaway.memento.first_safe_return.name",
+			"display_name": "First Safe Return",
+			"symbol": "strap",
+			"conditions": [
+				{
+					"type": "return_count_at_least",
+					"value": 1
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.first_safe_return.verdant",
+				"ashen": "ui.hideaway.memento.first_safe_return.ashen"
+			},
+			"reflection": {
+				"verdant": "The frayed pack strap still smells of rain. Morrow noses it once, then settles because this time the road ended here.",
+				"ashen": "The same strap is grey with cinder. Morrow keeps it beneath one paw, as if holding the doorway in place."
+			}
+		},
+		{
+			"id": "well_name_rubbing",
+			"display_name_key": "ui.hideaway.memento.well_name_rubbing.name",
+			"display_name": "Well Name Rubbing",
+			"symbol": "rubbing",
+			"conditions": [
+				{
+					"type": "state_equals",
+					"key": "bellweather:companion:well_name_scent",
+					"value": "discovered"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.well_name_rubbing.verdant",
+				"ashen": "ui.hideaway.memento.well_name_rubbing.ashen"
+			},
+			"reflection": {
+				"verdant": "Charcoal catches the letters the old well remembered. Eli cannot read the name aloud without hearing water below the floor.",
+				"ashen": "The rubbing has darkened, but the buried name is still legible. Morrow’s ears lift before Eli reaches the final letter."
+			}
+		},
+		{
+			"id": "absent_chime_case",
+			"display_name_key": "ui.hideaway.memento.absent_chime_case.name",
+			"display_name": "Absent Chime Lens Case",
+			"symbol": "lens_case",
+			"conditions": [
+				{
+					"type": "state_equals",
+					"key": "story:missing_hour:completed",
+					"value": true
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.absent_chime_case.verdant",
+				"ashen": "ui.hideaway.memento.absent_chime_case.ashen"
+			},
+			"reflection": {
+				"verdant": "The empty case clicks once when the missing hour passes nearby. The archivist said empty things can still keep their shape.",
+				"ashen": "Ash gathers around the case but never settles inside it. Something about the restored hour still refuses to burn."
+			}
+		},
+		{
+			"id": "quieted_ash_mark",
+			"display_name_key": "ui.hideaway.memento.quieted_ash_mark.name",
+			"display_name": "Quieted Ash Mark",
+			"symbol": "ash_mark",
+			"conditions": [
+				{
+					"type": "state_equals",
+					"key": "bellweather:zone:east_ash_hunt",
+					"value": "cleared"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.quieted_ash_mark.verdant",
+				"ashen": "ui.hideaway.memento.quieted_ash_mark.ashen"
+			},
+			"reflection": {
+				"verdant": "A resin-dark strip from the eastern path hangs without moving. Morrow no longer hears the brass rhythm inside it.",
+				"ashen": "The strip is warm to the touch, but the hunt has gone silent. Morrow sleeps through the hour it once prowled."
+			}
+		},
+		{
+			"id": "released_accession_plate",
+			"display_name_key": "ui.hideaway.memento.released_accession_plate.name",
+			"display_name": "Released Accession Plate",
+			"symbol": "accession_plate",
+			"conditions": [
+				{
+					"type": "state_equals",
+					"key": "underworks:boss:sentinel",
+					"value": "defeated"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.released_accession_plate.verdant",
+				"ashen": "ui.hideaway.memento.released_accession_plate.ashen"
+			},
+			"reflection": {
+				"verdant": "The Sentinel’s brass plate no longer lists a prisoner. The missing accession line ends with a clean, impossible blank.",
+				"ashen": "Heat warped the plate, yet the released line remains readable. The gallery gave something back."
+			}
+		},
+		{
+			"id": "archive_haven_key",
+			"display_name_key": "ui.hideaway.memento.archive_haven_key.name",
+			"display_name": "Archive Haven Key",
+			"symbol": "haven_key",
+			"conditions": [
+				{
+					"type": "refuge_tier_at_least",
+					"value": "haven"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.memento.archive_haven_key.verdant",
+				"ashen": "ui.hideaway.memento.archive_haven_key.ashen"
+			},
+			"reflection": {
+				"verdant": "The key opens no lock. Eli keeps it anyway, because every repaired corner now answers when he calls this place home.",
+				"ashen": "The key is blackened and warm. The Hideaway holds against the cinders, and Morrow finally sleeps with both ears down."
+			}
+		}
+	]
 }

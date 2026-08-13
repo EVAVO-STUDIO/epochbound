@@ -4,6 +4,7 @@ extends RefCounted
 const Repository = preload("res://src/content/campaign_repository.gd")
 const BaseValidator = preload("res://src/content/cinematic_validator.gd")
 const CampaignPackage = preload("res://src/content/campaign_package.gd")
+const HideawayValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 
 const CHANNELS := ["development", "alpha", "beta", "release"]
 const SEMVER_PATTERN := "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
@@ -34,17 +35,21 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var base_report := BaseValidator.validate_campaign_path(campaign_path)
 	var release_report := validate_release_only(campaign_path)
+	var hideaway_report := HideawayValidator.validate_hideaway_only(campaign_path)
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
 	append_messages(errors, release_report.get("errors", []))
+	append_messages(errors, hideaway_report.get("errors", []))
 	append_messages(warnings, base_report.get("warnings", []))
 	append_messages(warnings, release_report.get("warnings", []))
+	append_messages(warnings, hideaway_report.get("warnings", []))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
 	output["warnings"] = warnings
 	output["release_count"] = release_report.get("release_count", 0)
+	output["hideaway_memento_count"] = hideaway_report.get("hideaway_memento_count", 0)
 	return output
 
 

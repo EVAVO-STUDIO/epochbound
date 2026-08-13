@@ -115,6 +115,7 @@ require(
         "python3 tools/check_player_settings_contract.py",
         "python3 tools/check_localisation_contract.py",
         "python3 tools/check_localisation_layout_contract.py",
+        "python3 tools/check_hideaway_memento_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_canonical_journey_contract.py",
         "python3 tools/check_long_form_progression_contract.py",
@@ -126,6 +127,7 @@ require(
         '"schemaVersion": "2.10"',
         '"localisationValidation": "passed"',
         '"localisationLayoutValidation": "passed"',
+        '"hideawayMementoValidation": "passed"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -260,6 +262,10 @@ require(
         "Compile deterministic localisation layout utility and regressions",
         "Smoke test strict localisation fallback pseudo locale and runtime switching",
         "Smoke test fixed-viewport localisation layout safety",
+        "Validate Archive Hideaway memento contract",
+        "python3 tools/check_hideaway_memento_contract.py",
+        "Compile Archive Hideaway memento model and shelf",
+        "Smoke test Archive Hideaway journey mementos",
         "strict localisation with English fallback and pseudo-localisation",
         "measured localisation layout",
         "smoke_supply_regions.gd",
@@ -645,6 +651,21 @@ require(
     ],
 )
 
+hideaway_memento_contract = read(
+    "hideaway_memento_contract",
+    ROOT / "tools/check_hideaway_memento_contract.py",
+)
+require(
+    "hideaway_memento_contract",
+    hideaway_memento_contract,
+    [
+        "epochbound_hideaway_memento_contract_passed",
+        "six authored memories",
+        "cannot grant or consume resources",
+        '"hideawayMementoValidation": "passed"',
+    ],
+)
+
 localisation_layout_contract = read(
     "localisation_layout_contract",
     ROOT / "tools/check_localisation_layout_contract.py",
@@ -916,5 +937,5 @@ print("- remote actions and reusable workflows are immutable")
 print("- raw controls fail before sanitization, temporary writes or backup rotation")
 print("- host-authoritative co-op, authored PvP areas and save isolation are guarded before Godot execution")
 print("- player-local multiplayer connection setup, atomic recovery, acknowledged host shutdown, unexpected-host restart recovery and save isolation are guarded before Godot execution")
-print("- runtime composition, player settings, persistent controls, strict localisation, measured localisation layout, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
+print("- runtime composition, player settings, persistent controls, strict localisation, measured localisation layout, Archive Hideaway mementos, warning-safe editor icons, leak-free headless cleanup, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, repeated long-form progression, warning-free reference readiness, progression affordability, deterministic economy balance and regional supply entrypoints are guarded before Godot execution")
 print("- validation cannot publish, deploy, reset, clean or push")

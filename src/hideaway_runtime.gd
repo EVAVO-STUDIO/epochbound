@@ -1,6 +1,8 @@
 extends "res://src/presentation_runtime_base.gd"
 
 const HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")
+const HideawayMementoModel = preload("res://src/game/hideaway_memento_model.gd")
+const HideawayStewardshipValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 const HideawayEncounterModel = preload("res://src/game/encounter_model.gd")
 
 const HIDEAWAY_MAP_ID := "archive_hideaway"
@@ -9,13 +11,48 @@ const HIDEAWAY_WARMTH_GUARD_KEY := "hideaway:buff:warmth_guard"
 const HIDEAWAY_REPAIR_STRIKE_KEY := "hideaway:buff:repair_strike"
 const HIDEAWAY_COMPANION_FOCUS_KEY := "hideaway:buff:companion_focus"
 const HIDEAWAY_FACILITY_KIND := "hideaway_facility"
+const HIDEAWAY_MEMENTO_KIND := "hideaway_memento_shelf"
 const HIDEAWAY_BONUS_DAMAGE := 2
 const HIDEAWAY_WARMTH_REDUCTION := 2
 const HIDEAWAY_STATUS_WIDTH := 464.0
 
+var hideaway_definition: Dictionary = {}
+var hideaway_definition_key := ""
+var hideaway_memento_cursor := 0
+
+
+func load_campaign(path: String) -> bool:
+	var validation := HideawayStewardshipValidator.validate_hideaway_only(path)
+	if not bool(validation.get("ok", false)):
+		load_error = format_errors(validation.get("errors", []))
+		push_error("Archive Hideaway definition validation failed: %s" % load_error)
+		if campaign.is_empty():
+			load_fallback_campaign()
+		return false
+	var loaded := super.load_campaign(path)
+	if not loaded:
+		return false
+	cache_hideaway_definition(path, validation.get("definition", {}))
+	return true
+
+
+func load_fallback_campaign() -> void:
+	hideaway_definition = {}
+	hideaway_definition_key = ""
+	hideaway_memento_cursor = 0
+	super.load_fallback_campaign()
+
+
+func apply_save_profile(profile: Dictionary, target_campaign_path: String) -> bool:
+	var restored := super.apply_save_profile(profile, target_campaign_path)
+	if restored:
+		refresh_hideaway_definition()
+	return restored
+
 
 func begin_game() -> void:
 	super.begin_game()
+	refresh_hideaway_definition()
 	if not session_state.has(HIDEAWAY_STATE_KEY):
 		store_hideaway_state(HideawayStewardship.default_state(play_time_seconds))
 
@@ -69,6 +106,10 @@ func update_game(delta: float) -> void:
 
 func interact() -> void:
 	if is_in_archive_hideaway():
+		var shelf := nearest_hideaway_memento_shelf()
+		if not shelf.is_empty():
+			inspect_hideaway_memento()
+			return
 		var facility := nearest_hideaway_facility()
 		if not facility.is_empty():
 			prepare_hideaway_facility(StringName(str(facility.get("facility_id", ""))))
@@ -125,12 +166,115 @@ func draw_game() -> void:
 	if not is_in_archive_hideaway():
 		return
 	draw_hideaway_facilities()
+	draw_hideaway_memento_shelf()
 	draw_hideaway_status()
 
 
 func hideaway_has_durable_authority() -> bool:
 	var online := get_node_or_null("MultiplayerSession")
 	return online == null or str(online.get("mode")) != "client"
+
+
+func cache_hideaway_definition(path: String, value: Variant) -> void:
+	hideaway_definition_key = "%s|%s" % [path, str(campaign.get("id", ""))]
+	hideaway_definition = (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else {}
+	hideaway_memento_cursor = 0
+
+
+func refresh_hideaway_definition() -> void:
+	var key := "%s|%s" % [campaign_path, str(campaign.get("id", ""))]
+	if key == hideaway_definition_key:
+		return
+	if campaign_path.is_empty():
+		cache_hideaway_definition(campaign_path, {})
+		return
+	var report := HideawayStewardshipValidator.validate_hideaway_only(campaign_path)
+	if not bool(report.get("ok", false)):
+		push_error("Archive Hideaway definition refresh failed: %s" % format_errors(report.get("errors", [])))
+		cache_hideaway_definition(campaign_path, {})
+		return
+	cache_hideaway_definition(campaign_path, report.get("definition", {}))
+
+
+func hideaway_definition_snapshot() -> Dictionary:
+	refresh_hideaway_definition()
+	return hideaway_definition.duplicate(true)
+
+
+func unlocked_hideaway_mementos() -> Array:
+	return HideawayMementoModel.unlocked_entries(
+		hideaway_definition_snapshot(),
+		session_state,
+		hideaway_state_snapshot()
+	)
+
+
+func hideaway_memento_summary() -> Dictionary:
+	var definition := hideaway_definition_snapshot()
+	var entries_value: Variant = definition.get("mementos", [])
+	var total := (entries_value as Array).size() if typeof(entries_value) == TYPE_ARRAY else 0
+	var slots := HideawayMementoModel.shelf_slots(definition)
+	var unlocked := unlocked_hideaway_mementos()
+	return {
+		"unlocked": mini(unlocked.size(), slots),
+		"total": mini(total, slots),
+		"slots": slots,
+	}
+
+
+func nearest_hideaway_memento_shelf() -> Dictionary:
+	if not is_in_archive_hideaway():
+		return {}
+	var definition := hideaway_definition_snapshot()
+	var expected_id := HideawayMementoModel.shelf_interaction_id(definition)
+	if expected_id.is_empty():
+		return {}
+	for value in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var interaction: Dictionary = value
+		if (
+			str(interaction.get("id", "")) != expected_id
+			or str(interaction.get("kind", "")) != HIDEAWAY_MEMENTO_KIND
+			or not MapModel.available_in_era(interaction, current_era_id)
+		):
+			continue
+		var position := CampaignRepository.data_to_vector(interaction.get("position"))
+		if player.distance_to(position) <= float(interaction.get("radius", 32.0)):
+			return interaction
+	return {}
+
+
+func inspect_hideaway_memento() -> Dictionary:
+	var unlocked := unlocked_hideaway_mementos()
+	if unlocked.is_empty():
+		hideaway_memento_cursor = 0
+		dialogue = localise(
+			"ui.hideaway.memento.none",
+			"The shelf is waiting for something worth carrying home."
+		)
+		return {}
+	hideaway_memento_cursor = posmod(hideaway_memento_cursor, unlocked.size())
+	var entry: Dictionary = unlocked[hideaway_memento_cursor]
+	hideaway_memento_cursor = (hideaway_memento_cursor + 1) % unlocked.size()
+	var name := hideaway_memento_name(entry)
+	var reflection := hideaway_memento_reflection(entry)
+	dialogue = name if reflection.is_empty() else "%s\n%s" % [name, reflection]
+	return entry.duplicate(true)
+
+
+func hideaway_memento_name(entry: Dictionary) -> String:
+	return localise(
+		str(entry.get("display_name_key", "")),
+		str(entry.get("display_name", "Memento"))
+	)
+
+
+func hideaway_memento_reflection(entry: Dictionary) -> String:
+	return localise(
+		HideawayMementoModel.reflection_key(entry, current_era_id),
+		HideawayMementoModel.reflection_fallback(entry, current_era_id)
+	)
 
 
 func hideaway_return_message(returned: Dictionary, state: Dictionary) -> String:
@@ -423,6 +567,78 @@ func first_damaged_enemy(before: Dictionary) -> int:
 	return -1
 
 
+func hideaway_memento_visual_descriptor(entry: Dictionary, slot_index: int) -> Dictionary:
+	var symbol := str(entry.get("symbol", ""))
+	return {
+		"id": str(entry.get("id", "")),
+		"symbol": symbol,
+		"signature": "%s:%d" % [symbol, slot_index],
+		"slot_index": maxi(0, slot_index),
+		"unlocked": HideawayMementoModel.SYMBOL_IDS.has(symbol),
+	}
+
+
+func draw_hideaway_memento_shelf() -> void:
+	var definition := hideaway_definition_snapshot()
+	var shelf_id := HideawayMementoModel.shelf_interaction_id(definition)
+	var slots := HideawayMementoModel.shelf_slots(definition)
+	if shelf_id.is_empty() or slots <= 0:
+		return
+	var shelf: Dictionary = {}
+	for value in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var interaction: Dictionary = value
+		if str(interaction.get("id", "")) == shelf_id and str(interaction.get("kind", "")) == HIDEAWAY_MEMENTO_KIND:
+			shelf = interaction
+			break
+	if shelf.is_empty():
+		return
+	var position := CampaignRepository.data_to_vector(shelf.get("position")) - camera_offset()
+	var accent := palette_color("accent", "d4aa63")
+	var structure := palette_color("structure", "705b43")
+	var width := float(slots * 10 + 10)
+	draw_rect(Rect2(position + Vector2(-width * 0.5, -12), Vector2(width, 25)), Color(structure.r, structure.g, structure.b, 0.88), true)
+	draw_rect(Rect2(position + Vector2(-width * 0.5, -12), Vector2(width, 25)), accent, false, 1.5)
+	draw_line(position + Vector2(-width * 0.5 + 4, 8), position + Vector2(width * 0.5 - 4, 8), accent, 1.5)
+	var unlocked := unlocked_hideaway_mementos()
+	for slot_index in range(slots):
+		var slot_position := position + Vector2(-float(slots - 1) * 5.0 + slot_index * 10.0, 1)
+		draw_rect(Rect2(slot_position + Vector2(-4, -7), Vector2(8, 14)), Color(0.05, 0.045, 0.04, 0.7), true)
+		if slot_index < unlocked.size():
+			var entry: Dictionary = unlocked[slot_index]
+			draw_hideaway_memento_symbol(slot_position, str(entry.get("symbol", "")), accent)
+		else:
+			draw_circle(slot_position, 1.2, Color(accent.r, accent.g, accent.b, 0.28), true)
+	if not nearest_hideaway_memento_shelf().is_empty():
+		draw_rect(Rect2(position + Vector2(-width * 0.5 - 2, -14), Vector2(width + 4, 29)), Color(accent.r, accent.g, accent.b, 0.5), false, 1.0)
+
+
+func draw_hideaway_memento_symbol(position: Vector2, symbol: String, accent: Color) -> void:
+	match symbol:
+		"strap":
+			draw_arc(position, 4.0, -PI * 0.7, PI * 0.7, 8, accent, 1.4)
+		"rubbing":
+			draw_rect(Rect2(position + Vector2(-3, -5), Vector2(6, 10)), Color("d8c7a4"), true)
+			draw_line(position + Vector2(-2, -2), position + Vector2(2, -2), Color("4b4032"), 1.0)
+			draw_line(position + Vector2(-2, 1), position + Vector2(2, 1), Color("4b4032"), 1.0)
+		"lens_case":
+			draw_circle(position, 3.8, accent, false, 1.4)
+			draw_line(position + Vector2(2, 3), position + Vector2(4, 5), accent, 1.2)
+		"ash_mark":
+			draw_line(position + Vector2(-3, -5), position + Vector2(3, 5), Color("c9794b"), 2.0)
+			draw_line(position + Vector2(2, -4), position + Vector2(-2, 4), Color("6d5144"), 1.0)
+		"accession_plate":
+			draw_rect(Rect2(position + Vector2(-4, -3), Vector2(8, 6)), Color("b98a4f"), true)
+			draw_line(position + Vector2(-2, 0), position + Vector2(2, 0), Color("43372d"), 1.0)
+		"haven_key":
+			draw_circle(position + Vector2(-2, -1), 2.5, accent, false, 1.2)
+			draw_line(position, position + Vector2(5, 4), accent, 1.5)
+			draw_line(position + Vector2(3, 2), position + Vector2(3, 5), accent, 1.0)
+		_:
+			draw_circle(position, 2.0, accent, false, 1.0)
+
+
 func hideaway_facility_visual_descriptor(
 	facility_id: StringName,
 	level: int
@@ -626,6 +842,7 @@ func draw_hideaway_status() -> void:
 		}
 	)
 	draw_fitted_line(header, Vector2(88, 305), HIDEAWAY_STATUS_WIDTH, 9, 5, Color("ead9b7"), HORIZONTAL_ALIGNMENT_CENTER)
+	var shelf := nearest_hideaway_memento_shelf()
 	var facility := nearest_hideaway_facility()
 	var detail := localise(
 		"ui.hideaway.status.restoration",
@@ -638,7 +855,21 @@ func draw_hideaway_status() -> void:
 		}
 	)
 	var controls := localise("ui.hideaway.status.ready", "RETURN TO THE ROAD WHEN READY")
-	if not facility.is_empty():
+	if not shelf.is_empty():
+		var mementos := hideaway_memento_summary()
+		detail = localise(
+			"ui.hideaway.status.mementos",
+			"MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD",
+			{
+				"unlocked": int(mementos.get("unlocked", 0)),
+				"total": int(mementos.get("total", 0)),
+			}
+		)
+		controls = localise(
+			"ui.hideaway.controls.mementos",
+			"INTERACT REMEMBER   •   NOTHING IS CONSUMED"
+		)
+	elif not facility.is_empty():
 		var facility_id := StringName(str(facility.get("facility_id", "")))
 		detail = hideaway_facility_status_text(state, facility_id)
 		controls = hideaway_facility_controls_text(state, facility_id)
@@ -654,6 +885,9 @@ func hideaway_runtime_contract_ok() -> bool:
 		and HIDEAWAY_BONUS_DAMAGE == 2
 		and HIDEAWAY_WARMTH_REDUCTION == 2
 		and HIDEAWAY_STATUS_WIDTH == 464.0
+		and HIDEAWAY_MEMENTO_KIND == HideawayMementoModel.SHELF_KIND
+		and HideawayMementoModel.memento_contract_ok()
 		and not HideawayStewardship.refuge_summary(state).is_empty()
+		and (hideaway_definition_snapshot().is_empty() or HideawayStewardshipValidator.validate_definition(hideaway_definition_snapshot()).is_empty())
 		and str(hideaway_facility_visual_descriptor(&"archive_hearth", 3).get("signature", "")) == "chimney_glow"
 	)

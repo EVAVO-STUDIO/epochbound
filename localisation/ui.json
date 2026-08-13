@@ -371,6 +371,69 @@
 		},
 		"ui.title.quit": {
 			"en": "QUIT"
+		},
+		"ui.hideaway.memento.first_safe_return.name": {
+			"en": "First Safe Return"
+		},
+		"ui.hideaway.memento.first_safe_return.verdant": {
+			"en": "The frayed pack strap still smells of rain. Morrow noses it once, then settles because this time the road ended here."
+		},
+		"ui.hideaway.memento.first_safe_return.ashen": {
+			"en": "The same strap is grey with cinder. Morrow keeps it beneath one paw, as if holding the doorway in place."
+		},
+		"ui.hideaway.memento.well_name_rubbing.name": {
+			"en": "Well Name Rubbing"
+		},
+		"ui.hideaway.memento.well_name_rubbing.verdant": {
+			"en": "Charcoal catches the letters the old well remembered. Eli cannot read the name aloud without hearing water below the floor."
+		},
+		"ui.hideaway.memento.well_name_rubbing.ashen": {
+			"en": "The rubbing has darkened, but the buried name is still legible. Morrow’s ears lift before Eli reaches the final letter."
+		},
+		"ui.hideaway.memento.absent_chime_case.name": {
+			"en": "Absent Chime Lens Case"
+		},
+		"ui.hideaway.memento.absent_chime_case.verdant": {
+			"en": "The empty case clicks once when the missing hour passes nearby. The archivist said empty things can still keep their shape."
+		},
+		"ui.hideaway.memento.absent_chime_case.ashen": {
+			"en": "Ash gathers around the case but never settles inside it. Something about the restored hour still refuses to burn."
+		},
+		"ui.hideaway.memento.quieted_ash_mark.name": {
+			"en": "Quieted Ash Mark"
+		},
+		"ui.hideaway.memento.quieted_ash_mark.verdant": {
+			"en": "A resin-dark strip from the eastern path hangs without moving. Morrow no longer hears the brass rhythm inside it."
+		},
+		"ui.hideaway.memento.quieted_ash_mark.ashen": {
+			"en": "The strip is warm to the touch, but the hunt has gone silent. Morrow sleeps through the hour it once prowled."
+		},
+		"ui.hideaway.memento.released_accession_plate.name": {
+			"en": "Released Accession Plate"
+		},
+		"ui.hideaway.memento.released_accession_plate.verdant": {
+			"en": "The Sentinel’s brass plate no longer lists a prisoner. The missing accession line ends with a clean, impossible blank."
+		},
+		"ui.hideaway.memento.released_accession_plate.ashen": {
+			"en": "Heat warped the plate, yet the released line remains readable. The gallery gave something back."
+		},
+		"ui.hideaway.memento.archive_haven_key.name": {
+			"en": "Archive Haven Key"
+		},
+		"ui.hideaway.memento.archive_haven_key.verdant": {
+			"en": "The key opens no lock. Eli keeps it anyway, because every repaired corner now answers when he calls this place home."
+		},
+		"ui.hideaway.memento.archive_haven_key.ashen": {
+			"en": "The key is blackened and warm. The Hideaway holds against the cinders, and Morrow finally sleeps with both ears down."
+		},
+		"ui.hideaway.memento.none": {
+			"en": "The shelf is waiting for something worth carrying home."
+		},
+		"ui.hideaway.status.mementos": {
+			"en": "MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD"
+		},
+		"ui.hideaway.controls.mementos": {
+			"en": "INTERACT REMEMBER   •   NOTHING IS CONSUMED"
 		}
 	}
 }

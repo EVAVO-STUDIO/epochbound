@@ -36,6 +36,17 @@ This is presentation derived from already validated state, not a second progress
 
 The three fixed Hideaway status lines now expose the current refuge tier, salvage and return-bank caps, total restoration, exact next facility cost and exact prepared charge capacity. Upgrade, preparation and failure dialogue uses the same values. A qualifying return reports both actual stored deltas, so a full return bank truthfully reports zero new opportunities just as a full salvage store reports zero new salvage.
 
+
+## Journey memento shelf
+
+The eastern shelf now reflects existing journey milestones rather than adding another progression currency. Six authored mementos appear from the first safe return, Morrow's well-name discovery, the Missing Hour, the quieted Ash Hunt, the Sentinel's defeat and the completed Archive Haven.
+
+Each memory has Verdant and Ashen reflection copy plus a deterministic shelf symbol. Standing near the shelf shows the current unlocked count, and the normal interact action cycles through available entries in authored order.
+
+Nothing is consumed. Inspection spends no salvage or return opportunity, grants no item or combat effect, and writes no new save flag. Availability is derived from the campaign and stewardship state already protected by existing save validation.
+
+Read [`ARCHIVE_HIDEAWAY_MEMENTOS.md`](ARCHIVE_HIDEAWAY_MEMENTOS.md) for the authored entries, strict condition schema, package boundary and explicit exclusions.
+
 ## Truthful return feedback
 
 A return below the 90-second active-play threshold now explains how many active-play seconds were still required. Qualifying returns report only the salvage actually stored, so a player at 98 salvage sees one recovered salvage when the authored 99 cap is reached rather than an overstated theoretical award. Return summaries, facility results, preparation feedback, status text and host-authority notices resolve through the strict localisation catalogue. The two fixed Hideaway status lines use measured font fitting inside their 464-pixel panel budget.

@@ -167,6 +167,10 @@ for required_key in [
     "ui.hideaway.facility.archive_hearth",
     "ui.hideaway.failure.unrestored",
     "ui.hideaway.warmth.absorb",
+    "ui.hideaway.memento.first_safe_return.name",
+    "ui.hideaway.memento.archive_haven_key.ashen",
+    "ui.hideaway.status.mementos",
+    "ui.hideaway.controls.mementos",
 ]:
     if required_key not in ui_messages:
         errors.append(f"localisation/ui.json: missing {required_key}")
@@ -220,6 +224,8 @@ require(
         'LocalisationValidator.validate_localisation_only(path)',
         'localisation_locale_count',
         'localisation_message_count',
+        'HideawayValidator.validate_hideaway_only',
+        'hideaway_memento_count',
     ],
 )
 package = read("src/content/campaign_package.gd")

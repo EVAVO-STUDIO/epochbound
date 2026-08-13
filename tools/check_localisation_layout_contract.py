@@ -186,6 +186,8 @@ require(
         '"ui.hideaway.status.restoration"',
         '"ui.hideaway.status.facility.active"',
         '"ui.hideaway.status.facility.complete"',
+        '"ui.hideaway.status.mementos"',
+        '"ui.hideaway.controls.mementos"',
         '"width": 464.0',
         "fit_single_line",
         "fit_block",

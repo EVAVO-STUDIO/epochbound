@@ -900,6 +900,21 @@
 				"ashen": "Morrow sleeps lightly here, one ear turned toward the impossible weather outside.",
 				"default": "Morrow's Corner is a place to settle before asking him to face the road again."
 			}
+		},
+		{
+			"id": "memento_shelf_station",
+			"kind": "hideaway_memento_shelf",
+			"position": {
+				"x": 526,
+				"y": 174
+			},
+			"radius": 44,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "A narrow shelf holds the things Eli and Morrow carried home instead of selling or leaving behind.",
+				"ashen": "Cinder settles around the shelf, never over the small objects that still remember the road.",
+				"default": "The memento shelf records what the journey changed without turning memory into currency."
+			}
 		}
 	],
 	"connections": [

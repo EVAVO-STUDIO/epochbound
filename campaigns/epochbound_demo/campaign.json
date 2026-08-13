@@ -22,18 +22,43 @@
 		"maps/museum_underworks.json",
 		"maps/archive_hideaway.json"
 	],
-	"object_files": ["objects/core.json"],
-	"item_files": ["items/core.json"],
-	"recipe_files": ["recipes/core.json"],
-	"story_files": ["story/core.json"],
-	"capability_files": ["capabilities/core.json"],
-	"economy_files": ["economy/core.json"],
-	"cinematic_files": ["cinematics/core.json"],
-	"presentation_files": ["presentation/core.json"],
-	"audio_files": ["audio/core.json"],
-	"animation_files": ["animation/core.json"],
-	"multiplayer_files": ["multiplayer/core.json"],
-	"localisation_files": ["localisation/core.json"],
+	"hideaway_stewardship_file": "hideaway_stewardship.json",
+	"object_files": [
+		"objects/core.json"
+	],
+	"item_files": [
+		"items/core.json"
+	],
+	"recipe_files": [
+		"recipes/core.json"
+	],
+	"story_files": [
+		"story/core.json"
+	],
+	"capability_files": [
+		"capabilities/core.json"
+	],
+	"economy_files": [
+		"economy/core.json"
+	],
+	"cinematic_files": [
+		"cinematics/core.json"
+	],
+	"presentation_files": [
+		"presentation/core.json"
+	],
+	"audio_files": [
+		"audio/core.json"
+	],
+	"animation_files": [
+		"animation/core.json"
+	],
+	"multiplayer_files": [
+		"multiplayer/core.json"
+	],
+	"localisation_files": [
+		"localisation/core.json"
+	],
 	"multiplayer": {
 		"enabled": true,
 		"transport": "enet",
@@ -47,9 +72,18 @@
 		"friendly_fire": false
 	},
 	"equipment_slots": [
-		{"id": "weapon", "display_name": "Weapon"},
-		{"id": "body", "display_name": "Body"},
-		{"id": "tool", "display_name": "Tool"}
+		{
+			"id": "weapon",
+			"display_name": "Weapon"
+		},
+		{
+			"id": "body",
+			"display_name": "Body"
+		},
+		{
+			"id": "tool",
+			"display_name": "Tool"
+		}
 	],
 	"starting_equipment": {
 		"weapon": "brass_hook",
@@ -65,13 +99,30 @@
 		"allow_manual_save_in_combat": false
 	},
 	"starting_inventory": [
-		{"item_id": "museum_tonic", "quantity": 1},
-		{"item_id": "brass_filings", "quantity": 1},
-		{"item_id": "brass_hook", "quantity": 1},
-		{"item_id": "museum_coat", "quantity": 1},
-		{"item_id": "museum_flashlight", "quantity": 1}
+		{
+			"item_id": "museum_tonic",
+			"quantity": 1
+		},
+		{
+			"item_id": "brass_filings",
+			"quantity": 1
+		},
+		{
+			"item_id": "brass_hook",
+			"quantity": 1
+		},
+		{
+			"item_id": "museum_coat",
+			"quantity": 1
+		},
+		{
+			"item_id": "museum_flashlight",
+			"quantity": 1
+		}
 	],
-	"starting_recipes": ["ember_salve_recipe"],
+	"starting_recipes": [
+		"ember_salve_recipe"
+	],
 	"starting_quests": [],
 	"intro": [
 		"1997. A summer storm erased the power\nand opened a door beneath Bellweather Museum.",
@@ -84,11 +135,19 @@
 		"campaign.epochbound_demo.intro.03"
 	],
 	"actors": {
-		"player": {"name": "ELI", "max_health": 32},
+		"player": {
+			"name": "ELI",
+			"max_health": 32
+		},
 		"companion": {
 			"name": "MORROW",
 			"max_health": 24,
-			"commands": ["follow", "stay", "seek", "guard"],
+			"commands": [
+				"follow",
+				"stay",
+				"seek",
+				"guard"
+			],
 			"follow_distance": 34,
 			"guard_distance": 24,
 			"recovery_distance": 300,

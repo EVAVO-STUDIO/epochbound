@@ -29,6 +29,8 @@ require(runtime_path, runtime, [
     'extends "res://src/presentation_runtime_base.gd"',
     'HIDEAWAY_MAP_ID := "archive_hideaway"',
     'HIDEAWAY_STATE_KEY := "hideaway:stewardship"',
+    'HIDEAWAY_MEMENTO_KIND := "hideaway_memento_shelf"',
+    'HideawayMementoModel = preload("res://src/game/hideaway_memento_model.gd")',
     'HideawayStewardship.begin_expedition',
     'HideawayStewardship.record_return',
     'upgrade_hideaway_facility',
@@ -45,6 +47,10 @@ require(runtime_path, runtime, [
     'ui.hideaway.status.overview',
     'ui.hideaway.status.restoration',
     'hideaway_facility_visual_descriptor',
+    'hideaway_memento_visual_descriptor',
+    'draw_hideaway_memento_shelf',
+    'inspect_hideaway_memento',
+    'ui.hideaway.status.mementos',
     'hideaway_tier_name',
     'draw_fitted_line',
     'hideaway_runtime_contract_ok',
@@ -137,7 +143,7 @@ for path, tokens in {
     "tools/smoke_audio_mood_runtime.gd": ["nine audio profiles", "all eight map/era contexts"],
     "tools/smoke_multiplayer_runtime.gd": ["five authored online areas"],
     "tools/smoke_multiplayer_snapshot_transport.gd": ["archive_hideaway", "all eight reference map/era states"],
-    "tools/smoke_hideaway_runtime.gd": ["Archive Hideaway runtime smoke passed", "Fractional Hideaway durable state", "Fractional Hideaway one-use counters", "remaining active-play requirement", "qps-ploc", "archive_hideaway_sanctuary"],
+    "tools/smoke_hideaway_runtime.gd": ["Archive Hideaway runtime smoke passed", "Fractional Hideaway durable state", "Fractional Hideaway one-use counters", "remaining active-play requirement", "first safe-return memento", "unlock all six mementos without new saved flags", "qps-ploc", "archive_hideaway_sanctuary"],
     "tools/compile_hideaway_runtime_probe.gd": ["src/hideaway_runtime.gd", "smoke_hideaway_runtime.gd"],
     "scripts/validate.ps1": ["Compile Archive Hideaway live runtime bridge", "Smoke test playable Archive Hideaway refuge loop"],
 }.items():
@@ -153,6 +159,7 @@ print("epochbound_hideaway_runtime_contract_passed")
 print("- Archive Hideaway is an authored fourth map with Verdant and Ashen refuge identity")
 print("- live travel owns active-play expedition start, truthful dual-cap rewards and visible short-return guidance")
 print("- four facility interactions visibly evolve across level-specific stages and expose exact costs through existing controls")
+print("- a non-consuming journey memento shelf reflects existing story combat companion and refuge milestones")
 print("- one-use warmth repair recovery and Morrow focus preparations bridge into combat readiness")
 print("- semantic Hideaway state is save-validated and remains host-authoritative online")
 print("- audio presentation multiplayer and eight-state snapshot coverage include the refuge")

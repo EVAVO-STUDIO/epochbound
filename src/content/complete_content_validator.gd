@@ -7,6 +7,7 @@ const SupplyCatalog = preload("res://src/content/supply_region_catalog.gd")
 const SupplyValidator = preload("res://src/content/supply_region_validator.gd")
 const MultiplayerValidator = preload("res://src/content/multiplayer_area_validator.gd")
 const LocalisationValidator = preload("res://src/content/localisation_validator.gd")
+const HideawayValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 
 
 static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
@@ -22,6 +23,9 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	var pvp_area_count := 0
 	var localisation_locale_count := 0
 	var localisation_message_count := 0
+	var hideaway_campaign_count := 0
+	var hideaway_facility_count := 0
+	var hideaway_memento_count := 0
 	var ui_localisation_report := LocalisationValidator.validate_ui_only()
 	append_messages(errors, ui_localisation_report.get("errors", []))
 	append_messages(warnings, ui_localisation_report.get("warnings", []))
@@ -46,6 +50,12 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 		append_messages(errors, localisation_report.get("errors", []))
 		append_messages(warnings, localisation_report.get("warnings", []))
 		localisation_message_count += int(localisation_report.get("campaign_localisation_message_count", 0))
+		var hideaway_report := HideawayValidator.validate_hideaway_only(path)
+		append_messages(errors, hideaway_report.get("errors", []))
+		append_messages(warnings, hideaway_report.get("warnings", []))
+		hideaway_campaign_count += int(hideaway_report.get("hideaway_campaign_count", 0))
+		hideaway_facility_count += int(hideaway_report.get("hideaway_facility_count", 0))
+		hideaway_memento_count += int(hideaway_report.get("hideaway_memento_count", 0))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
@@ -57,6 +67,9 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	output["pvp_area_count"] = pvp_area_count
 	output["localisation_locale_count"] = localisation_locale_count
 	output["localisation_message_count"] = localisation_message_count
+	output["hideaway_campaign_count"] = hideaway_campaign_count
+	output["hideaway_facility_count"] = hideaway_facility_count
+	output["hideaway_memento_count"] = hideaway_memento_count
 	return output
 
 
@@ -65,16 +78,19 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	var supply_report := SupplyValidator.validate_supply_only(campaign_path)
 	var multiplayer_report := MultiplayerValidator.validate_multiplayer_only(campaign_path)
 	var localisation_report := LocalisationValidator.validate_localisation_only(campaign_path)
+	var hideaway_report := HideawayValidator.validate_hideaway_only(campaign_path)
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
 	append_messages(errors, supply_report.get("errors", []))
 	append_messages(errors, multiplayer_report.get("errors", []))
 	append_messages(errors, localisation_report.get("errors", []))
+	append_messages(errors, hideaway_report.get("errors", []))
 	append_messages(warnings, base_report.get("warnings", []))
 	append_messages(warnings, supply_report.get("warnings", []))
 	append_messages(warnings, multiplayer_report.get("warnings", []))
 	append_messages(warnings, localisation_report.get("warnings", []))
+	append_messages(warnings, hideaway_report.get("warnings", []))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
@@ -86,6 +102,9 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	output["pvp_area_count"] = multiplayer_report.get("pvp_area_count", 0)
 	output["localisation_locale_count"] = localisation_report.get("localisation_locale_count", 0)
 	output["localisation_message_count"] = localisation_report.get("campaign_localisation_message_count", 0)
+	output["hideaway_campaign_count"] = hideaway_report.get("hideaway_campaign_count", 0)
+	output["hideaway_facility_count"] = hideaway_report.get("hideaway_facility_count", 0)
+	output["hideaway_memento_count"] = hideaway_report.get("hideaway_memento_count", 0)
 	return output
 
 
@@ -95,6 +114,9 @@ static func validate_profile(profile: Dictionary, campaign_path: String) -> Dict
 	var warnings: Array[String] = []
 	append_messages(errors, base_report.get("errors", []))
 	append_messages(warnings, base_report.get("warnings", []))
+	var hideaway_report := HideawayValidator.validate_hideaway_only(campaign_path)
+	append_messages(errors, hideaway_report.get("errors", []))
+	append_messages(warnings, hideaway_report.get("warnings", []))
 	var campaign_result := Repository.read_json(campaign_path)
 	if not bool(campaign_result.get("ok", false)):
 		append_messages(errors, campaign_result.get("errors", []))
@@ -115,7 +137,14 @@ static func validate_profile(profile: Dictionary, campaign_path: String) -> Dict
 			warnings
 		)
 		MultiplayerValidator.validate_profile_multiplayer(payload, errors)
-	return {"ok": errors.is_empty(), "errors": errors, "warnings": warnings}
+	return {
+		"ok": errors.is_empty(),
+		"errors": errors,
+		"warnings": warnings,
+		"hideaway_campaign_count": hideaway_report.get("hideaway_campaign_count", 0),
+		"hideaway_facility_count": hideaway_report.get("hideaway_facility_count", 0),
+		"hideaway_memento_count": hideaway_report.get("hideaway_memento_count", 0),
+	}
 
 
 static func append_messages(target: Array[String], value: Variant) -> void:

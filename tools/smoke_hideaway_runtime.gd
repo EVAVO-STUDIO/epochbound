@@ -48,6 +48,20 @@ func run_test() -> void:
 	check(int(returned.get("salvage", 0)) == 2, "A 300-second expedition must award exactly two bounded salvage.")
 	check(int(returned.get("banked_returns", 0)) == 1, "A qualifying expedition must bank one preparation opportunity.")
 	check(str(runtime.get("dialogue")).contains("2") and str(runtime.get("dialogue")).contains("/99"), "Qualified return feedback must expose actual salvage delta and capacity.")
+	var memento_definition: Dictionary = runtime.call("hideaway_definition_snapshot")
+	check((memento_definition.get("mementos", []) as Array).size() == 6, "Reference Hideaway must load six authored journey mementos.")
+	var first_mementos: Array = runtime.call("unlocked_hideaway_mementos")
+	check(first_mementos.size() == 1 and str((first_mementos[0] as Dictionary).get("id", "")) == "first_safe_return", "First qualifying return must place the first safe-return memento on the shelf.")
+	runtime.set("player", Vector2(526, 174))
+	check(not (runtime.call("nearest_hideaway_memento_shelf") as Dictionary).is_empty(), "Authored memento shelf must be reachable in the live Hideaway.")
+	var before_memory: Dictionary = (runtime.get("session_state") as Dictionary).duplicate(true)
+	runtime.set("dialogue", "")
+	var remembered: Dictionary = runtime.call("inspect_hideaway_memento")
+	check(str(remembered.get("id", "")) == "first_safe_return", "Shelf inspection must cycle through the first unlocked memento.")
+	check(str(runtime.get("dialogue")).contains("First Safe Return"), "Shelf inspection must show the localised memento name and reflection.")
+	check((runtime.get("session_state") as Dictionary) == before_memory, "Remembering a memento must not spend or mutate campaign state.")
+	var strap_descriptor: Dictionary = runtime.call("hideaway_memento_visual_descriptor", remembered, 0)
+	check(str(strap_descriptor.get("signature", "")) == "strap:0", "Memento visual descriptors must remain deterministic.")
 	check(str(runtime.call("hideaway_tier_name", "unsettled")).length() > 0, "Hideaway tier labels must resolve.")
 	var hearth_zero: Dictionary = runtime.call("hideaway_facility_visual_descriptor", &"archive_hearth", 0)
 	var hearth_three: Dictionary = runtime.call("hideaway_facility_visual_descriptor", &"archive_hearth", 3)
@@ -74,6 +88,28 @@ func run_test() -> void:
 	check(int(runtime.get("player_health")) == health_before, "Archive Hearth warmth must absorb one two-point hit exactly once.")
 	check(int((runtime.get("session_state") as Dictionary).get("hideaway:buff:warmth_guard", 0)) == 0, "Warmth guard must consume exactly once.")
 
+	runtime.set("play_time_seconds", 420.0)
+	check(bool(runtime.call("activate_map", "archive_hideaway", "from_bellweather", "verdant", true)), "Completed preparation expedition must be able to return to the memento shelf.")
+	var complete_session: Dictionary = runtime.get("session_state")
+	complete_session["bellweather:companion:well_name_scent"] = "discovered"
+	complete_session["story:missing_hour:completed"] = true
+	complete_session["bellweather:zone:east_ash_hunt"] = "cleared"
+	complete_session["underworks:boss:sentinel"] = "defeated"
+	runtime.set("session_state", complete_session)
+	var haven_state: Dictionary = runtime.call("hideaway_state_snapshot")
+	for facility_id in ["archive_hearth", "sheltered_coldframe", "salvage_workbench", "morrows_corner"]:
+		haven_state["facilities"][facility_id] = 3
+	check(bool(runtime.call("store_hideaway_state", haven_state)), "Archive Haven test state must remain valid.")
+	var complete_mementos: Array = runtime.call("unlocked_hideaway_mementos")
+	check(complete_mementos.size() == 6, "Existing story, combat, companion and refuge milestones must unlock all six mementos without new saved flags.")
+	check(str((complete_mementos[5] as Dictionary).get("id", "")) == "archive_haven_key", "Archive Haven key must remain the final authored shelf memory.")
+	runtime.set("player", Vector2(526, 174))
+	runtime.set("dialogue", "")
+	runtime.call("set_localisation_locale", "qps-ploc")
+	var pseudo_memento: Dictionary = runtime.call("inspect_hideaway_memento")
+	check(not pseudo_memento.is_empty() and str(runtime.get("dialogue")) != str(pseudo_memento.get("display_name_key", "")), "Memento names and reflections must resolve through deterministic pseudo-localisation.")
+	runtime.call("set_localisation_locale", "en")
+
 	var profile: Dictionary = runtime.call("capture_save_profile", "slot_1", "Hideaway runtime smoke")
 	var validation: Dictionary = SaveValidator.validate_profile(profile, CAMPAIGN_PATH)
 	check(bool(validation.get("ok", false)), "Valid Archive Hideaway stewardship state must survive canonical save validation.")
@@ -96,11 +132,11 @@ func run_test() -> void:
 	runtime.call("set_localisation_locale", "qps-ploc")
 	var pseudo_status := str(runtime.call(
 		"localise",
-		"ui.hideaway.status.header",
-		"ARCHIVE HIDEAWAY   SALVAGE {salvage}   RETURNS {returns}",
-		{"salvage": 99, "returns": 3}
+		"ui.hideaway.status.mementos",
+		"MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD",
+		{"unlocked": 6, "total": 6}
 	))
-	check(pseudo_status != "ui.hideaway.status.header" and pseudo_status.contains("99"), "Hideaway status feedback must resolve through deterministic pseudo-localisation.")
+	check(pseudo_status != "ui.hideaway.status.mementos" and pseudo_status.contains("6/6"), "Hideaway memento status must resolve through deterministic pseudo-localisation.")
 	runtime.call("set_localisation_locale", "en")
 
 	check(bool(runtime.call("activate_map", "archive_hideaway", "from_bellweather", "ashen", false)), "Ashen Hideaway must activate for sanctuary testing.")
@@ -125,7 +161,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visual stages, exact planning costs, preparation capacity, short-return guidance, localised bounded feedback, one-use warmth, save strictness and sanctuary authority are coherent.")
+		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visuals, exact planning, six milestone-derived mementos, non-consuming localised reflections, one-use preparation, save strictness and sanctuary authority are coherent.")
 		quit(0)
 		return
 	for failure in failures:

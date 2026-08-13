@@ -47,11 +47,19 @@ func run_test() -> void:
 	var returned: Dictionary = runtime.call("hideaway_state_snapshot")
 	check(int(returned.get("salvage", 0)) == 2, "A 300-second expedition must award exactly two bounded salvage.")
 	check(int(returned.get("banked_returns", 0)) == 1, "A qualifying expedition must bank one preparation opportunity.")
+	check(str(runtime.get("dialogue")).contains("2") and str(runtime.get("dialogue")).contains("/99"), "Qualified return feedback must expose actual salvage delta and capacity.")
+	check(str(runtime.call("hideaway_tier_name", "unsettled")).length() > 0, "Hideaway tier labels must resolve.")
+	var hearth_zero: Dictionary = runtime.call("hideaway_facility_visual_descriptor", &"archive_hearth", 0)
+	var hearth_three: Dictionary = runtime.call("hideaway_facility_visual_descriptor", &"archive_hearth", 3)
+	check(str(hearth_zero.get("signature", "")) == "cold_stone" and str(hearth_three.get("signature", "")) == "chimney_glow", "Archive Hearth visuals must progress from cold stone to chimney glow.")
+	check(float(hearth_three.get("footprint_scale", 0.0)) > float(hearth_zero.get("footprint_scale", 0.0)), "Facility stage-three silhouette must visibly exceed stage zero.")
 
 	var upgraded: Dictionary = runtime.call("upgrade_hideaway_facility", &"archive_hearth")
 	check(bool(upgraded.get("accepted", false)), "Two salvage must restore the Archive Hearth to level one.")
+	check(str(runtime.get("dialogue")).contains("4"), "Upgrade feedback must expose the exact next Archive Hearth cost.")
 	var prepared: Dictionary = runtime.call("prepare_hideaway_facility", &"archive_hearth")
 	check(bool(prepared.get("accepted", false)), "One banked return must prepare the restored Archive Hearth.")
+	check(str(runtime.get("dialogue")).contains("1/1"), "Preparation feedback must expose stored charge and level-derived capacity.")
 	runtime.set("dialogue", "")
 	runtime.set("play_time_seconds", 320.0)
 	check(bool(runtime.call("activate_map", "bellweather_crossing", "from_hideaway", "verdant", true)), "Prepared player must be able to leave the refuge.")
@@ -117,7 +125,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Archive Hideaway runtime smoke passed: authored travel, active-play return rewards, facility restoration, short-return guidance, localised bounded feedback, one-use warmth, save strictness and sanctuary authority are coherent.")
+		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visual stages, exact planning costs, preparation capacity, short-return guidance, localised bounded feedback, one-use warmth, save strictness and sanctuary authority are coherent.")
 		quit(0)
 		return
 	for failure in failures:

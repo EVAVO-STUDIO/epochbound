@@ -60,6 +60,10 @@ function Invoke-GodotStep {
 
 Push-Location $ProjectRoot
 try {
+    Write-Host "`n==> Validate Archive Hideaway visible progression contract"
+    & python3 tools/check_hideaway_progression_contract.py
+    if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway visible progression contract failed." }
+
     Write-Host "`n==> Validate Archive Hideaway feedback and persistence contract"
     & python3 tools/check_hideaway_feedback_contract.py
     if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway feedback and persistence contract failed." }

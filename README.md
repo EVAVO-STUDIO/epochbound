@@ -38,7 +38,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 26. Unexpected-host restart recovery for accepted direct-IP clients with six bounded retries and same-process replacement-host validation
 27. Player-local English and deterministic pseudo-localisation with strict UI and campaign catalogues, stable title/subtitle/intro keys, placeholder parity and staged package validation
 28. Measured localisation layout safety with bounded font reduction, deterministic wrapping and visible ellipsis across fixed 640 by 360 UI surfaces
-29. A playable Archive Hideaway refuge with active-play expeditions, four optional facilities, truthful capped salvage, localised return guidance and strict one-use preparation persistence
+29. A playable Archive Hideaway refuge with active-play expeditions, four optional facilities, truthful dual-cap return accounting, visible four-tier refuge progression, exact upgrade costs, preparation capacity and strict one-use persistence
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -159,7 +159,7 @@ Keyboard capture accepts one physical key at a time. Modifier chords are rejecte
 
 The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
 
-Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules, [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md) for measured fixed-viewport fitting, wrapping and ellipsis, and [`docs/ARCHIVE_HIDEAWAY_RUNTIME.md`](docs/ARCHIVE_HIDEAWAY_RUNTIME.md) for the refuge loop, truthful return feedback and one-use persistence boundary.
+Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules, [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md) for measured fixed-viewport fitting, wrapping and ellipsis, and [`docs/ARCHIVE_HIDEAWAY_RUNTIME.md`](docs/ARCHIVE_HIDEAWAY_RUNTIME.md) for the refuge loop, visible four-tier shelter progression, capacity-aware planning, truthful return feedback and one-use persistence boundary.
 
 ## Original 16-bit presentation, audio and animation
 

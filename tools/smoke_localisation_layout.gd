@@ -85,9 +85,12 @@ func test_ui_surface_budgets() -> void:
 		{"key": "ui.controls.action.quick_item", "fallback": "QUICK RESTORATIVE", "width": 300.0, "preferred": 9, "minimum": 6},
 		{"key": "ui.controls.capture_controller", "fallback": "PRESS A CONTROLLER INPUT — START CANCELS", "width": 476.0, "preferred": 7, "minimum": 5},
 		{"key": "ui.intro.continue_skip", "fallback": "CONFIRM TO CONTINUE   •   ESC TO SKIP", "width": 616.0, "preferred": 10, "minimum": 6},
-		{"key": "ui.hideaway.status.header", "fallback": "ARCHIVE HIDEAWAY   SALVAGE {salvage}   RETURNS {returns}", "replacements": {"salvage": 99, "returns": 3}, "width": 464.0, "preferred": 10, "minimum": 6},
-		{"key": "ui.hideaway.status.ready", "fallback": "RETURN TO THE ROAD WHEN READY", "width": 464.0, "preferred": 8, "minimum": 5},
-		{"key": "ui.hideaway.status.facility", "fallback": "{facility} L{level}   INTERACT PREPARE   ATTACK UPGRADE", "replacements": {"facility": "SHELTERED COLDFRAME", "level": 3}, "width": 464.0, "preferred": 8, "minimum": 5}
+		{"key": "ui.hideaway.status.overview", "fallback": "{tier}   SALVAGE {salvage}/{salvage_cap}   RETURNS {returns}/{return_cap}", "replacements": {"tier": "ESTABLISHED REFUGE", "salvage": 99, "salvage_cap": 99, "returns": 3, "return_cap": 3}, "width": 464.0, "preferred": 9, "minimum": 5},
+		{"key": "ui.hideaway.status.restoration", "fallback": "RESTORATION {total}/{maximum}   FACILITIES {restored}/{facilities}", "replacements": {"total": 12, "maximum": 12, "restored": 4, "facilities": 4}, "width": 464.0, "preferred": 8, "minimum": 5},
+		{"key": "ui.hideaway.status.ready", "fallback": "RETURN TO THE ROAD WHEN READY", "width": 464.0, "preferred": 7, "minimum": 5},
+		{"key": "ui.hideaway.status.facility.unrestored", "fallback": "{facility} UNRESTORED   COST {cost}   SALVAGE {salvage}", "replacements": {"facility": "SHELTERED COLDFRAME", "cost": 8, "salvage": 99}, "width": 464.0, "preferred": 8, "minimum": 5},
+		{"key": "ui.hideaway.status.facility.active", "fallback": "{facility} L{level}/{maximum}   NEXT {cost}   PREP {prepared}/{capacity}", "replacements": {"facility": "SALVAGE WORKBENCH", "level": 2, "maximum": 3, "cost": 8, "prepared": 2, "capacity": 2}, "width": 464.0, "preferred": 8, "minimum": 5},
+		{"key": "ui.hideaway.status.facility.complete", "fallback": "{facility} L{level}/{maximum}   FULLY RESTORED   PREP {prepared}/{capacity}", "replacements": {"facility": "SHELTERED COLDFRAME", "level": 3, "maximum": 3, "prepared": 3, "capacity": 3}, "width": 464.0, "preferred": 8, "minimum": 5}
 	]
 	for surface_value in single_surfaces:
 		var surface: Dictionary = surface_value

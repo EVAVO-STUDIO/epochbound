@@ -14,6 +14,13 @@ const MAX_BANKED_RETURNS: int = 3
 const MAX_SALVAGE: int = 99
 const MAX_FACILITY_LEVEL: int = 3
 
+const REFUGE_TIER_IDS: Array[StringName] = [
+	&"unsettled",
+	&"sheltered",
+	&"established",
+	&"haven",
+]
+
 const FACILITY_IDS: Array[StringName] = [
 	&"archive_hearth",
 	&"sheltered_coldframe",
@@ -135,12 +142,92 @@ static func record_return(state_value: Dictionary, play_time_seconds: float) -> 
 	var salvage_before := int(state["salvage"])
 	state["salvage"] = mini(MAX_SALVAGE, salvage_before + requested_award)
 	var stored_award := int(state["salvage"]) - salvage_before
+	var returns_before := int(state["banked_returns"])
 	state["banked_returns"] = mini(
 		MAX_BANKED_RETURNS,
-		int(state["banked_returns"]) + 1
+		returns_before + 1
 	)
+	var stored_returns := int(state["banked_returns"]) - returns_before
 	state["return_count"] = int(state["return_count"]) + 1
-	return _return_result(state, true, "", elapsed, stored_award)
+	return _return_result(
+		state,
+		true,
+		"",
+		elapsed,
+		stored_award,
+		stored_returns
+	)
+
+
+static func facility_level(state_value: Dictionary, facility_id: StringName) -> int:
+	if not FACILITY_IDS.has(facility_id):
+		return -1
+	var facilities_value: Variant = state_value.get("facilities")
+	if typeof(facilities_value) != TYPE_DICTIONARY:
+		return -1
+	return int((facilities_value as Dictionary).get(String(facility_id), -1))
+
+
+static func prepared_count(state_value: Dictionary, facility_id: StringName) -> int:
+	if not FACILITY_IDS.has(facility_id):
+		return -1
+	var prepared_value: Variant = state_value.get("prepared")
+	if typeof(prepared_value) != TYPE_DICTIONARY:
+		return -1
+	var effect_id := String(FACILITY_EFFECTS[facility_id])
+	return int((prepared_value as Dictionary).get(effect_id, -1))
+
+
+static func refuge_summary(state_value: Dictionary) -> Dictionary:
+	var levels: Dictionary = {}
+	var total_level := 0
+	var restored_count := 0
+	for facility_id: StringName in FACILITY_IDS:
+		var level := maxi(0, facility_level(state_value, facility_id))
+		levels[String(facility_id)] = level
+		total_level += level
+		if level > 0:
+			restored_count += 1
+	var tier_id := refuge_tier_id(total_level)
+	return {
+		"tier_id": String(tier_id),
+		"tier_index": REFUGE_TIER_IDS.find(tier_id),
+		"total_level": total_level,
+		"maximum_total_level": FACILITY_IDS.size() * MAX_FACILITY_LEVEL,
+		"restored_count": restored_count,
+		"facility_count": FACILITY_IDS.size(),
+		"levels": levels,
+	}
+
+
+static func refuge_tier_id(total_level: int) -> StringName:
+	if total_level >= FACILITY_IDS.size() * MAX_FACILITY_LEVEL:
+		return &"haven"
+	if total_level >= 8:
+		return &"established"
+	if total_level >= 4:
+		return &"sheltered"
+	return &"unsettled"
+
+
+static func facility_status(state_value: Dictionary, facility_id: StringName) -> Dictionary:
+	if not FACILITY_IDS.has(facility_id):
+		return {"valid": false, "facility_id": String(facility_id)}
+	var level := facility_level(state_value, facility_id)
+	var prepared := prepared_count(state_value, facility_id)
+	var next_cost := facility_upgrade_cost(state_value, facility_id)
+	return {
+		"valid": level >= 0 and prepared >= 0,
+		"facility_id": String(facility_id),
+		"effect_id": String(FACILITY_EFFECTS[facility_id]),
+		"level": level,
+		"maximum_level": MAX_FACILITY_LEVEL,
+		"next_upgrade_cost": next_cost,
+		"fully_restored": level >= MAX_FACILITY_LEVEL,
+		"prepared": prepared,
+		"preparation_capacity": maxi(level, 0),
+		"preparation_available": level > 0 and prepared < level,
+	}
 
 
 static func facility_upgrade_cost(state_value: Dictionary, facility_id: StringName) -> int:
@@ -209,13 +296,15 @@ static func _return_result(
 	qualified: bool,
 	reason: String,
 	elapsed: float,
-	award: int
+	award: int,
+	return_opportunities_awarded: int = 0
 ) -> Dictionary:
 	return {
 		"qualified": qualified,
 		"reason": reason,
 		"elapsed_seconds": elapsed,
 		"salvage_awarded": award,
+		"return_opportunities_awarded": return_opportunities_awarded,
 		"state": state,
 	}
 

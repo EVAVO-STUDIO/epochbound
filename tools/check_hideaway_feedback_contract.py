@@ -28,23 +28,27 @@ require("src/game/hideaway_stewardship.gd", model, [
     "requested_award",
     "salvage_before",
     "stored_award",
-    'return _return_result(state, true, "", elapsed, stored_award)',
+    "stored_returns",
+    "return_opportunities_awarded",
 ])
 
 runtime = read("src/hideaway_runtime.gd")
 require("src/hideaway_runtime.gd", runtime, [
     "hideaway_return_message",
-    "ui.hideaway.return.qualified.one",
-    "ui.hideaway.return.qualified.many",
+    "ui.hideaway.return.qualified",
+    "return_opportunities_awarded",
+    "HideawayStewardship.MAX_BANKED_RETURNS",
     "ui.hideaway.return.too_short",
     "HideawayStewardship.MINIMUM_EXPEDITION_SECONDS",
-    "ui.hideaway.facility.upgraded",
-    "ui.hideaway.facility.prepared.one",
+    "ui.hideaway.facility.upgraded.next",
+    "ui.hideaway.facility.upgraded.complete",
+    "ui.hideaway.facility.prepared",
     "ui.hideaway.host_only.change",
     "ui.hideaway.preparation.applied",
     "ui.hideaway.warmth.absorb",
-    "ui.hideaway.status.header",
-    "ui.hideaway.status.facility",
+    "ui.hideaway.status.overview",
+    "ui.hideaway.status.restoration",
+    "ui.hideaway.status.facility.active",
     "draw_fitted_line",
     "464.0",
 ])
@@ -67,14 +71,15 @@ except (OSError, json.JSONDecodeError) as exc:
     ui = {}
 messages = ui.get("messages", {}) if isinstance(ui, dict) else {}
 for key in [
-    "ui.hideaway.return.qualified.one",
-    "ui.hideaway.return.qualified.many",
+    "ui.hideaway.return.qualified",
     "ui.hideaway.return.too_short",
-    "ui.hideaway.facility.upgraded",
-    "ui.hideaway.facility.prepared.one",
+    "ui.hideaway.facility.upgraded.next",
+    "ui.hideaway.facility.upgraded.complete",
+    "ui.hideaway.facility.prepared",
     "ui.hideaway.failure.unrestored",
-    "ui.hideaway.status.header",
-    "ui.hideaway.status.facility",
+    "ui.hideaway.status.overview",
+    "ui.hideaway.status.restoration",
+    "ui.hideaway.status.facility.active",
     "ui.hideaway.warmth.absorb",
 ]:
     entry = messages.get(key) if isinstance(messages, dict) else None
@@ -92,8 +97,10 @@ for path, tokens in {
         "qps-ploc",
     ],
     "tools/smoke_localisation_layout.gd": [
-        '"ui.hideaway.status.header"',
-        '"ui.hideaway.status.facility"',
+        '"ui.hideaway.status.overview"',
+        '"ui.hideaway.status.restoration"',
+        '"ui.hideaway.status.facility.active"',
+        '"ui.hideaway.status.facility.complete"',
         '"width": 464.0',
     ],
     "docs/ARCHIVE_HIDEAWAY_RUNTIME.md": [
@@ -116,7 +123,7 @@ if errors:
     raise SystemExit(1)
 
 print("epochbound_hideaway_feedback_contract_passed")
-print("- capped salvage feedback reports only the amount actually stored")
+print("- capped return feedback reports only salvage and opportunities actually stored")
 print("- short expeditions publish a visible active-play requirement")
 print("- facility, return, status and one-use preparation feedback is localised")
 print("- fixed Hideaway status panels use measured bounded fitting")

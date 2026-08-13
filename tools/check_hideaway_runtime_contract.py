@@ -42,7 +42,10 @@ require(runtime_path, runtime, [
     'draw_hideaway_status',
     'hideaway_return_message',
     'ui.hideaway.return.too_short',
-    'ui.hideaway.status.header',
+    'ui.hideaway.status.overview',
+    'ui.hideaway.status.restoration',
+    'hideaway_facility_visual_descriptor',
+    'hideaway_tier_name',
     'draw_fitted_line',
     'hideaway_runtime_contract_ok',
 ])
@@ -148,8 +151,8 @@ if errors:
 
 print("epochbound_hideaway_runtime_contract_passed")
 print("- Archive Hideaway is an authored fourth map with Verdant and Ashen refuge identity")
-print("- live travel owns active-play expedition start, truthful capped rewards and visible short-return guidance")
-print("- four facility interactions spend salvage or banked returns through existing controls")
+print("- live travel owns active-play expedition start, truthful dual-cap rewards and visible short-return guidance")
+print("- four facility interactions visibly evolve across level-specific stages and expose exact costs through existing controls")
 print("- one-use warmth repair recovery and Morrow focus preparations bridge into combat readiness")
 print("- semantic Hideaway state is save-validated and remains host-authoritative online")
 print("- audio presentation multiplayer and eight-state snapshot coverage include the refuge")

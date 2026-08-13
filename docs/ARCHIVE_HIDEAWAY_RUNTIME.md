@@ -20,6 +20,22 @@ The Archive Hideaway is Epochbound's expedition refuge: a quiet return-home cade
 
 Prepared charges never grow on wall clock time and never punish the player for staying away.
 
+
+## Visible refuge progression
+
+The refuge now changes visibly as the existing four facilities are restored. No new durable field is needed: one deterministic presentation tier is derived from the sum of the twelve authored facility levels.
+
+- **Unsettled Refuge**: zero to three total facility levels. The room remains spare and each station reads as an incomplete silhouette.
+- **Sheltered Refuge**: four to seven total levels. Warmth, stored tools, hardy growth and Morrow's claimed space begin to make the Archive feel inhabited.
+- **Established Refuge**: eight to eleven total levels. Each station carries a fuller silhouette and the shared room gains restrained shelter accents.
+- **Archive Haven**: all twelve facility levels. The Hearth gains chimney glow, the Coldframe closes its glass canopy, the Workbench carries its complete tool arrangement and Morrow's Corner becomes a settled den.
+
+This is presentation derived from already validated state, not a second progression database. It adds no daily calendar, maintenance cost, decay or offline growth.
+
+## Capacity-aware planning
+
+The three fixed Hideaway status lines now expose the current refuge tier, salvage and return-bank caps, total restoration, exact next facility cost and exact prepared charge capacity. Upgrade, preparation and failure dialogue uses the same values. A qualifying return reports both actual stored deltas, so a full return bank truthfully reports zero new opportunities just as a full salvage store reports zero new salvage.
+
 ## Truthful return feedback
 
 A return below the 90-second active-play threshold now explains how many active-play seconds were still required. Qualifying returns report only the salvage actually stored, so a player at 98 salvage sees one recovered salvage when the authored 99 cap is reached rather than an overstated theoretical award. Return summaries, facility results, preparation feedback, status text and host-authority notices resolve through the strict localisation catalogue. The two fixed Hideaway status lines use measured font fitting inside their 464-pixel panel budget.

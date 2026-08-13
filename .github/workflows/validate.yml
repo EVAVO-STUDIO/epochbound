@@ -101,6 +101,9 @@ jobs:
       - name: Validate localisation layout integration contract
         run: python3 tools/check_localisation_layout_contract.py
 
+      - name: Validate Archive Hideaway memento contract
+        run: python3 tools/check_hideaway_memento_contract.py
+
       - name: Validate regional supply integration contract
         run: python3 tools/check_supply_region_contract.py
 
@@ -208,6 +211,7 @@ jobs:
               "playerSettingsValidation": "passed",
               "localisationValidation": "passed",
               "localisationLayoutValidation": "passed",
+              "hideawayMementoValidation": "passed",
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
               "longFormProgressionValidation": "passed",

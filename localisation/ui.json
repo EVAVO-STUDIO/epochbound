@@ -263,6 +263,87 @@
 		},
 		"ui.title.quit": {
 			"en": "QUIT"
+		},
+		"ui.hideaway.effect.companion_focus": {
+			"en": "Morrow focus"
+		},
+		"ui.hideaway.effect.recovery": {
+			"en": "Recovery"
+		},
+		"ui.hideaway.effect.repair": {
+			"en": "Repair"
+		},
+		"ui.hideaway.effect.warmth": {
+			"en": "Warmth"
+		},
+		"ui.hideaway.facility.archive_hearth": {
+			"en": "Archive Hearth"
+		},
+		"ui.hideaway.facility.morrows_corner": {
+			"en": "Morrow's Corner"
+		},
+		"ui.hideaway.facility.prepared.many": {
+			"en": "{facility} prepared for the next expedition.\n{returns} return preparations remain."
+		},
+		"ui.hideaway.facility.prepared.one": {
+			"en": "{facility} prepared for the next expedition.\n{returns} return preparation remains."
+		},
+		"ui.hideaway.facility.salvage_workbench": {
+			"en": "Salvage Workbench"
+		},
+		"ui.hideaway.facility.sheltered_coldframe": {
+			"en": "Sheltered Coldframe"
+		},
+		"ui.hideaway.facility.upgraded": {
+			"en": "{facility} restored to level {level}.\n{salvage} salvage remains."
+		},
+		"ui.hideaway.failure.complete": {
+			"en": "{facility} is already fully restored."
+		},
+		"ui.hideaway.failure.default": {
+			"en": "{facility} cannot be changed right now."
+		},
+		"ui.hideaway.failure.full": {
+			"en": "{facility} already holds its full preparation."
+		},
+		"ui.hideaway.failure.no_return": {
+			"en": "Complete a qualifying expedition before preparing {facility}."
+		},
+		"ui.hideaway.failure.salvage": {
+			"en": "Not enough salvage to improve {facility}."
+		},
+		"ui.hideaway.failure.unrestored": {
+			"en": "{facility} must be restored first.\nATTACK near it to spend salvage."
+		},
+		"ui.hideaway.host_only.change": {
+			"en": "Only the host can change the Archive Hideaway while online."
+		},
+		"ui.hideaway.host_only.prepare": {
+			"en": "Only the host can prepare the Archive Hideaway while online."
+		},
+		"ui.hideaway.preparation.applied": {
+			"en": "Hideaway preparation: {effects}."
+		},
+		"ui.hideaway.return.qualified.many": {
+			"en": "The Archive Hideaway settles around you.\nRecovered {salvage} salvage. {returns} return preparations banked."
+		},
+		"ui.hideaway.return.qualified.one": {
+			"en": "The Archive Hideaway settles around you.\nRecovered {salvage} salvage. {returns} return preparation banked."
+		},
+		"ui.hideaway.return.too_short": {
+			"en": "This expedition was too short.\n{remaining} more active-play seconds were needed."
+		},
+		"ui.hideaway.status.facility": {
+			"en": "{facility} L{level}   INTERACT PREPARE   ATTACK UPGRADE"
+		},
+		"ui.hideaway.status.header": {
+			"en": "ARCHIVE HIDEAWAY   SALVAGE {salvage}   RETURNS {returns}"
+		},
+		"ui.hideaway.status.ready": {
+			"en": "RETURN TO THE ROAD WHEN READY"
+		},
+		"ui.hideaway.warmth.absorb": {
+			"en": "Archive Hearth warmth turns the blow."
 		}
 	}
 }

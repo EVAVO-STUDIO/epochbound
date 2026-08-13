@@ -45,17 +45,10 @@ func activate_map(
 			play_time_seconds
 		)
 		store_hideaway_state(returned.get("state", {}))
-		if bool(returned.get("qualified", false)):
-			var state := hideaway_state_snapshot()
-			dialogue = (
-				"The Archive Hideaway settles around you.\n"
-				+ "Recovered %d salvage. %d return preparation%s banked."
-				% [
-					int(returned.get("salvage_awarded", 0)),
-					int(state.get("banked_returns", 0)),
-					"" if int(state.get("banked_returns", 0)) == 1 else "s",
-				]
-			)
+		var state := hideaway_state_snapshot()
+		var return_message := hideaway_return_message(returned, state)
+		if not return_message.is_empty():
+			dialogue = return_message
 	return activated
 
 
@@ -117,7 +110,10 @@ func damage_actor(actor_id: String, amount: int, attacker: Dictionary) -> void:
 		var reduced := maxi(0, amount - HIDEAWAY_WARMTH_REDUCTION)
 		if reduced <= 0:
 			player_hurt_lock = 0.35
-			set_combat_text("Archive Hearth warmth turns the blow.", 1.1)
+			set_combat_text(
+				localise("ui.hideaway.warmth.absorb", "Archive Hearth warmth turns the blow."),
+				1.1
+			)
 			return
 		amount = reduced
 	super.damage_actor(actor_id, amount, attacker)
@@ -134,6 +130,46 @@ func draw_game() -> void:
 func hideaway_has_durable_authority() -> bool:
 	var online := get_node_or_null("MultiplayerSession")
 	return online == null or str(online.get("mode")) != "client"
+
+
+func hideaway_return_message(returned: Dictionary, state: Dictionary) -> String:
+	if bool(returned.get("qualified", false)):
+		var return_count := int(state.get("banked_returns", 0))
+		var key := (
+			"ui.hideaway.return.qualified.one"
+			if return_count == 1
+			else "ui.hideaway.return.qualified.many"
+		)
+		return localise(
+			key,
+			(
+				"The Archive Hideaway settles around you.\n"
+				+ "Recovered {salvage} salvage. {returns} return preparation banked."
+				if return_count == 1
+				else (
+					"The Archive Hideaway settles around you.\n"
+					+ "Recovered {salvage} salvage. {returns} return preparations banked."
+				)
+			),
+			{
+				"salvage": int(returned.get("salvage_awarded", 0)),
+				"returns": return_count,
+			}
+		)
+	if str(returned.get("reason", "")) == "expedition_too_short":
+		var remaining := maxi(
+			1,
+			int(ceil(
+				HideawayStewardship.MINIMUM_EXPEDITION_SECONDS
+				- float(returned.get("elapsed_seconds", 0.0))
+			))
+		)
+		return localise(
+			"ui.hideaway.return.too_short",
+			"This expedition was too short.\n{remaining} more active-play seconds were needed.",
+			{"remaining": remaining}
+		)
+	return ""
 
 
 func hideaway_state_snapshot() -> Dictionary:
@@ -161,18 +197,25 @@ func store_hideaway_state(value: Variant) -> bool:
 
 func upgrade_hideaway_facility(facility_id: StringName) -> Dictionary:
 	if not hideaway_has_durable_authority():
-		dialogue = "Only the host can change the Archive Hideaway while online."
+		dialogue = localise(
+			"ui.hideaway.host_only.change",
+			"Only the host can change the Archive Hideaway while online."
+		)
 		return {"accepted": false, "reason": "host_only"}
 	var result := HideawayStewardship.upgrade_facility(hideaway_state_snapshot(), facility_id)
 	if bool(result.get("accepted", false)):
 		store_hideaway_state(result.get("state", {}))
 		var state := hideaway_state_snapshot()
 		var level := int((state.get("facilities", {}) as Dictionary).get(String(facility_id), 0))
-		dialogue = "%s restored to level %d.\n%d salvage remains." % [
-			hideaway_facility_name(facility_id),
-			level,
-			int(state.get("salvage", 0)),
-		]
+		dialogue = localise(
+			"ui.hideaway.facility.upgraded",
+			"{facility} restored to level {level}.\n{salvage} salvage remains.",
+			{
+				"facility": hideaway_facility_name(facility_id),
+				"level": level,
+				"salvage": int(state.get("salvage", 0)),
+			}
+		)
 	else:
 		dialogue = hideaway_failure_message(str(result.get("reason", "")), facility_id)
 	return result
@@ -180,17 +223,32 @@ func upgrade_hideaway_facility(facility_id: StringName) -> Dictionary:
 
 func prepare_hideaway_facility(facility_id: StringName) -> Dictionary:
 	if not hideaway_has_durable_authority():
-		dialogue = "Only the host can prepare the Archive Hideaway while online."
+		dialogue = localise(
+			"ui.hideaway.host_only.prepare",
+			"Only the host can prepare the Archive Hideaway while online."
+		)
 		return {"accepted": false, "reason": "host_only"}
 	var result := HideawayStewardship.prepare_facility(hideaway_state_snapshot(), facility_id)
 	if bool(result.get("accepted", false)):
 		store_hideaway_state(result.get("state", {}))
 		var state := hideaway_state_snapshot()
-		dialogue = "%s prepared for the next expedition.\n%d return preparation%s remain." % [
-			hideaway_facility_name(facility_id),
-			int(state.get("banked_returns", 0)),
-			"" if int(state.get("banked_returns", 0)) == 1 else "s",
-		]
+		var remaining := int(state.get("banked_returns", 0))
+		dialogue = localise(
+			(
+				"ui.hideaway.facility.prepared.one"
+				if remaining == 1
+				else "ui.hideaway.facility.prepared.many"
+			),
+			(
+				"{facility} prepared for the next expedition.\n{returns} return preparation remains."
+				if remaining == 1
+				else "{facility} prepared for the next expedition.\n{returns} return preparations remain."
+			),
+			{
+				"facility": hideaway_facility_name(facility_id),
+				"returns": remaining,
+			}
+		)
 	else:
 		dialogue = hideaway_failure_message(str(result.get("reason", "")), facility_id)
 	return result
@@ -218,19 +276,26 @@ func apply_hideaway_departure_preparation() -> void:
 			&"recovery":
 				player_health = mini(actor_health("player", 32), player_health + 8)
 				companion_health = mini(actor_health("companion", 24), companion_health + 6)
-				applied.append("recovery")
+				applied.append(hideaway_effect_name(effect_id))
 			&"warmth":
 				set_hideaway_counter(HIDEAWAY_WARMTH_GUARD_KEY, 1)
-				applied.append("warmth")
+				applied.append(hideaway_effect_name(effect_id))
 			&"repair":
 				set_hideaway_counter(HIDEAWAY_REPAIR_STRIKE_KEY, 1)
-				applied.append("repair")
+				applied.append(hideaway_effect_name(effect_id))
 			&"companion_focus":
 				set_hideaway_counter(HIDEAWAY_COMPANION_FOCUS_KEY, 1)
-				applied.append("Morrow focus")
+				applied.append(hideaway_effect_name(effect_id))
 	store_hideaway_state(state)
 	if not applied.is_empty():
-		set_combat_text("Hideaway preparation: %s." % ", ".join(applied), 1.5)
+		set_combat_text(
+			localise(
+				"ui.hideaway.preparation.applied",
+				"Hideaway preparation: {effects}.",
+				{"effects": ", ".join(applied)}
+			),
+			1.5
+		)
 
 
 func is_in_archive_hideaway() -> bool:
@@ -259,22 +324,57 @@ func nearest_hideaway_facility() -> Dictionary:
 
 
 func hideaway_facility_name(facility_id: StringName) -> String:
-	match facility_id:
-		&"archive_hearth": return "Archive Hearth"
-		&"sheltered_coldframe": return "Sheltered Coldframe"
-		&"salvage_workbench": return "Salvage Workbench"
-		&"morrows_corner": return "Morrow's Corner"
-		_: return String(facility_id).replace("_", " ").capitalize()
+	var fallback := String(facility_id).replace("_", " ").capitalize()
+	return localise(
+		"ui.hideaway.facility.%s" % String(facility_id),
+		fallback
+	)
+
+
+func hideaway_effect_name(effect_id: StringName) -> String:
+	var fallback := String(effect_id).replace("_", " ").capitalize()
+	return localise("ui.hideaway.effect.%s" % String(effect_id), fallback)
 
 
 func hideaway_failure_message(reason: String, facility_id: StringName) -> String:
+	var facility := hideaway_facility_name(facility_id)
 	match reason:
-		"facility_unrestored": return "%s must be restored first.\nATTACK near it to spend salvage." % hideaway_facility_name(facility_id)
-		"no_return_opportunity": return "Complete a qualifying expedition before preparing %s." % hideaway_facility_name(facility_id)
-		"preparation_full": return "%s already holds its full preparation." % hideaway_facility_name(facility_id)
-		"insufficient_salvage": return "Not enough salvage to improve %s." % hideaway_facility_name(facility_id)
-		"facility_unavailable": return "%s is already fully restored." % hideaway_facility_name(facility_id)
-		_: return "%s cannot be changed right now." % hideaway_facility_name(facility_id)
+		"facility_unrestored":
+			return localise(
+				"ui.hideaway.failure.unrestored",
+				"{facility} must be restored first.\nATTACK near it to spend salvage.",
+				{"facility": facility}
+			)
+		"no_return_opportunity":
+			return localise(
+				"ui.hideaway.failure.no_return",
+				"Complete a qualifying expedition before preparing {facility}.",
+				{"facility": facility}
+			)
+		"preparation_full":
+			return localise(
+				"ui.hideaway.failure.full",
+				"{facility} already holds its full preparation.",
+				{"facility": facility}
+			)
+		"insufficient_salvage":
+			return localise(
+				"ui.hideaway.failure.salvage",
+				"Not enough salvage to improve {facility}.",
+				{"facility": facility}
+			)
+		"facility_unavailable":
+			return localise(
+				"ui.hideaway.failure.complete",
+				"{facility} is already fully restored.",
+				{"facility": facility}
+			)
+		_:
+			return localise(
+				"ui.hideaway.failure.default",
+				"{facility} cannot be changed right now.",
+				{"facility": facility}
+			)
 
 
 func hideaway_counter(key: String) -> int:
@@ -349,19 +449,48 @@ func draw_hideaway_status() -> void:
 	var state := hideaway_state_snapshot()
 	draw_rect(Rect2(76, 300, 488, 50), Color(0.025, 0.022, 0.018, 0.9), true)
 	draw_rect(Rect2(76, 300, 488, 50), Color("a88654"), false, 1.0)
-	draw_centered(
-		"ARCHIVE HIDEAWAY   SALVAGE %d   RETURNS %d" % [int(state.get("salvage", 0)), int(state.get("banked_returns", 0))],
-		319,
+	var header := localise(
+		"ui.hideaway.status.header",
+		"ARCHIVE HIDEAWAY   SALVAGE {salvage}   RETURNS {returns}",
+		{
+			"salvage": int(state.get("salvage", 0)),
+			"returns": int(state.get("banked_returns", 0)),
+		}
+	)
+	draw_fitted_line(
+		header,
+		Vector2(88, 319),
+		464.0,
 		10,
-		Color("ead9b7")
+		6,
+		Color("ead9b7"),
+		HORIZONTAL_ALIGNMENT_CENTER
 	)
 	var facility := nearest_hideaway_facility()
-	var hint := "RETURN TO THE ROAD WHEN READY"
+	var hint := localise(
+		"ui.hideaway.status.ready",
+		"RETURN TO THE ROAD WHEN READY"
+	)
 	if not facility.is_empty():
 		var facility_id := StringName(str(facility.get("facility_id", "")))
 		var level := int((state.get("facilities", {}) as Dictionary).get(String(facility_id), 0))
-		hint = "%s L%d   INTERACT PREPARE   ATTACK UPGRADE" % [hideaway_facility_name(facility_id).to_upper(), level]
-	draw_centered(hint, 339, 8, Color("aeb8b0"))
+		hint = localise(
+			"ui.hideaway.status.facility",
+			"{facility} L{level}   INTERACT PREPARE   ATTACK UPGRADE",
+			{
+				"facility": hideaway_facility_name(facility_id).to_upper(),
+				"level": level,
+			}
+		)
+	draw_fitted_line(
+		hint,
+		Vector2(88, 339),
+		464.0,
+		8,
+		5,
+		Color("aeb8b0"),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
 
 
 func hideaway_runtime_contract_ok() -> bool:

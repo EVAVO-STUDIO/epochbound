@@ -131,14 +131,16 @@ static func record_return(state_value: Dictionary, play_time_seconds: float) -> 
 	state["last_return_play_time"] = returned_at
 	if elapsed < MINIMUM_EXPEDITION_SECONDS:
 		return _return_result(state, false, "expedition_too_short", elapsed, 0)
-	var award := mini(3, 1 + int(floor(elapsed / 300.0)))
-	state["salvage"] = mini(MAX_SALVAGE, int(state["salvage"]) + award)
+	var requested_award := mini(3, 1 + int(floor(elapsed / 300.0)))
+	var salvage_before := int(state["salvage"])
+	state["salvage"] = mini(MAX_SALVAGE, salvage_before + requested_award)
+	var stored_award := int(state["salvage"]) - salvage_before
 	state["banked_returns"] = mini(
 		MAX_BANKED_RETURNS,
 		int(state["banked_returns"]) + 1
 	)
 	state["return_count"] = int(state["return_count"]) + 1
-	return _return_result(state, true, "", elapsed, award)
+	return _return_result(state, true, "", elapsed, stored_award)
 
 
 static func facility_upgrade_cost(state_value: Dictionary, facility_id: StringName) -> int:

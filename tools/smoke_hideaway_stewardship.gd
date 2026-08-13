@@ -28,6 +28,13 @@ func _init() -> void:
 		state = qualified["state"]
 	_assert(int(state["banked_returns"]) == MODEL.MAX_BANKED_RETURNS, "banked returns must remain capped")
 	_assert(int(state["salvage"]) >= 2, "long expeditions must award bounded salvage")
+	var capped := MODEL.default_state(0.0)
+	capped["salvage"] = 98
+	var capped_departure := MODEL.begin_expedition(capped, "clockwood_edge", 0.0)
+	var capped_return := MODEL.record_return(capped_departure["state"], 900.0)
+	_assert(bool(capped_return["qualified"]), "capped expedition must still qualify")
+	_assert(int(capped_return["state"]["salvage"]) == MODEL.MAX_SALVAGE, "salvage must stop at the authored cap")
+	_assert(int(capped_return["salvage_awarded"]) == 1, "return feedback must report only salvage actually stored")
 	var upgrade := MODEL.upgrade_facility(state, &"archive_hearth")
 	_assert(bool(upgrade["accepted"]), "Archive Hearth must restore when affordable")
 	state = upgrade["state"]
@@ -54,7 +61,7 @@ func _init() -> void:
 	var invalid: Dictionary = state.duplicate(true)
 	invalid["banked_returns"] = 4
 	_assert(not MODEL.validate_state(invalid).is_empty(), "out-of-range return bank must fail closed")
-	print("Archive Hideaway stewardship smoke test passed: short trips cannot farm rewards; qualifying active-play expeditions bank bounded opportunities; salvage restores facilities; preparations consume exactly once; JSON numeric round trips remain strict; and elapsed time alone grants nothing.")
+	print("Archive Hideaway stewardship smoke test passed: short trips cannot farm rewards; qualifying active-play expeditions bank bounded opportunities; cap-safe salvage accounting is truthful; salvage restores facilities; preparations consume exactly once; JSON numeric round trips remain strict; and elapsed time alone grants nothing.")
 	quit(0)
 
 

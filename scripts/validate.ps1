@@ -60,6 +60,10 @@ function Invoke-GodotStep {
 
 Push-Location $ProjectRoot
 try {
+    Write-Host "`n==> Validate Archive Hideaway feedback and persistence contract"
+    & python3 tools/check_hideaway_feedback_contract.py
+    if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway feedback and persistence contract failed." }
+
     Write-Host "`n==> Validate Archive Hideaway live runtime contract"
     & python3 tools/check_hideaway_runtime_contract.py
     if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway live runtime contract failed." }
@@ -156,7 +160,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, measured localisation layout with deterministic wrapping and ellipsis, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, Archive Hideaway expedition stewardship, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, measured localisation layout with deterministic wrapping and ellipsis, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, Archive Hideaway expedition stewardship with localised cap-safe feedback and strict one-use persistence, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

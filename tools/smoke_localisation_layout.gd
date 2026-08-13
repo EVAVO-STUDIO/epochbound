@@ -84,7 +84,10 @@ func test_ui_surface_budgets() -> void:
 		{"key": "ui.controls.footer", "fallback": "{confirm} REBIND   •   LEFT / RIGHT DEVICE   •   ESC BACK", "replacements": {"confirm": "E / A"}, "width": 476.0, "preferred": 7, "minimum": 5},
 		{"key": "ui.controls.action.quick_item", "fallback": "QUICK RESTORATIVE", "width": 300.0, "preferred": 9, "minimum": 6},
 		{"key": "ui.controls.capture_controller", "fallback": "PRESS A CONTROLLER INPUT — START CANCELS", "width": 476.0, "preferred": 7, "minimum": 5},
-		{"key": "ui.intro.continue_skip", "fallback": "CONFIRM TO CONTINUE   •   ESC TO SKIP", "width": 616.0, "preferred": 10, "minimum": 6}
+		{"key": "ui.intro.continue_skip", "fallback": "CONFIRM TO CONTINUE   •   ESC TO SKIP", "width": 616.0, "preferred": 10, "minimum": 6},
+		{"key": "ui.hideaway.status.header", "fallback": "ARCHIVE HIDEAWAY   SALVAGE {salvage}   RETURNS {returns}", "replacements": {"salvage": 99, "returns": 3}, "width": 464.0, "preferred": 10, "minimum": 6},
+		{"key": "ui.hideaway.status.ready", "fallback": "RETURN TO THE ROAD WHEN READY", "width": 464.0, "preferred": 8, "minimum": 5},
+		{"key": "ui.hideaway.status.facility", "fallback": "{facility} L{level}   INTERACT PREPARE   ATTACK UPGRADE", "replacements": {"facility": "SHELTERED COLDFRAME", "level": 3}, "width": 464.0, "preferred": 8, "minimum": 5}
 	]
 	for surface_value in single_surfaces:
 		var surface: Dictionary = surface_value

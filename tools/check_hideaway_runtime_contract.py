@@ -40,6 +40,10 @@ require(runtime_path, runtime, [
     'HIDEAWAY_BONUS_DAMAGE := 2',
     'draw_hideaway_facilities',
     'draw_hideaway_status',
+    'hideaway_return_message',
+    'ui.hideaway.return.too_short',
+    'ui.hideaway.status.header',
+    'draw_fitted_line',
     'hideaway_runtime_contract_ok',
 ])
 for forbidden in [
@@ -69,6 +73,8 @@ require("src/content/save_validator.gd", save_validator, [
     'HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")',
     'state.has("hideaway:stewardship")',
     'HideawayStewardship.validate_state',
+    'HIDEAWAY_TRANSIENT_COUNTER_KEYS',
+    'validate_hideaway_transient_counter',
 ])
 
 campaign_path = ROOT / "campaigns/epochbound_demo/campaign.json"
@@ -128,7 +134,7 @@ for path, tokens in {
     "tools/smoke_audio_mood_runtime.gd": ["nine audio profiles", "all eight map/era contexts"],
     "tools/smoke_multiplayer_runtime.gd": ["five authored online areas"],
     "tools/smoke_multiplayer_snapshot_transport.gd": ["archive_hideaway", "all eight reference map/era states"],
-    "tools/smoke_hideaway_runtime.gd": ["Archive Hideaway runtime smoke passed", "Fractional Hideaway durable state", "archive_hideaway_sanctuary"],
+    "tools/smoke_hideaway_runtime.gd": ["Archive Hideaway runtime smoke passed", "Fractional Hideaway durable state", "Fractional Hideaway one-use counters", "remaining active-play requirement", "qps-ploc", "archive_hideaway_sanctuary"],
     "tools/compile_hideaway_runtime_probe.gd": ["src/hideaway_runtime.gd", "smoke_hideaway_runtime.gd"],
     "scripts/validate.ps1": ["Compile Archive Hideaway live runtime bridge", "Smoke test playable Archive Hideaway refuge loop"],
 }.items():
@@ -142,7 +148,7 @@ if errors:
 
 print("epochbound_hideaway_runtime_contract_passed")
 print("- Archive Hideaway is an authored fourth map with Verdant and Ashen refuge identity")
-print("- live travel owns active-play expedition start and bounded return rewards")
+print("- live travel owns active-play expedition start, truthful capped rewards and visible short-return guidance")
 print("- four facility interactions spend salvage or banked returns through existing controls")
 print("- one-use warmth repair recovery and Morrow focus preparations bridge into combat readiness")
 print("- semantic Hideaway state is save-validated and remains host-authoritative online")

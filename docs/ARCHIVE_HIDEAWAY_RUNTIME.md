@@ -20,6 +20,14 @@ The Archive Hideaway is Epochbound's expedition refuge: a quiet return-home cade
 
 Prepared charges never grow on wall clock time and never punish the player for staying away.
 
+## Truthful return feedback
+
+A return below the 90-second active-play threshold now explains how many active-play seconds were still required. Qualifying returns report only the salvage actually stored, so a player at 98 salvage sees one recovered salvage when the authored 99 cap is reached rather than an overstated theoretical award. Return summaries, facility results, preparation feedback, status text and host-authority notices resolve through the strict localisation catalogue. The two fixed Hideaway status lines use measured font fitting inside their 464-pixel panel budget.
+
+## Transient preparation validation
+
+The warmth guard, repair strike and Morrow-focus counters remain one-use session values, but they are now semantically save-validated as exact integers in the range zero to one. JSON-safe fractional, negative or oversized values fail closed before a profile can be promoted or loaded.
+
 ## World and online boundaries
 
 `archive_hideaway` is the fourth authored reference map with Verdant and Ashen identities. Both eras have dedicated presentation and procedural-audio profiles. A sanctuary multiplayer area allows allies but rejects invaders. Durable Hideaway mutations remain host-authoritative; clients can visit but cannot spend salvage or return opportunities.

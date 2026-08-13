@@ -11,6 +11,12 @@ const ObjectCatalog = preload("res://src/content/object_catalog.gd")
 const EquipmentModel = preload("res://src/game/equipment_model.gd")
 const HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")
 
+const HIDEAWAY_TRANSIENT_COUNTER_KEYS := [
+	"hideaway:buff:warmth_guard",
+	"hideaway:buff:repair_strike",
+	"hideaway:buff:companion_focus",
+]
+
 const ALLOWED_QUEST_STATUSES := [
 	StoryModel.STATUS_NOT_STARTED,
 	StoryModel.STATUS_ACTIVE,
@@ -239,6 +245,9 @@ static func validate_session_state(payload: Dictionary, errors: Array[String], w
 	if state.has("hideaway:stewardship"):
 		for code in HideawayStewardship.validate_state(state.get("hideaway:stewardship")):
 			errors.append("Save hideaway stewardship state is invalid: %s." % str(code))
+	for counter_key in HIDEAWAY_TRANSIENT_COUNTER_KEYS:
+		if state.has(counter_key):
+			validate_hideaway_transient_counter(state, counter_key, errors)
 	for key_value in state.keys():
 		var key := str(key_value).strip_edges()
 		if key.is_empty():
@@ -247,6 +256,20 @@ static func validate_session_state(payload: Dictionary, errors: Array[String], w
 			warnings.append("Save session_state key '%s' is unusually long." % key)
 		if not SaveProfile.is_json_safe(state.get(key_value)):
 			errors.append("Save session_state value for '%s' is not JSON-safe." % key)
+
+
+static func validate_hideaway_transient_counter(
+	state: Dictionary,
+	key: String,
+	errors: Array[String]
+) -> void:
+	var value: Variant = state.get(key)
+	if not (value is int or value is float):
+		errors.append("Save Hideaway transient counter '%s' must be an exact integer." % key)
+		return
+	var numeric := float(value)
+	if not is_finite(numeric) or numeric != floor(numeric) or numeric < 0.0 or numeric > 1.0:
+		errors.append("Save Hideaway transient counter '%s' must be 0 or 1." % key)
 
 
 static func validate_quest_progress(payload: Dictionary, quest_definitions: Dictionary, errors: Array[String]) -> void:

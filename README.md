@@ -11,7 +11,7 @@ It does **not** reproduce protected characters, locations, sprites, animation sh
 The reference campaign, **The Hours Beneath**, currently provides:
 
 1. EVAVO Studio splash, title, campaign browser and campaign-defined prologue
-2. Three connected scrolling maps: Bellweather Crossing, Clockwood Edge and Museum Underworks
+2. Four connected scrolling maps: Bellweather Crossing, Clockwood Edge, Museum Underworks and the Archive Hideaway
 3. Verdant and Ashen versions of each location
 4. Eight-direction movement, authored collision, navigation, entries, recovery anchors and return routes
 5. Eli and his dog Morrow with Follow, Stay, Seek, Guard and Recall behaviour
@@ -38,6 +38,7 @@ The reference campaign, **The Hours Beneath**, currently provides:
 26. Unexpected-host restart recovery for accepted direct-IP clients with six bounded retries and same-process replacement-host validation
 27. Player-local English and deterministic pseudo-localisation with strict UI and campaign catalogues, stable title/subtitle/intro keys, placeholder parity and staged package validation
 28. Measured localisation layout safety with bounded font reduction, deterministic wrapping and visible ellipsis across fixed 640 by 360 UI surfaces
+29. A playable Archive Hideaway refuge with active-play expeditions, four optional facilities, truthful capped salvage, localised return guidance and strict one-use preparation persistence
 
 The runtime still uses generated visuals and synthesis for much of its production blockout. These systems establish scale, silhouette, colour, frame timing, environmental motion, combat readability, feedback, camera, interface, collision, combat, cinematic, musical, ambience and mix contracts before final pixel art and mastered audio replace the generated assets.
 
@@ -158,7 +159,7 @@ Keyboard capture accepts one physical key at a time. Modifier chords are rejecte
 
 The complete profile is applied through Godot’s runtime `InputMap` and persisted through the existing atomic player-settings writer. Validated keyboard rows, controller rows and prompt labels are cached only when settings load or bindings change; gameplay drawing reads those bounded caches rather than sanitising the complete profile every frame.
 
-Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules, and [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md) for measured fixed-viewport fitting, wrapping and ellipsis.
+Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migration, recovery, capture and validation contracts, [`docs/LOCALISATION_FOUNDATION.md`](docs/LOCALISATION_FOUNDATION.md) for strict catalogue, fallback, pseudo-localisation and package rules, [`docs/LOCALISATION_LAYOUT_SAFETY.md`](docs/LOCALISATION_LAYOUT_SAFETY.md) for measured fixed-viewport fitting, wrapping and ellipsis, and [`docs/ARCHIVE_HIDEAWAY_RUNTIME.md`](docs/ARCHIVE_HIDEAWAY_RUNTIME.md) for the refuge loop, truthful return feedback and one-use persistence boundary.
 
 ## Original 16-bit presentation, audio and animation
 
@@ -166,7 +167,7 @@ Read [`docs/PLAYER_SETTINGS.md`](docs/PLAYER_SETTINGS.md) for the schema, migrat
 
 The Presentation layer provides:
 
-- six reference profiles, one for every map and era combination;
+- eight reference profiles, one for every map and era combination;
 - distinct Verdant and Ashen value and hue relationships;
 - camera follow, deadzone, directional look-ahead and bounded shake;
 - a separate CanvasLayer that keeps HUD and dialogue fixed during world-camera movement;
@@ -185,7 +186,7 @@ The Presentation layer provides:
 
 The Audio layer provides:
 
-- one title and prologue profile plus six map and era profiles;
+- one title and prologue profile plus eight map and era profiles;
 - original scale-degree melody and bass patterns;
 - bounded pulse, triangle and sine synthesis;
 - deterministic room tone, pollen, insects, embers, cinders, machinery and furnace ambience;

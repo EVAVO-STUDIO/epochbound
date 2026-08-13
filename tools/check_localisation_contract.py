@@ -158,6 +158,13 @@ for required_key in [
     "ui.controls.title",
     "ui.controls.action.attack",
     "ui.controls.binding_failed",
+    "ui.hideaway.return.qualified.one",
+    "ui.hideaway.return.too_short",
+    "ui.hideaway.status.header",
+    "ui.hideaway.status.facility",
+    "ui.hideaway.facility.archive_hearth",
+    "ui.hideaway.failure.unrestored",
+    "ui.hideaway.warmth.absorb",
 ]:
     if required_key not in ui_messages:
         errors.append(f"localisation/ui.json: missing {required_key}")

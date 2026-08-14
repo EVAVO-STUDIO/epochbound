@@ -47,6 +47,16 @@ Nothing is consumed. Inspection spends no salvage or return opportunity, grants 
 
 Read [`ARCHIVE_HIDEAWAY_MEMENTOS.md`](ARCHIVE_HIDEAWAY_MEMENTOS.md) for the authored entries, strict condition schema, package boundary and explicit exclusions.
 
+## Hearthside quiet moments
+
+The two cushions beside the Archive Hearth now hold eight optional present-tense scenes with Eli and Morrow. Availability is derived from existing return, facility, story and refuge state, and the normal interact action cycles through available entries in stable authored order.
+
+No time passes. Listening does not alter active-play duration, expedition qualification, salvage, return opportunities, prepared charges, combat state or saves. The runtime cursor is local presentation state and resets when the player returns to the Hideaway.
+
+The nook always begins with **Threshold Breaths**, then grows through the first safe return, restored facilities, the Missing Hour and completed Archive Haven. Verdant and Ashen copy, speaker labels, status text and controls use the strict localisation catalogue and measured fixed-viewport fitting.
+
+Read [`ARCHIVE_HIDEAWAY_QUIET_MOMENTS.md`](ARCHIVE_HIDEAWAY_QUIET_MOMENTS.md) for the authored sequence, condition schema and reward-free, chore-free boundary.
+
 ## Truthful return feedback
 
 A return below the 90-second active-play threshold now explains how many active-play seconds were still required. Qualifying returns report only the salvage actually stored, so a player at 98 salvage sees one recovered salvage when the authored 99 cap is reached rather than an overstated theoretical award. Return summaries, facility results, preparation feedback, status text and host-authority notices resolve through the strict localisation catalogue. The two fixed Hideaway status lines use measured font fitting inside their 464-pixel panel budget.

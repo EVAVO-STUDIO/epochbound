@@ -915,6 +915,21 @@
 				"ashen": "Cinder settles around the shelf, never over the small objects that still remember the road.",
 				"default": "The memento shelf records what the journey changed without turning memory into currency."
 			}
+		},
+		{
+			"id": "quiet_moments_station",
+			"kind": "hideaway_quiet_moments",
+			"position": {
+				"x": 222,
+				"y": 272
+			},
+			"radius": 38,
+			"available_eras": [],
+			"dialogue": {
+				"verdant": "Two low cushions face the Archive Hearth. Nothing here asks to be completed.",
+				"ashen": "The hearthside nook is warm enough to sit without planning the next escape.",
+				"default": "The quiet nook holds optional moments with Morrow. Listening spends nothing and advances no time."
+			}
 		}
 	],
 	"connections": [

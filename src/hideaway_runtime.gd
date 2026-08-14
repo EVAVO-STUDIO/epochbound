@@ -2,6 +2,7 @@ extends "res://src/presentation_runtime_base.gd"
 
 const HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")
 const HideawayMementoModel = preload("res://src/game/hideaway_memento_model.gd")
+const HideawayQuietMomentModel = preload("res://src/game/hideaway_quiet_moment_model.gd")
 const HideawayStewardshipValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 const HideawayEncounterModel = preload("res://src/game/encounter_model.gd")
 
@@ -12,6 +13,7 @@ const HIDEAWAY_REPAIR_STRIKE_KEY := "hideaway:buff:repair_strike"
 const HIDEAWAY_COMPANION_FOCUS_KEY := "hideaway:buff:companion_focus"
 const HIDEAWAY_FACILITY_KIND := "hideaway_facility"
 const HIDEAWAY_MEMENTO_KIND := "hideaway_memento_shelf"
+const HIDEAWAY_QUIET_MOMENT_KIND := "hideaway_quiet_moments"
 const HIDEAWAY_BONUS_DAMAGE := 2
 const HIDEAWAY_WARMTH_REDUCTION := 2
 const HIDEAWAY_STATUS_WIDTH := 464.0
@@ -19,6 +21,7 @@ const HIDEAWAY_STATUS_WIDTH := 464.0
 var hideaway_definition: Dictionary = {}
 var hideaway_definition_key := ""
 var hideaway_memento_cursor := 0
+var hideaway_quiet_moment_cursor := 0
 
 
 func load_campaign(path: String) -> bool:
@@ -40,6 +43,7 @@ func load_fallback_campaign() -> void:
 	hideaway_definition = {}
 	hideaway_definition_key = ""
 	hideaway_memento_cursor = 0
+	hideaway_quiet_moment_cursor = 0
 	super.load_fallback_campaign()
 
 
@@ -65,9 +69,13 @@ func activate_map(
 ) -> bool:
 	var previous_map_id := str(map_data.get("id", ""))
 	var activated := super.activate_map(map_id, entry_id, requested_era, use_transition)
-	if not activated or not use_transition or not hideaway_has_durable_authority():
+	if not activated or not use_transition:
 		return activated
 	var next_map_id := str(map_data.get("id", ""))
+	if previous_map_id != HIDEAWAY_MAP_ID and next_map_id == HIDEAWAY_MAP_ID:
+		hideaway_quiet_moment_cursor = 0
+	if not hideaway_has_durable_authority():
+		return activated
 	if previous_map_id == HIDEAWAY_MAP_ID and next_map_id != HIDEAWAY_MAP_ID:
 		var departure := HideawayStewardship.begin_expedition(
 			hideaway_state_snapshot(),
@@ -109,6 +117,10 @@ func interact() -> void:
 		var shelf := nearest_hideaway_memento_shelf()
 		if not shelf.is_empty():
 			inspect_hideaway_memento()
+			return
+		var quiet_nook := nearest_hideaway_quiet_nook()
+		if not quiet_nook.is_empty():
+			inspect_hideaway_quiet_moment()
 			return
 		var facility := nearest_hideaway_facility()
 		if not facility.is_empty():
@@ -166,6 +178,7 @@ func draw_game() -> void:
 	if not is_in_archive_hideaway():
 		return
 	draw_hideaway_facilities()
+	draw_hideaway_quiet_nook()
 	draw_hideaway_memento_shelf()
 	draw_hideaway_status()
 
@@ -179,6 +192,7 @@ func cache_hideaway_definition(path: String, value: Variant) -> void:
 	hideaway_definition_key = "%s|%s" % [path, str(campaign.get("id", ""))]
 	hideaway_definition = (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else {}
 	hideaway_memento_cursor = 0
+	hideaway_quiet_moment_cursor = 0
 
 
 func refresh_hideaway_definition() -> void:
@@ -274,6 +288,99 @@ func hideaway_memento_reflection(entry: Dictionary) -> String:
 	return localise(
 		HideawayMementoModel.reflection_key(entry, current_era_id),
 		HideawayMementoModel.reflection_fallback(entry, current_era_id)
+	)
+
+
+func available_hideaway_quiet_moments() -> Array:
+	return HideawayQuietMomentModel.available_entries(
+		hideaway_definition_snapshot(),
+		session_state,
+		hideaway_state_snapshot()
+	)
+
+
+func hideaway_quiet_moment_summary() -> Dictionary:
+	var definition := hideaway_definition_snapshot()
+	var entries_value: Variant = definition.get("quiet_moments", [])
+	var total := (entries_value as Array).size() if typeof(entries_value) == TYPE_ARRAY else 0
+	var slots := HideawayQuietMomentModel.nook_slots(definition)
+	var available := available_hideaway_quiet_moments()
+	return {
+		"available": mini(available.size(), slots),
+		"total": mini(total, slots),
+		"slots": slots,
+	}
+
+
+func nearest_hideaway_quiet_nook() -> Dictionary:
+	if not is_in_archive_hideaway():
+		return {}
+	var definition := hideaway_definition_snapshot()
+	var expected_id := HideawayQuietMomentModel.nook_interaction_id(definition)
+	if expected_id.is_empty():
+		return {}
+	for value: Variant in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var interaction: Dictionary = value
+		if (
+			str(interaction.get("id", "")) != expected_id
+			or str(interaction.get("kind", "")) != HIDEAWAY_QUIET_MOMENT_KIND
+			or not MapModel.available_in_era(interaction, current_era_id)
+		):
+			continue
+		var position := CampaignRepository.data_to_vector(interaction.get("position"))
+		if player.distance_to(position) <= float(interaction.get("radius", 32.0)):
+			return interaction
+	return {}
+
+
+func inspect_hideaway_quiet_moment() -> Dictionary:
+	var available := available_hideaway_quiet_moments()
+	if available.is_empty():
+		hideaway_quiet_moment_cursor = 0
+		dialogue = localise(
+			"ui.hideaway.quiet.none",
+			"The quiet nook has not found its first moment yet."
+		)
+		return {}
+	hideaway_quiet_moment_cursor = posmod(hideaway_quiet_moment_cursor, available.size())
+	var entry: Dictionary = available[hideaway_quiet_moment_cursor]
+	hideaway_quiet_moment_cursor = (hideaway_quiet_moment_cursor + 1) % available.size()
+	var speaker := hideaway_quiet_moment_speaker(entry)
+	var name := hideaway_quiet_moment_name(entry)
+	var reflection := hideaway_quiet_moment_reflection(entry)
+	var heading := name if speaker.is_empty() else "%s — %s" % [speaker, name]
+	dialogue = heading if reflection.is_empty() else "%s
+%s" % [heading, reflection]
+	return entry.duplicate(true)
+
+
+func hideaway_quiet_moment_name(entry: Dictionary) -> String:
+	return localise(
+		str(entry.get("display_name_key", "")),
+		str(entry.get("display_name", "Quiet Moment"))
+	)
+
+
+func hideaway_quiet_moment_reflection(entry: Dictionary) -> String:
+	return localise(
+		HideawayQuietMomentModel.reflection_key(entry, current_era_id),
+		HideawayQuietMomentModel.reflection_fallback(entry, current_era_id)
+	)
+
+
+func hideaway_quiet_moment_speaker(entry: Dictionary) -> String:
+	var speaker_id := str(entry.get("speaker", "hideaway"))
+	var fallbacks := {
+		"eli": "ELI",
+		"morrow": "MORROW",
+		"together": "ELI & MORROW",
+		"hideaway": "THE HIDEAWAY",
+	}
+	return localise(
+		"ui.hideaway.quiet.speaker.%s" % speaker_id,
+		str(fallbacks.get(speaker_id, "THE HIDEAWAY"))
 	)
 
 
@@ -639,6 +746,51 @@ func draw_hideaway_memento_symbol(position: Vector2, symbol: String, accent: Col
 			draw_circle(position, 2.0, accent, false, 1.0)
 
 
+func hideaway_quiet_moment_visual_descriptor(entry: Dictionary, index: int) -> Dictionary:
+	var speaker_id := str(entry.get("speaker", "hideaway"))
+	return {
+		"signature": "%s:%s:%d" % [speaker_id, str(entry.get("id", "quiet")), maxi(0, index)],
+		"speaker": speaker_id,
+		"index": maxi(0, index),
+	}
+
+
+func draw_hideaway_quiet_nook() -> void:
+	if not is_in_archive_hideaway():
+		return
+	var definition := hideaway_definition_snapshot()
+	var expected_id := HideawayQuietMomentModel.nook_interaction_id(definition)
+	if expected_id.is_empty():
+		return
+	var interaction: Dictionary = {}
+	for value: Variant in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var candidate: Dictionary = value
+		if (
+			str(candidate.get("id", "")) == expected_id
+			and str(candidate.get("kind", "")) == HIDEAWAY_QUIET_MOMENT_KIND
+			and MapModel.available_in_era(candidate, current_era_id)
+		):
+			interaction = candidate
+			break
+	if interaction.is_empty():
+		return
+	var position := CampaignRepository.data_to_vector(interaction.get("position")) - camera_offset()
+	var frame := palette_color("structure", "705b43")
+	var accent := palette_color("accent", "d4aa63")
+	var available_count := available_hideaway_quiet_moments().size()
+	draw_rect(Rect2(position + Vector2(-20, 6), Vector2(40, 5)), Color(frame.r, frame.g, frame.b, 0.9), true)
+	draw_circle(position + Vector2(-11, 2), 6.0, Color("776250"), true)
+	draw_circle(position + Vector2(11, 2), 6.0, Color("655449"), true)
+	draw_arc(position + Vector2(0, 1), 18.0, PI, TAU, 18, Color(accent.r, accent.g, accent.b, 0.42), 1.0)
+	if available_count > 1:
+		for index in range(mini(available_count, 4)):
+			draw_circle(position + Vector2(-9 + index * 6, -8), 1.2, Color(accent.r, accent.g, accent.b, 0.7), true)
+	if not nearest_hideaway_quiet_nook().is_empty():
+		draw_circle(position, 26.0, Color(accent.r, accent.g, accent.b, 0.35), false, 1.0)
+
+
 func hideaway_facility_visual_descriptor(
 	facility_id: StringName,
 	level: int
@@ -843,6 +995,7 @@ func draw_hideaway_status() -> void:
 	)
 	draw_fitted_line(header, Vector2(88, 305), HIDEAWAY_STATUS_WIDTH, 9, 5, Color("ead9b7"), HORIZONTAL_ALIGNMENT_CENTER)
 	var shelf := nearest_hideaway_memento_shelf()
+	var quiet_nook := nearest_hideaway_quiet_nook()
 	var facility := nearest_hideaway_facility()
 	var detail := localise(
 		"ui.hideaway.status.restoration",
@@ -869,6 +1022,20 @@ func draw_hideaway_status() -> void:
 			"ui.hideaway.controls.mementos",
 			"INTERACT REMEMBER   •   NOTHING IS CONSUMED"
 		)
+	elif not quiet_nook.is_empty():
+		var moments := hideaway_quiet_moment_summary()
+		detail = localise(
+			"ui.hideaway.status.quiet",
+			"QUIET MOMENTS {available}/{total}   HEARTHSIDE REFUGE",
+			{
+				"available": int(moments.get("available", 0)),
+				"total": int(moments.get("total", 0)),
+			}
+		)
+		controls = localise(
+			"ui.hideaway.controls.quiet",
+			"INTERACT LISTEN   •   NO TIME PASSES"
+		)
 	elif not facility.is_empty():
 		var facility_id := StringName(str(facility.get("facility_id", "")))
 		detail = hideaway_facility_status_text(state, facility_id)
@@ -886,8 +1053,11 @@ func hideaway_runtime_contract_ok() -> bool:
 		and HIDEAWAY_WARMTH_REDUCTION == 2
 		and HIDEAWAY_STATUS_WIDTH == 464.0
 		and HIDEAWAY_MEMENTO_KIND == HideawayMementoModel.SHELF_KIND
+		and HIDEAWAY_QUIET_MOMENT_KIND == HideawayQuietMomentModel.NOOK_KIND
 		and HideawayMementoModel.memento_contract_ok()
+		and HideawayQuietMomentModel.quiet_moment_contract_ok()
 		and not HideawayStewardship.refuge_summary(state).is_empty()
 		and (hideaway_definition_snapshot().is_empty() or HideawayStewardshipValidator.validate_definition(hideaway_definition_snapshot()).is_empty())
 		and str(hideaway_facility_visual_descriptor(&"archive_hearth", 3).get("signature", "")) == "chimney_glow"
+		and str(hideaway_quiet_moment_visual_descriptor({"id": "threshold_breaths", "speaker": "together"}, 0).get("signature", "")) == "together:threshold_breaths:0"
 	)

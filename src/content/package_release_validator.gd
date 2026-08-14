@@ -50,6 +50,7 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	output["warnings"] = warnings
 	output["release_count"] = release_report.get("release_count", 0)
 	output["hideaway_memento_count"] = hideaway_report.get("hideaway_memento_count", 0)
+	output["hideaway_quiet_moment_count"] = hideaway_report.get("hideaway_quiet_moment_count", 0)
 	return output
 
 

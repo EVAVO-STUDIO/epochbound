@@ -29,6 +29,8 @@ func run_test() -> void:
 	check(bool(runtime.call("activate_map", "archive_hideaway", "from_bellweather", "verdant", true)), "Reference player must be able to enter the Archive Hideaway.")
 	var first_visit: Dictionary = runtime.call("hideaway_state_snapshot")
 	check(int(first_visit.get("salvage", -1)) == 0 and int(first_visit.get("banked_returns", -1)) == 0, "First arrival cannot fabricate return rewards.")
+	var opening_moments: Array = runtime.call("available_hideaway_quiet_moments")
+	check(opening_moments.size() == 1 and str((opening_moments[0] as Dictionary).get("id", "")) == "threshold_breaths", "A new journey must begin with one optional read-only hearthside moment.")
 
 	runtime.set("play_time_seconds", 10.0)
 	check(bool(runtime.call("activate_map", "bellweather_crossing", "from_hideaway", "verdant", true)), "Leaving the refuge must return to Bellweather.")
@@ -48,6 +50,20 @@ func run_test() -> void:
 	check(int(returned.get("salvage", 0)) == 2, "A 300-second expedition must award exactly two bounded salvage.")
 	check(int(returned.get("banked_returns", 0)) == 1, "A qualifying expedition must bank one preparation opportunity.")
 	check(str(runtime.get("dialogue")).contains("2") and str(runtime.get("dialogue")).contains("/99"), "Qualified return feedback must expose actual salvage delta and capacity.")
+	var quiet_definition: Dictionary = runtime.call("hideaway_definition_snapshot")
+	check((quiet_definition.get("quiet_moments", []) as Array).size() == 8, "Reference Hideaway must load eight authored quiet moments.")
+	var return_moments: Array = runtime.call("available_hideaway_quiet_moments")
+	check(return_moments.size() == 2 and str((return_moments[1] as Dictionary).get("id", "")) == "first_return_watch", "The first qualifying return must add one Morrow downtime moment.")
+	runtime.set("player", Vector2(222, 272))
+	check(not (runtime.call("nearest_hideaway_quiet_nook") as Dictionary).is_empty(), "Authored quiet nook must be reachable in the live Hideaway.")
+	var before_quiet: Dictionary = (runtime.get("session_state") as Dictionary).duplicate(true)
+	runtime.set("dialogue", "")
+	var listened: Dictionary = runtime.call("inspect_hideaway_quiet_moment")
+	check(str(listened.get("id", "")) == "threshold_breaths", "Quiet nook inspection must begin at the baseline authored moment each visit.")
+	check(str(runtime.get("dialogue")).contains("Threshold Breaths") and str(runtime.get("dialogue")).contains("ELI"), "Quiet nook inspection must show localised speaker, title and reflection copy.")
+	check((runtime.get("session_state") as Dictionary) == before_quiet, "Listening to a quiet moment must not spend or mutate campaign state.")
+	var quiet_descriptor: Dictionary = runtime.call("hideaway_quiet_moment_visual_descriptor", listened, 0)
+	check(str(quiet_descriptor.get("signature", "")) == "together:threshold_breaths:0", "Quiet moment visual descriptors must remain deterministic.")
 	var memento_definition: Dictionary = runtime.call("hideaway_definition_snapshot")
 	check((memento_definition.get("mementos", []) as Array).size() == 6, "Reference Hideaway must load six authored journey mementos.")
 	var first_mementos: Array = runtime.call("unlocked_hideaway_mementos")
@@ -103,6 +119,15 @@ func run_test() -> void:
 	var complete_mementos: Array = runtime.call("unlocked_hideaway_mementos")
 	check(complete_mementos.size() == 6, "Existing story, combat, companion and refuge milestones must unlock all six mementos without new saved flags.")
 	check(str((complete_mementos[5] as Dictionary).get("id", "")) == "archive_haven_key", "Archive Haven key must remain the final authored shelf memory.")
+	var complete_moments: Array = runtime.call("available_hideaway_quiet_moments")
+	check(complete_moments.size() == 8, "Existing return, facility, story and refuge state must expose all eight quiet moments without new saved flags.")
+	check(str((complete_moments[7] as Dictionary).get("id", "")) == "archive_haven_stillness", "Archive Haven stillness must remain the final authored quiet moment.")
+	runtime.set("player", Vector2(222, 272))
+	runtime.set("dialogue", "")
+	runtime.call("set_localisation_locale", "qps-ploc")
+	var pseudo_quiet: Dictionary = runtime.call("inspect_hideaway_quiet_moment")
+	check(not pseudo_quiet.is_empty() and str(runtime.get("dialogue")) != str(pseudo_quiet.get("display_name_key", "")), "Quiet moment speakers, titles and reflections must resolve through deterministic pseudo-localisation.")
+	runtime.call("set_localisation_locale", "en")
 	runtime.set("player", Vector2(526, 174))
 	runtime.set("dialogue", "")
 	runtime.call("set_localisation_locale", "qps-ploc")
@@ -137,6 +162,13 @@ func run_test() -> void:
 		{"unlocked": 6, "total": 6}
 	))
 	check(pseudo_status != "ui.hideaway.status.mementos" and pseudo_status.contains("6/6"), "Hideaway memento status must resolve through deterministic pseudo-localisation.")
+	var pseudo_quiet_status := str(runtime.call(
+		"localise",
+		"ui.hideaway.status.quiet",
+		"QUIET MOMENTS {available}/{total}   HEARTHSIDE REFUGE",
+		{"available": 8, "total": 8}
+	))
+	check(pseudo_quiet_status != "ui.hideaway.status.quiet" and pseudo_quiet_status.contains("8/8"), "Hideaway quiet-moment status must resolve through deterministic pseudo-localisation.")
 	runtime.call("set_localisation_locale", "en")
 
 	check(bool(runtime.call("activate_map", "archive_hideaway", "from_bellweather", "ashen", false)), "Ashen Hideaway must activate for sanctuary testing.")
@@ -161,7 +193,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visuals, exact planning, six milestone-derived mementos, non-consuming localised reflections, one-use preparation, save strictness and sanctuary authority are coherent.")
+		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visuals, exact planning, six milestone-derived mementos, eight optional read-only hearthside moments, non-consuming localised reflections, one-use preparation, save strictness and sanctuary authority are coherent.")
 		quit(0)
 		return
 	for failure in failures:

@@ -150,6 +150,12 @@
 		"ui.hideaway.controls.complete": {
 			"en": "INTERACT PREPARE   •   FACILITY COMPLETE"
 		},
+		"ui.hideaway.controls.mementos": {
+			"en": "INTERACT REMEMBER   •   NOTHING IS CONSUMED"
+		},
+		"ui.hideaway.controls.quiet": {
+			"en": "INTERACT LISTEN   •   NO TIME PASSES"
+		},
 		"ui.hideaway.controls.restore": {
 			"en": "ATTACK RESTORE   •   INTERACT INSPECT"
 		},
@@ -210,8 +216,179 @@
 		"ui.hideaway.host_only.prepare": {
 			"en": "Only the host can prepare the Archive Hideaway while online."
 		},
+		"ui.hideaway.memento.absent_chime_case.ashen": {
+			"en": "Ash gathers around the case but never settles inside it. Something about the restored hour still refuses to burn."
+		},
+		"ui.hideaway.memento.absent_chime_case.name": {
+			"en": "Absent Chime Lens Case"
+		},
+		"ui.hideaway.memento.absent_chime_case.verdant": {
+			"en": "The empty case clicks once when the missing hour passes nearby. The archivist said empty things can still keep their shape."
+		},
+		"ui.hideaway.memento.archive_haven_key.ashen": {
+			"en": "The key is blackened and warm. The Hideaway holds against the cinders, and Morrow finally sleeps with both ears down."
+		},
+		"ui.hideaway.memento.archive_haven_key.name": {
+			"en": "Archive Haven Key"
+		},
+		"ui.hideaway.memento.archive_haven_key.verdant": {
+			"en": "The key opens no lock. Eli keeps it anyway, because every repaired corner now answers when he calls this place home."
+		},
+		"ui.hideaway.memento.first_safe_return.ashen": {
+			"en": "The same strap is grey with cinder. Morrow keeps it beneath one paw, as if holding the doorway in place."
+		},
+		"ui.hideaway.memento.first_safe_return.name": {
+			"en": "First Safe Return"
+		},
+		"ui.hideaway.memento.first_safe_return.verdant": {
+			"en": "The frayed pack strap still smells of rain. Morrow noses it once, then settles because this time the road ended here."
+		},
+		"ui.hideaway.memento.none": {
+			"en": "The shelf is waiting for something worth carrying home."
+		},
+		"ui.hideaway.memento.quieted_ash_mark.ashen": {
+			"en": "The strip is warm to the touch, but the hunt has gone silent. Morrow sleeps through the hour it once prowled."
+		},
+		"ui.hideaway.memento.quieted_ash_mark.name": {
+			"en": "Quieted Ash Mark"
+		},
+		"ui.hideaway.memento.quieted_ash_mark.verdant": {
+			"en": "A resin-dark strip from the eastern path hangs without moving. Morrow no longer hears the brass rhythm inside it."
+		},
+		"ui.hideaway.memento.released_accession_plate.ashen": {
+			"en": "Heat warped the plate, yet the released line remains readable. The gallery gave something back."
+		},
+		"ui.hideaway.memento.released_accession_plate.name": {
+			"en": "Released Accession Plate"
+		},
+		"ui.hideaway.memento.released_accession_plate.verdant": {
+			"en": "The Sentinel’s brass plate no longer lists a prisoner. The missing accession line ends with a clean, impossible blank."
+		},
+		"ui.hideaway.memento.well_name_rubbing.ashen": {
+			"en": "The rubbing has darkened, but the buried name is still legible. Morrow’s ears lift before Eli reaches the final letter."
+		},
+		"ui.hideaway.memento.well_name_rubbing.name": {
+			"en": "Well Name Rubbing"
+		},
+		"ui.hideaway.memento.well_name_rubbing.verdant": {
+			"en": "Charcoal catches the letters the old well remembered. Eli cannot read the name aloud without hearing water below the floor."
+		},
+		"ui.hideaway.morrow_routine.arrived": {
+			"en": "MORROW — {routine}"
+		},
+		"ui.hideaway.morrow_routine.cinder_glass_watch.name": {
+			"en": "Cinder-Glass Watch"
+		},
+		"ui.hideaway.morrow_routine.coldframe_scent.name": {
+			"en": "Coldframe Scent"
+		},
+		"ui.hideaway.morrow_routine.corner_curl.name": {
+			"en": "Blanket Curl"
+		},
+		"ui.hideaway.morrow_routine.first_return_pack.name": {
+			"en": "Pack Circle"
+		},
+		"ui.hideaway.morrow_routine.haven_sleep.name": {
+			"en": "Both Ears Down"
+		},
+		"ui.hideaway.morrow_routine.hearth_sprawl.name": {
+			"en": "Hearth Sprawl"
+		},
+		"ui.hideaway.morrow_routine.threshold_watch.name": {
+			"en": "Threshold Watch"
+		},
+		"ui.hideaway.morrow_routine.workbench_listen.name": {
+			"en": "Workbench Listening"
+		},
 		"ui.hideaway.preparation.applied": {
 			"en": "Hideaway preparation: {effects}."
+		},
+		"ui.hideaway.quiet.archive_haven_stillness.ashen": {
+			"en": "The Archive Haven holds its shape against the cinders. For one quiet moment, survival is not a task but a fact."
+		},
+		"ui.hideaway.quiet.archive_haven_stillness.name": {
+			"en": "Archive Haven Stillness"
+		},
+		"ui.hideaway.quiet.archive_haven_stillness.verdant": {
+			"en": "Every repaired corner answers differently: flame, leaf, brass, breath. Together they make a room that no longer feels borrowed."
+		},
+		"ui.hideaway.quiet.borrowed_hour.ashen": {
+			"en": "The restored hour passes through the room without smoke or bells. Eli keeps one hand on Morrow's shoulder until it is gone."
+		},
+		"ui.hideaway.quiet.borrowed_hour.name": {
+			"en": "The Borrowed Hour"
+		},
+		"ui.hideaway.quiet.borrowed_hour.verdant": {
+			"en": "When the returned hour arrives, Eli closes the ledger. He and Morrow spend it doing nothing that can be measured."
+		},
+		"ui.hideaway.quiet.both_ears_down.ashen": {
+			"en": "Even with impossible weather at the walls, Morrow curls into the blanket and lets both ears fall. The Hideaway keeps the first watch."
+		},
+		"ui.hideaway.quiet.both_ears_down.name": {
+			"en": "Both Ears Down"
+		},
+		"ui.hideaway.quiet.both_ears_down.verdant": {
+			"en": "Morrow sleeps with both ears down. Eli notices and does not move for a long while."
+		},
+		"ui.hideaway.quiet.coldframe_rain.ashen": {
+			"en": "Ash traces the coldframe glass while green leaves hold beneath it. No task follows, only proof that something sheltered can endure."
+		},
+		"ui.hideaway.quiet.coldframe_rain.name": {
+			"en": "Rain on Glass"
+		},
+		"ui.hideaway.quiet.coldframe_rain.verdant": {
+			"en": "Rain stipples the coldframe panes. The hardy leaves need nothing tonight; the sound alone is enough."
+		},
+		"ui.hideaway.quiet.first_return_watch.ashen": {
+			"en": "Morrow watches the door until the cinder gust passes. Only then does he lean against Eli's leg and let the room hold watch."
+		},
+		"ui.hideaway.quiet.first_return_watch.name": {
+			"en": "The First Watch"
+		},
+		"ui.hideaway.quiet.first_return_watch.verdant": {
+			"en": "Morrow circles the pack once, checks the door, then settles with his chin on Eli's boot. The road can wait until they stand."
+		},
+		"ui.hideaway.quiet.hearth_watch.ashen": {
+			"en": "The restored hearth keeps one clean pocket of heat. Eli listens to the chimney and leaves the next repair for later."
+		},
+		"ui.hideaway.quiet.hearth_watch.name": {
+			"en": "Hearth Watch"
+		},
+		"ui.hideaway.quiet.hearth_watch.verdant": {
+			"en": "Eli warms his hands without turning the moment into a plan. Cedar cracks once; Morrow's tail answers against the floor."
+		},
+		"ui.hideaway.quiet.none": {
+			"en": "The quiet nook has not found its first moment yet."
+		},
+		"ui.hideaway.quiet.quiet_tools.ashen": {
+			"en": "Metal cools on the bench. Eli puts the hammer down while the last ring fades, choosing silence over one more repair."
+		},
+		"ui.hideaway.quiet.quiet_tools.name": {
+			"en": "The Last Ring"
+		},
+		"ui.hideaway.quiet.quiet_tools.verdant": {
+			"en": "Eli sorts three useful tools, then stops before inventing a fourth job. Morrow approves by not moving."
+		},
+		"ui.hideaway.quiet.speaker.eli": {
+			"en": "ELI"
+		},
+		"ui.hideaway.quiet.speaker.hideaway": {
+			"en": "THE HIDEAWAY"
+		},
+		"ui.hideaway.quiet.speaker.morrow": {
+			"en": "MORROW"
+		},
+		"ui.hideaway.quiet.speaker.together": {
+			"en": "ELI & MORROW"
+		},
+		"ui.hideaway.quiet.threshold_breaths.ashen": {
+			"en": "Cinders whisper at the shutters. Eli and Morrow wait through two quiet breaths before deciding the room is still theirs."
+		},
+		"ui.hideaway.quiet.threshold_breaths.name": {
+			"en": "Threshold Breaths"
+		},
+		"ui.hideaway.quiet.threshold_breaths.verdant": {
+			"en": "Eli counts two quiet breaths before reaching for the next list. Morrow lies across the threshold, making the pause feel deliberate."
 		},
 		"ui.hideaway.return.qualified": {
 			"en": "The Archive Hideaway settles around you.\\nStored {salvage_delta} salvage ({salvage_total}/{salvage_cap}) and {return_delta} return preparation ({return_total}/{return_cap})."
@@ -228,8 +405,17 @@
 		"ui.hideaway.status.facility.unrestored": {
 			"en": "{facility} UNRESTORED   COST {cost}   SALVAGE {salvage}"
 		},
+		"ui.hideaway.status.mementos": {
+			"en": "MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD"
+		},
+		"ui.hideaway.status.morrow_routine": {
+			"en": "MORROW   {routine}   •   RETURN WHEN READY"
+		},
 		"ui.hideaway.status.overview": {
 			"en": "{tier}   SALVAGE {salvage}/{salvage_cap}   RETURNS {returns}/{return_cap}"
+		},
+		"ui.hideaway.status.quiet": {
+			"en": "QUIET MOMENTS {available}/{total}   HEARTHSIDE REFUGE"
 		},
 		"ui.hideaway.status.ready": {
 			"en": "RETURN TO THE ROAD WHEN READY"
@@ -371,162 +557,6 @@
 		},
 		"ui.title.quit": {
 			"en": "QUIT"
-		},
-		"ui.hideaway.memento.first_safe_return.name": {
-			"en": "First Safe Return"
-		},
-		"ui.hideaway.memento.first_safe_return.verdant": {
-			"en": "The frayed pack strap still smells of rain. Morrow noses it once, then settles because this time the road ended here."
-		},
-		"ui.hideaway.memento.first_safe_return.ashen": {
-			"en": "The same strap is grey with cinder. Morrow keeps it beneath one paw, as if holding the doorway in place."
-		},
-		"ui.hideaway.memento.well_name_rubbing.name": {
-			"en": "Well Name Rubbing"
-		},
-		"ui.hideaway.memento.well_name_rubbing.verdant": {
-			"en": "Charcoal catches the letters the old well remembered. Eli cannot read the name aloud without hearing water below the floor."
-		},
-		"ui.hideaway.memento.well_name_rubbing.ashen": {
-			"en": "The rubbing has darkened, but the buried name is still legible. Morrow’s ears lift before Eli reaches the final letter."
-		},
-		"ui.hideaway.memento.absent_chime_case.name": {
-			"en": "Absent Chime Lens Case"
-		},
-		"ui.hideaway.memento.absent_chime_case.verdant": {
-			"en": "The empty case clicks once when the missing hour passes nearby. The archivist said empty things can still keep their shape."
-		},
-		"ui.hideaway.memento.absent_chime_case.ashen": {
-			"en": "Ash gathers around the case but never settles inside it. Something about the restored hour still refuses to burn."
-		},
-		"ui.hideaway.memento.quieted_ash_mark.name": {
-			"en": "Quieted Ash Mark"
-		},
-		"ui.hideaway.memento.quieted_ash_mark.verdant": {
-			"en": "A resin-dark strip from the eastern path hangs without moving. Morrow no longer hears the brass rhythm inside it."
-		},
-		"ui.hideaway.memento.quieted_ash_mark.ashen": {
-			"en": "The strip is warm to the touch, but the hunt has gone silent. Morrow sleeps through the hour it once prowled."
-		},
-		"ui.hideaway.memento.released_accession_plate.name": {
-			"en": "Released Accession Plate"
-		},
-		"ui.hideaway.memento.released_accession_plate.verdant": {
-			"en": "The Sentinel’s brass plate no longer lists a prisoner. The missing accession line ends with a clean, impossible blank."
-		},
-		"ui.hideaway.memento.released_accession_plate.ashen": {
-			"en": "Heat warped the plate, yet the released line remains readable. The gallery gave something back."
-		},
-		"ui.hideaway.memento.archive_haven_key.name": {
-			"en": "Archive Haven Key"
-		},
-		"ui.hideaway.memento.archive_haven_key.verdant": {
-			"en": "The key opens no lock. Eli keeps it anyway, because every repaired corner now answers when he calls this place home."
-		},
-		"ui.hideaway.memento.archive_haven_key.ashen": {
-			"en": "The key is blackened and warm. The Hideaway holds against the cinders, and Morrow finally sleeps with both ears down."
-		},
-		"ui.hideaway.memento.none": {
-			"en": "The shelf is waiting for something worth carrying home."
-		},
-		"ui.hideaway.status.mementos": {
-			"en": "MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD"
-		},
-		"ui.hideaway.controls.mementos": {
-			"en": "INTERACT REMEMBER   •   NOTHING IS CONSUMED"
-		},
-		"ui.hideaway.quiet.threshold_breaths.name": {
-			"en": "Threshold Breaths"
-		},
-		"ui.hideaway.quiet.threshold_breaths.verdant": {
-			"en": "Eli counts two quiet breaths before reaching for the next list. Morrow lies across the threshold, making the pause feel deliberate."
-		},
-		"ui.hideaway.quiet.threshold_breaths.ashen": {
-			"en": "Cinders whisper at the shutters. Eli and Morrow wait through two quiet breaths before deciding the room is still theirs."
-		},
-		"ui.hideaway.quiet.first_return_watch.name": {
-			"en": "The First Watch"
-		},
-		"ui.hideaway.quiet.first_return_watch.verdant": {
-			"en": "Morrow circles the pack once, checks the door, then settles with his chin on Eli's boot. The road can wait until they stand."
-		},
-		"ui.hideaway.quiet.first_return_watch.ashen": {
-			"en": "Morrow watches the door until the cinder gust passes. Only then does he lean against Eli's leg and let the room hold watch."
-		},
-		"ui.hideaway.quiet.hearth_watch.name": {
-			"en": "Hearth Watch"
-		},
-		"ui.hideaway.quiet.hearth_watch.verdant": {
-			"en": "Eli warms his hands without turning the moment into a plan. Cedar cracks once; Morrow's tail answers against the floor."
-		},
-		"ui.hideaway.quiet.hearth_watch.ashen": {
-			"en": "The restored hearth keeps one clean pocket of heat. Eli listens to the chimney and leaves the next repair for later."
-		},
-		"ui.hideaway.quiet.coldframe_rain.name": {
-			"en": "Rain on Glass"
-		},
-		"ui.hideaway.quiet.coldframe_rain.verdant": {
-			"en": "Rain stipples the coldframe panes. The hardy leaves need nothing tonight; the sound alone is enough."
-		},
-		"ui.hideaway.quiet.coldframe_rain.ashen": {
-			"en": "Ash traces the coldframe glass while green leaves hold beneath it. No task follows, only proof that something sheltered can endure."
-		},
-		"ui.hideaway.quiet.quiet_tools.name": {
-			"en": "The Last Ring"
-		},
-		"ui.hideaway.quiet.quiet_tools.verdant": {
-			"en": "Eli sorts three useful tools, then stops before inventing a fourth job. Morrow approves by not moving."
-		},
-		"ui.hideaway.quiet.quiet_tools.ashen": {
-			"en": "Metal cools on the bench. Eli puts the hammer down while the last ring fades, choosing silence over one more repair."
-		},
-		"ui.hideaway.quiet.both_ears_down.name": {
-			"en": "Both Ears Down"
-		},
-		"ui.hideaway.quiet.both_ears_down.verdant": {
-			"en": "Morrow sleeps with both ears down. Eli notices and does not move for a long while."
-		},
-		"ui.hideaway.quiet.both_ears_down.ashen": {
-			"en": "Even with impossible weather at the walls, Morrow curls into the blanket and lets both ears fall. The Hideaway keeps the first watch."
-		},
-		"ui.hideaway.quiet.borrowed_hour.name": {
-			"en": "The Borrowed Hour"
-		},
-		"ui.hideaway.quiet.borrowed_hour.verdant": {
-			"en": "When the returned hour arrives, Eli closes the ledger. He and Morrow spend it doing nothing that can be measured."
-		},
-		"ui.hideaway.quiet.borrowed_hour.ashen": {
-			"en": "The restored hour passes through the room without smoke or bells. Eli keeps one hand on Morrow's shoulder until it is gone."
-		},
-		"ui.hideaway.quiet.archive_haven_stillness.name": {
-			"en": "Archive Haven Stillness"
-		},
-		"ui.hideaway.quiet.archive_haven_stillness.verdant": {
-			"en": "Every repaired corner answers differently: flame, leaf, brass, breath. Together they make a room that no longer feels borrowed."
-		},
-		"ui.hideaway.quiet.archive_haven_stillness.ashen": {
-			"en": "The Archive Haven holds its shape against the cinders. For one quiet moment, survival is not a task but a fact."
-		},
-		"ui.hideaway.quiet.none": {
-			"en": "The quiet nook has not found its first moment yet."
-		},
-		"ui.hideaway.quiet.speaker.eli": {
-			"en": "ELI"
-		},
-		"ui.hideaway.quiet.speaker.morrow": {
-			"en": "MORROW"
-		},
-		"ui.hideaway.quiet.speaker.together": {
-			"en": "ELI & MORROW"
-		},
-		"ui.hideaway.quiet.speaker.hideaway": {
-			"en": "THE HIDEAWAY"
-		},
-		"ui.hideaway.status.quiet": {
-			"en": "QUIET MOMENTS {available}/{total}   HEARTHSIDE REFUGE"
-		},
-		"ui.hideaway.controls.quiet": {
-			"en": "INTERACT LISTEN   •   NO TIME PASSES"
 		}
 	}
 }

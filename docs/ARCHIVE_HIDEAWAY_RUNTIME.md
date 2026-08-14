@@ -69,6 +69,12 @@ The warmth guard, repair strike and Morrow-focus counters remain one-use session
 
 `archive_hideaway` is the fourth authored reference map with Verdant and Ashen identities. Both eras have dedicated presentation and procedural-audio profiles. A sanctuary multiplayer area allows allies but rejects invaders. Durable Hideaway mutations remain host-authoritative; clients can visit but cannot spend salvage or return opportunities.
 
+## Living Morrow routines
+
+Morrow now uses restored refuge spaces through eight optional ambient routines: threshold watch, pack circle, hearth sprawl, Verdant coldframe scent, Ashen cinder-glass watch, workbench listening, blanket curl and Archive Haven sleep. Availability is derived from existing return, facility, era and refuge state. The active cursor and dwell timer are visit-local presentation state; no new save field or unlock list is written.
+
+The routines use active in-session delta only. Normal recovery distance still applies, and player commands always win: hold, seek, recall or any explicit command suspends ambient movement, with a four-second grace window before it can resume. Routines spend nothing, grant nothing and add no feeding, grooming, sleep, maintenance or daily chore loop.
+
 ## Persistence
 
 The live bridge stores stewardship and bounded one-use expedition flags inside the existing JSON-safe `session_state` payload. Save validation calls `HideawayStewardship.validate_state()` whenever the semantic stewardship record is present, so malformed or fractional durable counters fail before load promotion. Connection profiles and multiplayer peer state remain outside saves as before.

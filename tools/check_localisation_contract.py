@@ -226,6 +226,7 @@ require(
         'localisation_message_count',
         'HideawayValidator.validate_hideaway_only',
         'hideaway_memento_count',
+        'hideaway_morrow_routine_count',
     ],
 )
 package = read("src/content/campaign_package.gd")
@@ -489,6 +490,21 @@ require(
         "localisationLayoutValidation",
     ],
 )
+
+morrow_definition = read_json("campaigns/epochbound_demo/hideaway_stewardship.json")
+morrow_messages = ui_messages if isinstance(ui_messages, dict) else {}
+for routine in morrow_definition.get("morrow_routines", []) if isinstance(morrow_definition, dict) else []:
+    if not isinstance(routine, dict):
+        continue
+    key = routine.get("display_name_key")
+    fallback = routine.get("display_name")
+    value = morrow_messages.get(key) if isinstance(morrow_messages, dict) else None
+    if not isinstance(value, dict) or value.get("en") != fallback:
+        errors.append(f"localisation/ui.json: Morrow routine fallback mismatch for {key}")
+for key in ["ui.hideaway.morrow_routine.arrived", "ui.hideaway.status.morrow_routine"]:
+    value = morrow_messages.get(key) if isinstance(morrow_messages, dict) else None
+    if not isinstance(value, dict) or not isinstance(value.get("en"), str) or not value["en"].strip():
+        errors.append(f"localisation/ui.json: missing English {key}")
 
 if errors:
     print("Epochbound localisation contract failed:\n")

@@ -273,6 +273,7 @@ static func install_package(package_path: String, replace_existing: bool = false
 	validation["hideaway_facility_count"] = hideaway_validation.get("hideaway_facility_count", 0)
 	validation["hideaway_memento_count"] = hideaway_validation.get("hideaway_memento_count", 0)
 	validation["hideaway_quiet_moment_count"] = hideaway_validation.get("hideaway_quiet_moment_count", 0)
+	validation["hideaway_morrow_routine_count"] = hideaway_validation.get("hideaway_morrow_routine_count", 0)
 	var backup := target + ".backup"
 	remove_tree(backup)
 	if DirAccess.open(target) != null and DirAccess.rename_absolute(target, backup) != OK:

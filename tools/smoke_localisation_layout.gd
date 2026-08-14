@@ -94,7 +94,8 @@ func test_ui_surface_budgets() -> void:
 		{"key": "ui.hideaway.status.mementos", "fallback": "MEMENTOS {unlocked}/{total}   MEMORIES FROM THE ROAD", "replacements": {"unlocked": 6, "total": 6}, "width": 464.0, "preferred": 8, "minimum": 5},
 		{"key": "ui.hideaway.controls.mementos", "fallback": "INTERACT REMEMBER   •   NOTHING IS CONSUMED", "width": 464.0, "preferred": 7, "minimum": 5},
 		{"key": "ui.hideaway.status.quiet", "fallback": "QUIET MOMENTS {available}/{total}   HEARTHSIDE REFUGE", "replacements": {"available": 8, "total": 8}, "width": 464.0, "preferred": 8, "minimum": 5},
-		{"key": "ui.hideaway.controls.quiet", "fallback": "INTERACT LISTEN   •   NO TIME PASSES", "width": 464.0, "preferred": 7, "minimum": 5}
+		{"key": "ui.hideaway.controls.quiet", "fallback": "INTERACT LISTEN   •   NO TIME PASSES", "width": 464.0, "preferred": 7, "minimum": 5},
+		{"key": "ui.hideaway.status.morrow_routine", "fallback": "MORROW   {routine}   •   RETURN WHEN READY", "replacements": {"routine": "CINDER-GLASS WATCH"}, "width": 464.0, "preferred": 7, "minimum": 5}
 	]
 	for surface_value in single_surfaces:
 		var surface: Dictionary = surface_value

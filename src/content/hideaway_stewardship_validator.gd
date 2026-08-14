@@ -5,6 +5,7 @@ const Repository := preload("res://src/content/campaign_repository.gd")
 const MODEL := preload("res://src/game/hideaway_stewardship.gd")
 const MEMENTOS := preload("res://src/game/hideaway_memento_model.gd")
 const QUIET_MOMENTS := preload("res://src/game/hideaway_quiet_moment_model.gd")
+const MORROW_ROUTINES := preload("res://src/game/hideaway_morrow_routine_model.gd")
 
 const REFERENCE_CAMPAIGN_PATH := "res://campaigns/epochbound_demo/campaign.json"
 const DEFINITION_PATH := "res://campaigns/epochbound_demo/hideaway_stewardship.json"
@@ -21,6 +22,7 @@ const REQUIRED_KEYS: PackedStringArray = [
 	"mementos",
 	"quiet_nook",
 	"quiet_moments",
+	"morrow_routines",
 	"design_boundaries",
 ]
 const REQUIRED_REFLECTION_ERAS: PackedStringArray = ["verdant", "ashen"]
@@ -44,6 +46,18 @@ const ALLOWED_QUIET_MOMENT_KEYS: PackedStringArray = [
 	"reflection",
 ]
 const ALLOWED_QUIET_CONDITION_KEYS: PackedStringArray = ["type", "key", "value", "facility_id"]
+const ALLOWED_MORROW_ROUTINE_KEYS: PackedStringArray = [
+	"id",
+	"display_name_key",
+	"display_name",
+	"pose",
+	"anchor_interaction_id",
+	"offset",
+	"duration_seconds",
+	"available_eras",
+	"conditions",
+]
+const ALLOWED_MORROW_CONDITION_KEYS: PackedStringArray = ["type", "key", "value", "facility_id"]
 
 
 static func load_reference_definition() -> Dictionary:
@@ -88,6 +102,20 @@ static func validate_hideaway_only(campaign_path: String) -> Dictionary:
 	return _report(errors, warnings, definition)
 
 
+static func validate_campaign_binding_for_test(
+	campaign_path: String,
+	definition: Dictionary
+) -> Array[String]:
+	var errors: Array[String] = []
+	var campaign_result := Repository.read_json(campaign_path)
+	if not bool(campaign_result.get("ok", false)):
+		_append_messages(errors, campaign_result.get("errors", []))
+		return errors
+	var campaign: Dictionary = campaign_result.get("data", {})
+	_validate_campaign_binding(campaign_path, campaign, definition, errors)
+	return errors
+
+
 static func validate_definition(value: Variant) -> PackedStringArray:
 	var errors := PackedStringArray()
 	if not value is Dictionary:
@@ -115,6 +143,7 @@ static func validate_definition(value: Variant) -> PackedStringArray:
 	_validate_mementos(definition.get("mementos"), errors)
 	_validate_quiet_nook(definition.get("quiet_nook"), errors)
 	_validate_quiet_moments(definition.get("quiet_moments"), errors)
+	_validate_morrow_routines(definition.get("morrow_routines"), errors)
 	var entries_value: Variant = definition.get("mementos", [])
 	if (
 		typeof(entries_value) == TYPE_ARRAY
@@ -348,6 +377,154 @@ static func _validate_quiet_conditions(
 	return always_count
 
 
+static func _validate_morrow_routines(value: Variant, errors: PackedStringArray) -> void:
+	if not value is Array:
+		errors.append("hideaway.morrow_routines_not_array")
+		return
+	var entries: Array = value
+	if entries.is_empty() or entries.size() > MORROW_ROUTINES.MAX_ROUTINES:
+		errors.append("hideaway.morrow_routine_count_invalid")
+	var seen := {}
+	var always_count := 0
+	for entry_value: Variant in entries:
+		if not entry_value is Dictionary:
+			errors.append("hideaway.morrow_routine_not_dictionary")
+			continue
+		var entry: Dictionary = entry_value
+		var routine_id := str(entry.get("id", ""))
+		for key: Variant in entry.keys():
+			if not ALLOWED_MORROW_ROUTINE_KEYS.has(str(key)):
+				errors.append("hideaway.morrow_routine_field_unknown:%s:%s" % [routine_id, str(key)])
+		if routine_id.is_empty() or Repository.normalise_id(routine_id) != routine_id:
+			errors.append("hideaway.morrow_routine_id_invalid:%s" % routine_id)
+		elif seen.has(routine_id):
+			errors.append("hideaway.morrow_routine_duplicate:%s" % routine_id)
+		else:
+			seen[routine_id] = true
+		if str(entry.get("display_name", "")).strip_edges().is_empty():
+			errors.append("hideaway.morrow_routine_name_invalid:%s" % routine_id)
+		_validate_morrow_routine_message_key(entry.get("display_name_key"), routine_id, errors)
+		if not MORROW_ROUTINES.POSE_IDS.has(str(entry.get("pose", ""))):
+			errors.append("hideaway.morrow_routine_pose_invalid:%s" % routine_id)
+		var anchor_id := str(entry.get("anchor_interaction_id", ""))
+		if anchor_id.is_empty() or Repository.normalise_id(anchor_id) != anchor_id:
+			errors.append("hideaway.morrow_routine_anchor_invalid:%s" % routine_id)
+		_validate_morrow_routine_offset(entry.get("offset"), routine_id, errors)
+		if not _bounded_exact_int(
+			entry.get("duration_seconds"),
+			int(MORROW_ROUTINES.MIN_DURATION_SECONDS),
+			int(MORROW_ROUTINES.MAX_DURATION_SECONDS)
+		):
+			errors.append("hideaway.morrow_routine_duration_invalid:%s" % routine_id)
+		_validate_morrow_routine_eras(entry.get("available_eras"), routine_id, errors)
+		always_count += _validate_morrow_routine_conditions(entry.get("conditions"), routine_id, errors)
+		for forbidden in ["effects", "rewards", "reward", "grant", "salvage", "time_advance", "save_key"]:
+			if entry.has(forbidden):
+				errors.append("hideaway.morrow_routine_forbidden_field:%s:%s" % [routine_id, forbidden])
+	if always_count != 1:
+		errors.append("hideaway.morrow_routine_always_count_invalid")
+
+
+static func _validate_morrow_routine_message_key(
+	value: Variant,
+	routine_id: String,
+	errors: PackedStringArray
+) -> void:
+	var key := str(value)
+	if key.is_empty() or not key.begins_with("ui.hideaway.morrow_routine.") or key.contains(" "):
+		errors.append("hideaway.morrow_routine_message_key_invalid:%s" % routine_id)
+
+
+static func _validate_morrow_routine_offset(
+	value: Variant,
+	routine_id: String,
+	errors: PackedStringArray
+) -> void:
+	if not value is Dictionary:
+		errors.append("hideaway.morrow_routine_offset_invalid:%s" % routine_id)
+		return
+	var offset: Dictionary = value
+	if offset.keys().size() != 2 or not offset.has("x") or not offset.has("y"):
+		errors.append("hideaway.morrow_routine_offset_invalid:%s" % routine_id)
+		return
+	for axis in ["x", "y"]:
+		var component: Variant = offset.get(axis)
+		if not (component is int or component is float):
+			errors.append("hideaway.morrow_routine_offset_invalid:%s" % routine_id)
+			return
+		var numeric := float(component)
+		if not is_finite(numeric) or absf(numeric) > MORROW_ROUTINES.MAX_OFFSET_COMPONENT:
+			errors.append("hideaway.morrow_routine_offset_invalid:%s" % routine_id)
+			return
+
+
+static func _validate_morrow_routine_eras(
+	value: Variant,
+	routine_id: String,
+	errors: PackedStringArray
+) -> void:
+	if not value is Array:
+		errors.append("hideaway.morrow_routine_eras_invalid:%s" % routine_id)
+		return
+	var seen := {}
+	for era_value: Variant in value:
+		var era_id := str(era_value)
+		if not REQUIRED_REFLECTION_ERAS.has(era_id) or seen.has(era_id):
+			errors.append("hideaway.morrow_routine_eras_invalid:%s" % routine_id)
+			return
+		seen[era_id] = true
+
+
+static func _validate_morrow_routine_conditions(
+	value: Variant,
+	routine_id: String,
+	errors: PackedStringArray
+) -> int:
+	if not value is Array or (value as Array).is_empty():
+		errors.append("hideaway.morrow_routine_conditions_invalid:%s" % routine_id)
+		return 0
+	var always_count := 0
+	for condition_value: Variant in value:
+		if not condition_value is Dictionary:
+			errors.append("hideaway.morrow_routine_condition_not_dictionary:%s" % routine_id)
+			continue
+		var condition: Dictionary = condition_value
+		for key: Variant in condition.keys():
+			if not ALLOWED_MORROW_CONDITION_KEYS.has(str(key)):
+				errors.append("hideaway.morrow_routine_condition_field_unknown:%s:%s" % [routine_id, str(key)])
+		var condition_type := str(condition.get("type", ""))
+		if not MORROW_ROUTINES.CONDITION_TYPES.has(condition_type):
+			errors.append("hideaway.morrow_routine_condition_type_invalid:%s:%s" % [routine_id, condition_type])
+			continue
+		match condition_type:
+			"always":
+				if condition.size() != 1:
+					errors.append("hideaway.morrow_routine_always_payload_invalid:%s" % routine_id)
+				always_count += 1
+			"state_equals":
+				var state_key := str(condition.get("key", ""))
+				if state_key.is_empty() or state_key.length() > 128 or state_key.contains(" "):
+					errors.append("hideaway.morrow_routine_state_key_invalid:%s" % routine_id)
+				var state_value: Variant = condition.get("value")
+				if typeof(state_value) not in [TYPE_BOOL, TYPE_STRING, TYPE_INT, TYPE_FLOAT]:
+					errors.append("hideaway.morrow_routine_state_value_invalid:%s" % routine_id)
+				elif state_value is float and not is_finite(float(state_value)):
+					errors.append("hideaway.morrow_routine_state_value_invalid:%s" % routine_id)
+			"return_count_at_least":
+				if not _bounded_exact_int(condition.get("value"), 1, 2147483647):
+					errors.append("hideaway.morrow_routine_return_count_invalid:%s" % routine_id)
+			"refuge_tier_at_least":
+				if not MODEL.REFUGE_TIER_IDS.has(StringName(str(condition.get("value", "")))):
+					errors.append("hideaway.morrow_routine_refuge_tier_invalid:%s" % routine_id)
+			"facility_level_at_least":
+				var facility_id := StringName(str(condition.get("facility_id", "")))
+				if not MODEL.FACILITY_IDS.has(facility_id):
+					errors.append("hideaway.morrow_routine_facility_invalid:%s" % routine_id)
+				if not _bounded_exact_int(condition.get("value"), 1, MODEL.MAX_FACILITY_LEVEL):
+					errors.append("hideaway.morrow_routine_facility_level_invalid:%s" % routine_id)
+	return always_count
+
+
 static func _validate_reflections(
 	entry: Dictionary,
 	memento_id: String,
@@ -433,11 +610,14 @@ static func _validate_design_boundaries(value: Variant, errors: PackedStringArra
 		"memento_rewards",
 		"quiet_moment_rewards",
 		"quiet_moments_advance_time",
+		"morrow_routine_rewards",
+		"morrow_routines_advance_time",
+		"morrow_routines_override_commands",
 	]
 	for key in required_false:
 		if not boundaries.get(key) is bool or bool(boundaries.get(key)):
 			errors.append("hideaway.design_boundary_must_be_false:%s" % key)
-	for key in ["active_play_only", "memento_unlocks_derived", "quiet_moments_read_only"]:
+	for key in ["active_play_only", "memento_unlocks_derived", "quiet_moments_read_only", "morrow_routines_read_only"]:
 		if not boundaries.get(key) is bool or not bool(boundaries.get(key)):
 			errors.append("hideaway.design_boundary_must_be_true:%s" % key)
 
@@ -508,6 +688,23 @@ static func _validate_ui_catalog(definition: Dictionary, errors: Array[String]) 
 				"reflection_%s" % era_id,
 				errors
 			)
+
+	for entry_value: Variant in definition.get("morrow_routines", []):
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+		var entry: Dictionary = entry_value
+		_validate_morrow_routine_ui_copy(
+			messages,
+			str(entry.get("display_name_key", "")),
+			str(entry.get("display_name", "")),
+			str(entry.get("id", "")),
+			errors
+		)
+	for key: String in ["ui.hideaway.morrow_routine.arrived", "ui.hideaway.status.morrow_routine"]:
+		var routine_message: Variant = messages.get(key)
+		if typeof(routine_message) != TYPE_DICTIONARY or str((routine_message as Dictionary).get("en", "")).strip_edges().is_empty():
+			errors.append("hideaway.morrow_routine_ui_key_missing:%s" % key)
+
 	for speaker_id: String in QUIET_MOMENTS.SPEAKER_IDS:
 		var speaker_key := "ui.hideaway.quiet.speaker.%s" % speaker_id
 		var speaker_value: Variant = messages.get(speaker_key)
@@ -551,6 +748,22 @@ static func _validate_quiet_ui_copy(
 	var english := str((entry_value as Dictionary).get("en", ""))
 	if english != fallback or english.strip_edges().is_empty():
 		errors.append("hideaway.quiet_moment_ui_fallback_mismatch:%s:%s" % [moment_id, label])
+
+
+static func _validate_morrow_routine_ui_copy(
+	messages: Dictionary,
+	key: String,
+	fallback: String,
+	routine_id: String,
+	errors: Array[String]
+) -> void:
+	var entry_value: Variant = messages.get(key)
+	if typeof(entry_value) != TYPE_DICTIONARY:
+		errors.append("hideaway.morrow_routine_ui_key_missing:%s" % routine_id)
+		return
+	var english := str((entry_value as Dictionary).get("en", ""))
+	if english != fallback or english.strip_edges().is_empty():
+		errors.append("hideaway.morrow_routine_ui_fallback_mismatch:%s" % routine_id)
 
 
 static func _validate_campaign_binding(
@@ -613,6 +826,19 @@ static func _validate_campaign_binding(
 		errors.append("hideaway.quiet_nook_map_interaction_missing:%s" % nook_interaction_id)
 
 
+	var interaction_ids := {}
+	for interaction_value: Variant in map_data.get("interactions", []):
+		if typeof(interaction_value) == TYPE_DICTIONARY:
+			interaction_ids[str((interaction_value as Dictionary).get("id", ""))] = true
+	for routine_value: Variant in definition.get("morrow_routines", []):
+		if typeof(routine_value) != TYPE_DICTIONARY:
+			continue
+		var routine: Dictionary = routine_value
+		var anchor_id := str(routine.get("anchor_interaction_id", ""))
+		if not interaction_ids.has(anchor_id):
+			errors.append("hideaway.morrow_routine_anchor_missing:%s:%s" % [str(routine.get("id", "")), anchor_id])
+
+
 static func _validate_costs(
 	value: Variant,
 	facility_id: StringName,
@@ -639,6 +865,7 @@ static func _report(
 ) -> Dictionary:
 	var mementos_value: Variant = definition.get("mementos", [])
 	var quiet_value: Variant = definition.get("quiet_moments", [])
+	var routine_value: Variant = definition.get("morrow_routines", [])
 	return {
 		"ok": errors.is_empty(),
 		"errors": errors,
@@ -647,6 +874,7 @@ static func _report(
 		"hideaway_facility_count": 0 if definition.is_empty() else MODEL.FACILITY_IDS.size(),
 		"hideaway_memento_count": (mementos_value as Array).size() if typeof(mementos_value) == TYPE_ARRAY else 0,
 		"hideaway_quiet_moment_count": (quiet_value as Array).size() if typeof(quiet_value) == TYPE_ARRAY else 0,
+		"hideaway_morrow_routine_count": (routine_value as Array).size() if typeof(routine_value) == TYPE_ARRAY else 0,
 		"definition": definition,
 	}
 

@@ -188,6 +188,7 @@ require(
         '"ui.hideaway.status.facility.complete"',
         '"ui.hideaway.status.mementos"',
         '"ui.hideaway.controls.mementos"',
+        '"ui.hideaway.status.morrow_routine"',
         '"width": 464.0',
         "fit_single_line",
         "fit_block",

@@ -57,7 +57,11 @@
 		"memento_rewards": false,
 		"quiet_moments_read_only": true,
 		"quiet_moment_rewards": false,
-		"quiet_moments_advance_time": false
+		"quiet_moments_advance_time": false,
+		"morrow_routines_read_only": true,
+		"morrow_routine_rewards": false,
+		"morrow_routines_advance_time": false,
+		"morrow_routines_override_commands": false
 	},
 	"memento_shelf": {
 		"interaction_id": "memento_shelf_station",
@@ -359,6 +363,168 @@
 				"verdant": "Every repaired corner answers differently: flame, leaf, brass, breath. Together they make a room that no longer feels borrowed.",
 				"ashen": "The Archive Haven holds its shape against the cinders. For one quiet moment, survival is not a task but a fact."
 			}
+		}
+	],
+	"morrow_routines": [
+		{
+			"id": "threshold_watch",
+			"display_name_key": "ui.hideaway.morrow_routine.threshold_watch.name",
+			"display_name": "Threshold Watch",
+			"pose": "watch",
+			"anchor_interaction_id": "quiet_moments_station",
+			"offset": {
+				"x": -72,
+				"y": 10
+			},
+			"duration_seconds": 4,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "always"
+				}
+			]
+		},
+		{
+			"id": "first_return_pack",
+			"display_name_key": "ui.hideaway.morrow_routine.first_return_pack.name",
+			"display_name": "Pack Circle",
+			"pose": "sniff",
+			"anchor_interaction_id": "quiet_moments_station",
+			"offset": {
+				"x": -46,
+				"y": 18
+			},
+			"duration_seconds": 4,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "return_count_at_least",
+					"value": 1
+				}
+			]
+		},
+		{
+			"id": "hearth_sprawl",
+			"display_name_key": "ui.hideaway.morrow_routine.hearth_sprawl.name",
+			"display_name": "Hearth Sprawl",
+			"pose": "warm",
+			"anchor_interaction_id": "archive_hearth_station",
+			"offset": {
+				"x": 30,
+				"y": 18
+			},
+			"duration_seconds": 6,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "archive_hearth",
+					"value": 1
+				}
+			]
+		},
+		{
+			"id": "coldframe_scent",
+			"display_name_key": "ui.hideaway.morrow_routine.coldframe_scent.name",
+			"display_name": "Coldframe Scent",
+			"pose": "sniff",
+			"anchor_interaction_id": "sheltered_coldframe_station",
+			"offset": {
+				"x": 28,
+				"y": 20
+			},
+			"duration_seconds": 5,
+			"available_eras": [
+				"verdant"
+			],
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "sheltered_coldframe",
+					"value": 1
+				}
+			]
+		},
+		{
+			"id": "cinder_glass_watch",
+			"display_name_key": "ui.hideaway.morrow_routine.cinder_glass_watch.name",
+			"display_name": "Cinder-Glass Watch",
+			"pose": "listen",
+			"anchor_interaction_id": "sheltered_coldframe_station",
+			"offset": {
+				"x": -28,
+				"y": 20
+			},
+			"duration_seconds": 5,
+			"available_eras": [
+				"ashen"
+			],
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "sheltered_coldframe",
+					"value": 1
+				}
+			]
+		},
+		{
+			"id": "workbench_listen",
+			"display_name_key": "ui.hideaway.morrow_routine.workbench_listen.name",
+			"display_name": "Workbench Listening",
+			"pose": "listen",
+			"anchor_interaction_id": "salvage_workbench_station",
+			"offset": {
+				"x": -30,
+				"y": 18
+			},
+			"duration_seconds": 4,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "salvage_workbench",
+					"value": 2
+				}
+			]
+		},
+		{
+			"id": "corner_curl",
+			"display_name_key": "ui.hideaway.morrow_routine.corner_curl.name",
+			"display_name": "Blanket Curl",
+			"pose": "curl",
+			"anchor_interaction_id": "morrows_corner_station",
+			"offset": {
+				"x": 0,
+				"y": 14
+			},
+			"duration_seconds": 7,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "morrows_corner",
+					"value": 1
+				}
+			]
+		},
+		{
+			"id": "haven_sleep",
+			"display_name_key": "ui.hideaway.morrow_routine.haven_sleep.name",
+			"display_name": "Both Ears Down",
+			"pose": "sleep",
+			"anchor_interaction_id": "morrows_corner_station",
+			"offset": {
+				"x": 0,
+				"y": 14
+			},
+			"duration_seconds": 10,
+			"available_eras": [],
+			"conditions": [
+				{
+					"type": "refuge_tier_at_least",
+					"value": "haven"
+				}
+			]
 		}
 	]
 }

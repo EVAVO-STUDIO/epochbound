@@ -107,6 +107,9 @@ jobs:
       - name: Validate Archive Hideaway quiet moment contract
         run: python3 tools/check_hideaway_quiet_moments_contract.py
 
+      - name: Validate Archive Hideaway Morrow routine contract
+        run: python3 tools/check_hideaway_morrow_routines_contract.py
+
       - name: Validate regional supply integration contract
         run: python3 tools/check_supply_region_contract.py
 
@@ -216,6 +219,7 @@ jobs:
               "localisationLayoutValidation": "passed",
               "hideawayMementoValidation": "passed",
               "hideawayQuietMomentValidation": "passed",
+              "hideawayMorrowRoutineValidation": "passed",
               "supplyRegionValidation": "passed",
               "canonicalJourneyValidation": "passed",
               "longFormProgressionValidation": "passed",

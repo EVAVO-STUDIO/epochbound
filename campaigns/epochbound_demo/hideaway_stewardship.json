@@ -54,7 +54,10 @@
 		"forced_sleep": false,
 		"daily_chore_calendar": false,
 		"memento_unlocks_derived": true,
-		"memento_rewards": false
+		"memento_rewards": false,
+		"quiet_moments_read_only": true,
+		"quiet_moment_rewards": false,
+		"quiet_moments_advance_time": false
 	},
 	"memento_shelf": {
 		"interaction_id": "memento_shelf_station",
@@ -184,6 +187,177 @@
 			"reflection": {
 				"verdant": "The key opens no lock. Eli keeps it anyway, because every repaired corner now answers when he calls this place home.",
 				"ashen": "The key is blackened and warm. The Hideaway holds against the cinders, and Morrow finally sleeps with both ears down."
+			}
+		}
+	],
+	"quiet_nook": {
+		"interaction_id": "quiet_moments_station",
+		"kind": "hideaway_quiet_moments",
+		"maximum_moments": 8
+	},
+	"quiet_moments": [
+		{
+			"id": "threshold_breaths",
+			"display_name_key": "ui.hideaway.quiet.threshold_breaths.name",
+			"display_name": "Threshold Breaths",
+			"speaker": "together",
+			"conditions": [
+				{
+					"type": "always"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.threshold_breaths.verdant",
+				"ashen": "ui.hideaway.quiet.threshold_breaths.ashen"
+			},
+			"reflection": {
+				"verdant": "Eli counts two quiet breaths before reaching for the next list. Morrow lies across the threshold, making the pause feel deliberate.",
+				"ashen": "Cinders whisper at the shutters. Eli and Morrow wait through two quiet breaths before deciding the room is still theirs."
+			}
+		},
+		{
+			"id": "first_return_watch",
+			"display_name_key": "ui.hideaway.quiet.first_return_watch.name",
+			"display_name": "The First Watch",
+			"speaker": "morrow",
+			"conditions": [
+				{
+					"type": "return_count_at_least",
+					"value": 1
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.first_return_watch.verdant",
+				"ashen": "ui.hideaway.quiet.first_return_watch.ashen"
+			},
+			"reflection": {
+				"verdant": "Morrow circles the pack once, checks the door, then settles with his chin on Eli's boot. The road can wait until they stand.",
+				"ashen": "Morrow watches the door until the cinder gust passes. Only then does he lean against Eli's leg and let the room hold watch."
+			}
+		},
+		{
+			"id": "hearth_watch",
+			"display_name_key": "ui.hideaway.quiet.hearth_watch.name",
+			"display_name": "Hearth Watch",
+			"speaker": "eli",
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "archive_hearth",
+					"value": 1
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.hearth_watch.verdant",
+				"ashen": "ui.hideaway.quiet.hearth_watch.ashen"
+			},
+			"reflection": {
+				"verdant": "Eli warms his hands without turning the moment into a plan. Cedar cracks once; Morrow's tail answers against the floor.",
+				"ashen": "The restored hearth keeps one clean pocket of heat. Eli listens to the chimney and leaves the next repair for later."
+			}
+		},
+		{
+			"id": "coldframe_rain",
+			"display_name_key": "ui.hideaway.quiet.coldframe_rain.name",
+			"display_name": "Rain on Glass",
+			"speaker": "hideaway",
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "sheltered_coldframe",
+					"value": 1
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.coldframe_rain.verdant",
+				"ashen": "ui.hideaway.quiet.coldframe_rain.ashen"
+			},
+			"reflection": {
+				"verdant": "Rain stipples the coldframe panes. The hardy leaves need nothing tonight; the sound alone is enough.",
+				"ashen": "Ash traces the coldframe glass while green leaves hold beneath it. No task follows, only proof that something sheltered can endure."
+			}
+		},
+		{
+			"id": "quiet_tools",
+			"display_name_key": "ui.hideaway.quiet.quiet_tools.name",
+			"display_name": "The Last Ring",
+			"speaker": "eli",
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "salvage_workbench",
+					"value": 2
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.quiet_tools.verdant",
+				"ashen": "ui.hideaway.quiet.quiet_tools.ashen"
+			},
+			"reflection": {
+				"verdant": "Eli sorts three useful tools, then stops before inventing a fourth job. Morrow approves by not moving.",
+				"ashen": "Metal cools on the bench. Eli puts the hammer down while the last ring fades, choosing silence over one more repair."
+			}
+		},
+		{
+			"id": "both_ears_down",
+			"display_name_key": "ui.hideaway.quiet.both_ears_down.name",
+			"display_name": "Both Ears Down",
+			"speaker": "morrow",
+			"conditions": [
+				{
+					"type": "facility_level_at_least",
+					"facility_id": "morrows_corner",
+					"value": 2
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.both_ears_down.verdant",
+				"ashen": "ui.hideaway.quiet.both_ears_down.ashen"
+			},
+			"reflection": {
+				"verdant": "Morrow sleeps with both ears down. Eli notices and does not move for a long while.",
+				"ashen": "Even with impossible weather at the walls, Morrow curls into the blanket and lets both ears fall. The Hideaway keeps the first watch."
+			}
+		},
+		{
+			"id": "borrowed_hour",
+			"display_name_key": "ui.hideaway.quiet.borrowed_hour.name",
+			"display_name": "The Borrowed Hour",
+			"speaker": "together",
+			"conditions": [
+				{
+					"type": "state_equals",
+					"key": "story:missing_hour:completed",
+					"value": true
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.borrowed_hour.verdant",
+				"ashen": "ui.hideaway.quiet.borrowed_hour.ashen"
+			},
+			"reflection": {
+				"verdant": "When the returned hour arrives, Eli closes the ledger. He and Morrow spend it doing nothing that can be measured.",
+				"ashen": "The restored hour passes through the room without smoke or bells. Eli keeps one hand on Morrow's shoulder until it is gone."
+			}
+		},
+		{
+			"id": "archive_haven_stillness",
+			"display_name_key": "ui.hideaway.quiet.archive_haven_stillness.name",
+			"display_name": "Archive Haven Stillness",
+			"speaker": "hideaway",
+			"conditions": [
+				{
+					"type": "refuge_tier_at_least",
+					"value": "haven"
+				}
+			],
+			"reflection_keys": {
+				"verdant": "ui.hideaway.quiet.archive_haven_stillness.verdant",
+				"ashen": "ui.hideaway.quiet.archive_haven_stillness.ashen"
+			},
+			"reflection": {
+				"verdant": "Every repaired corner answers differently: flame, leaf, brass, breath. Together they make a room that no longer feels borrowed.",
+				"ashen": "The Archive Haven holds its shape against the cinders. For one quiet moment, survival is not a task but a fact."
 			}
 		}
 	]

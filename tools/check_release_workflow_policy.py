@@ -116,6 +116,7 @@ require(
         "python3 tools/check_localisation_contract.py",
         "python3 tools/check_localisation_layout_contract.py",
         "python3 tools/check_hideaway_memento_contract.py",
+        "python3 tools/check_hideaway_quiet_moments_contract.py",
         "python3 tools/check_supply_region_contract.py",
         "python3 tools/check_canonical_journey_contract.py",
         "python3 tools/check_long_form_progression_contract.py",
@@ -128,6 +129,7 @@ require(
         '"localisationValidation": "passed"',
         '"localisationLayoutValidation": "passed"',
         '"hideawayMementoValidation": "passed"',
+        '"hideawayQuietMomentValidation": "passed"',
         '"referenceContentWarnings": 0',
         '"referenceAuditWarnings": 0',
         '"referenceReleaseReadinessValidation": "passed"',
@@ -663,6 +665,21 @@ require(
         "six authored memories",
         "cannot grant or consume resources",
         '"hideawayMementoValidation": "passed"',
+    ],
+)
+
+hideaway_quiet_moments_contract = read(
+    "hideaway_quiet_moments_contract",
+    ROOT / "tools/check_hideaway_quiet_moments_contract.py",
+)
+require(
+    "hideaway_quiet_moments_contract",
+    hideaway_quiet_moments_contract,
+    [
+        "epochbound_hideaway_quiet_moments_contract_passed",
+        "eight optional hearthside moments",
+        "cannot consume resources or advance time",
+        '"hideawayQuietMomentValidation": "passed"',
     ],
 )
 

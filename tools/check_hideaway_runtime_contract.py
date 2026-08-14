@@ -33,6 +33,7 @@ require(runtime_path, runtime, [
     'HIDEAWAY_QUIET_MOMENT_KIND := "hideaway_quiet_moments"',
     'HideawayMementoModel = preload("res://src/game/hideaway_memento_model.gd")',
     'HideawayQuietMomentModel = preload("res://src/game/hideaway_quiet_moment_model.gd")',
+    'HideawayMorrowRoutineModel = preload("res://src/game/hideaway_morrow_routine_model.gd")',
     'HideawayStewardship.begin_expedition',
     'HideawayStewardship.record_return',
     'upgrade_hideaway_facility',
@@ -56,6 +57,12 @@ require(runtime_path, runtime, [
     'nearest_hideaway_quiet_nook',
     'inspect_hideaway_quiet_moment',
     'draw_hideaway_quiet_nook',
+    'available_hideaway_morrow_routines',
+    'hideaway_morrow_routine_summary',
+    'hideaway_morrow_routines_should_run',
+    'hideaway_morrow_routine_target',
+    'hideaway_morrow_routine_visual_descriptor',
+    'ui.hideaway.status.morrow_routine',
     'ui.hideaway.status.quiet',
     'ui.hideaway.status.mementos',
     'hideaway_tier_name',
@@ -155,6 +162,8 @@ for path, tokens in {
     "scripts/validate.ps1": ["Compile Archive Hideaway live runtime bridge", "Smoke test playable Archive Hideaway refuge loop"],
 }.items():
     require(path, read(path), tokens)
+
+require("tools/smoke_hideaway_runtime.gd", read("tools/smoke_hideaway_runtime.gd"), ["player command must pause ambient routines", "Morrow routine"])
 
 if errors:
     print("Epochbound Archive Hideaway runtime contract failed:\n")

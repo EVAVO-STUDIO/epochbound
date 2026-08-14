@@ -173,6 +173,19 @@ func run_test() -> void:
 
 	check(bool(runtime.call("activate_map", "archive_hideaway", "from_bellweather", "ashen", false)), "Ashen Hideaway must activate for sanctuary testing.")
 	runtime.set("player", Vector2(286, 246))
+	runtime.set("dialogue", "")
+	var routine_before: Dictionary = (runtime.get("session_state") as Dictionary).duplicate(true)
+	var routine_entries: Array = runtime.call("available_hideaway_morrow_routines")
+	check(not routine_entries.is_empty(), "Morrow routine availability must be derived inside the Hideaway.")
+	var routine_summary: Dictionary = runtime.call("hideaway_morrow_routine_summary")
+	check(int(routine_summary.get("available", 0)) >= 1, "Morrow routine summary must expose at least the baseline routine.")
+	check((runtime.get("session_state") as Dictionary) == routine_before, "Morrow routine derivation must not write campaign state.")
+	runtime.call("set_companion_command", "hold")
+	check(float(runtime.get("hideaway_morrow_routine_pause")) >= 4.0, "player command must pause ambient routines.")
+	check(not bool(runtime.call("hideaway_morrow_routines_should_run")), "Morrow routine movement must never override a player command.")
+	runtime.call("set_companion_command", "follow")
+	check(float(runtime.get("hideaway_morrow_routine_pause")) >= 4.0, "Returning to follow must retain the explicit-command grace window.")
+
 	var session: Node = runtime.get_node_or_null("MultiplayerSession")
 	check(session != null, "Archive Hideaway smoke requires MultiplayerSession.")
 	if session != null:
@@ -193,7 +206,7 @@ func check(condition: bool, message: String) -> void:
 
 func finish() -> void:
 	if failures.is_empty():
-		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visuals, exact planning, six milestone-derived mementos, eight optional read-only hearthside moments, non-consuming localised reflections, one-use preparation, save strictness and sanctuary authority are coherent.")
+		print("Archive Hideaway runtime smoke passed: authored travel, cap-accurate return rewards, derived refuge tiers, level-specific facility visuals, exact planning, six milestone-derived mementos, eight optional read-only hearthside moments, non-consuming localised reflections, one-use preparation, save strictness, sanctuary authority and optional living Morrow routines are coherent.")
 		quit(0)
 		return
 	for failure in failures:

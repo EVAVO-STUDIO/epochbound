@@ -27,6 +27,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	var hideaway_facility_count := 0
 	var hideaway_memento_count := 0
 	var hideaway_quiet_moment_count := 0
+	var hideaway_morrow_routine_count := 0
 	var ui_localisation_report := LocalisationValidator.validate_ui_only()
 	append_messages(errors, ui_localisation_report.get("errors", []))
 	append_messages(warnings, ui_localisation_report.get("warnings", []))
@@ -58,6 +59,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 		hideaway_facility_count += int(hideaway_report.get("hideaway_facility_count", 0))
 		hideaway_memento_count += int(hideaway_report.get("hideaway_memento_count", 0))
 		hideaway_quiet_moment_count += int(hideaway_report.get("hideaway_quiet_moment_count", 0))
+		hideaway_morrow_routine_count += int(hideaway_report.get("hideaway_morrow_routine_count", 0))
 	var output := base_report.duplicate(true)
 	output["ok"] = errors.is_empty()
 	output["errors"] = errors
@@ -73,6 +75,7 @@ static func validate_all(root: String = Repository.DEFAULT_ROOT) -> Dictionary:
 	output["hideaway_facility_count"] = hideaway_facility_count
 	output["hideaway_memento_count"] = hideaway_memento_count
 	output["hideaway_quiet_moment_count"] = hideaway_quiet_moment_count
+	output["hideaway_morrow_routine_count"] = hideaway_morrow_routine_count
 	return output
 
 
@@ -109,6 +112,7 @@ static func validate_campaign_path(campaign_path: String) -> Dictionary:
 	output["hideaway_facility_count"] = hideaway_report.get("hideaway_facility_count", 0)
 	output["hideaway_memento_count"] = hideaway_report.get("hideaway_memento_count", 0)
 	output["hideaway_quiet_moment_count"] = hideaway_report.get("hideaway_quiet_moment_count", 0)
+	output["hideaway_morrow_routine_count"] = hideaway_report.get("hideaway_morrow_routine_count", 0)
 	return output
 
 
@@ -149,6 +153,7 @@ static func validate_profile(profile: Dictionary, campaign_path: String) -> Dict
 		"hideaway_facility_count": hideaway_report.get("hideaway_facility_count", 0),
 		"hideaway_memento_count": hideaway_report.get("hideaway_memento_count", 0),
 		"hideaway_quiet_moment_count": hideaway_report.get("hideaway_quiet_moment_count", 0),
+		"hideaway_morrow_routine_count": hideaway_report.get("hideaway_morrow_routine_count", 0),
 	}
 
 

@@ -3,6 +3,7 @@ extends "res://src/presentation_runtime_base.gd"
 const HideawayStewardship = preload("res://src/game/hideaway_stewardship.gd")
 const HideawayMementoModel = preload("res://src/game/hideaway_memento_model.gd")
 const HideawayQuietMomentModel = preload("res://src/game/hideaway_quiet_moment_model.gd")
+const HideawayMorrowRoutineModel = preload("res://src/game/hideaway_morrow_routine_model.gd")
 const HideawayStewardshipValidator = preload("res://src/content/hideaway_stewardship_validator.gd")
 const HideawayEncounterModel = preload("res://src/game/encounter_model.gd")
 
@@ -17,11 +18,18 @@ const HIDEAWAY_QUIET_MOMENT_KIND := "hideaway_quiet_moments"
 const HIDEAWAY_BONUS_DAMAGE := 2
 const HIDEAWAY_WARMTH_REDUCTION := 2
 const HIDEAWAY_STATUS_WIDTH := 464.0
+const HIDEAWAY_MORROW_ROUTINE_ARRIVAL_RADIUS := 8.0
+const HIDEAWAY_MORROW_ROUTINE_OVERRIDE_SECONDS := 4.0
 
 var hideaway_definition: Dictionary = {}
 var hideaway_definition_key := ""
 var hideaway_memento_cursor := 0
 var hideaway_quiet_moment_cursor := 0
+var hideaway_morrow_routine_cursor := 0
+var hideaway_morrow_routine_dwell := 0.0
+var hideaway_morrow_routine_reached := false
+var hideaway_morrow_routine_id := ""
+var hideaway_morrow_routine_pause := 0.0
 
 
 func load_campaign(path: String) -> bool:
@@ -44,6 +52,7 @@ func load_fallback_campaign() -> void:
 	hideaway_definition_key = ""
 	hideaway_memento_cursor = 0
 	hideaway_quiet_moment_cursor = 0
+	reset_hideaway_morrow_routines()
 	super.load_fallback_campaign()
 
 
@@ -74,6 +83,9 @@ func activate_map(
 	var next_map_id := str(map_data.get("id", ""))
 	if previous_map_id != HIDEAWAY_MAP_ID and next_map_id == HIDEAWAY_MAP_ID:
 		hideaway_quiet_moment_cursor = 0
+		reset_hideaway_morrow_routines()
+	elif previous_map_id == HIDEAWAY_MAP_ID and next_map_id != HIDEAWAY_MAP_ID:
+		reset_hideaway_morrow_routines()
 	if not hideaway_has_durable_authority():
 		return activated
 	if previous_map_id == HIDEAWAY_MAP_ID and next_map_id != HIDEAWAY_MAP_ID:
@@ -99,6 +111,8 @@ func activate_map(
 
 
 func update_game(delta: float) -> void:
+	if is_in_archive_hideaway():
+		hideaway_morrow_routine_pause = maxf(0.0, hideaway_morrow_routine_pause - delta)
 	if (
 		flow == Flow.GAME
 		and is_in_archive_hideaway()
@@ -127,6 +141,183 @@ func interact() -> void:
 			prepare_hideaway_facility(StringName(str(facility.get("facility_id", ""))))
 			return
 	super.interact()
+
+
+func set_companion_command(command: String) -> void:
+	super.set_companion_command(command)
+	if is_in_archive_hideaway():
+		suspend_hideaway_morrow_routines(HIDEAWAY_MORROW_ROUTINE_OVERRIDE_SECONDS)
+
+
+func recall_companion() -> void:
+	super.recall_companion()
+	if is_in_archive_hideaway():
+		suspend_hideaway_morrow_routines(HIDEAWAY_MORROW_ROUTINE_OVERRIDE_SECONDS)
+
+
+func reset_hideaway_morrow_routines() -> void:
+	hideaway_morrow_routine_cursor = 0
+	hideaway_morrow_routine_dwell = 0.0
+	hideaway_morrow_routine_reached = false
+	hideaway_morrow_routine_id = ""
+	hideaway_morrow_routine_pause = 0.0
+
+
+func suspend_hideaway_morrow_routines(seconds: float) -> void:
+	hideaway_morrow_routine_pause = maxf(
+		hideaway_morrow_routine_pause,
+		maxf(0.0, seconds)
+	)
+	hideaway_morrow_routine_dwell = 0.0
+	hideaway_morrow_routine_reached = false
+	hideaway_morrow_routine_id = ""
+
+
+func available_hideaway_morrow_routines() -> Array:
+	return HideawayMorrowRoutineModel.available_entries(
+		hideaway_definition_snapshot(),
+		session_state,
+		hideaway_state_snapshot(),
+		current_era_id
+	)
+
+
+func hideaway_morrow_routine_summary() -> Dictionary:
+	var definition := hideaway_definition_snapshot()
+	var entries_value: Variant = definition.get("morrow_routines", [])
+	var total := (entries_value as Array).size() if typeof(entries_value) == TYPE_ARRAY else 0
+	var available := available_hideaway_morrow_routines()
+	var active := current_hideaway_morrow_routine(available)
+	return {
+		"available": available.size(),
+		"total": total,
+		"active_id": str(active.get("id", "")),
+		"active_name": hideaway_morrow_routine_name(active) if not active.is_empty() else "",
+		"reached": hideaway_morrow_routine_reached,
+		"paused": hideaway_morrow_routine_pause > 0.0,
+	}
+
+
+func current_hideaway_morrow_routine(entries: Array = []) -> Dictionary:
+	var available := entries if not entries.is_empty() else available_hideaway_morrow_routines()
+	if available.is_empty():
+		return {}
+	hideaway_morrow_routine_cursor = posmod(hideaway_morrow_routine_cursor, available.size())
+	var value: Variant = available[hideaway_morrow_routine_cursor]
+	return (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else {}
+
+
+func hideaway_morrow_routine_name(entry: Dictionary) -> String:
+	if entry.is_empty():
+		return ""
+	return localise(
+		HideawayMorrowRoutineModel.display_name_key(entry),
+		HideawayMorrowRoutineModel.display_name_fallback(entry)
+	)
+
+
+func find_hideaway_interaction(interaction_id: String) -> Dictionary:
+	if interaction_id.is_empty():
+		return {}
+	for value: Variant in map_data.get("interactions", []):
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var interaction: Dictionary = value
+		if (
+			str(interaction.get("id", "")) == interaction_id
+			and MapModel.available_in_era(interaction, current_era_id)
+		):
+			return interaction
+	return {}
+
+
+func hideaway_morrow_routine_target(entry: Dictionary) -> Dictionary:
+	var interaction := find_hideaway_interaction(
+		HideawayMorrowRoutineModel.anchor_interaction_id(entry)
+	)
+	if interaction.is_empty():
+		return {}
+	var target := (
+		CampaignRepository.data_to_vector(interaction.get("position"))
+		+ HideawayMorrowRoutineModel.offset(entry)
+	)
+	target = clamp_point_to_bounds(target, COMPANION_RADIUS)
+	target = recover_if_blocked(target, companion, COMPANION_RADIUS)
+	target = recover_from_entity_collision(target, COMPANION_RADIUS)
+	return {
+		"position": target,
+		"anchor_interaction_id": str(interaction.get("id", "")),
+	}
+
+
+func hideaway_morrow_routines_should_run() -> bool:
+	return (
+		is_in_archive_hideaway()
+		and flow == Flow.GAME
+		and dialogue.is_empty()
+		and transition_lock <= 0.45
+		and companion_enabled()
+		and companion_health > 0
+		and companion_command == "follow"
+		and hideaway_morrow_routine_pause <= 0.0
+	)
+
+
+func update_companion(delta: float) -> void:
+	if not hideaway_morrow_routines_should_run():
+		super.update_companion(delta)
+		return
+	var available := available_hideaway_morrow_routines()
+	if available.is_empty():
+		super.update_companion(delta)
+		return
+	var recovery_distance := CompanionModel.recovery_distance(companion_profile())
+	if player.distance_to(companion) > recovery_distance:
+		super.update_companion(delta)
+		return
+	var entry := current_hideaway_morrow_routine(available)
+	var entry_id := str(entry.get("id", ""))
+	if entry_id != hideaway_morrow_routine_id:
+		hideaway_morrow_routine_id = entry_id
+		hideaway_morrow_routine_dwell = HideawayMorrowRoutineModel.duration_seconds(entry)
+		hideaway_morrow_routine_reached = false
+	var target_report := hideaway_morrow_routine_target(entry)
+	if target_report.is_empty():
+		advance_hideaway_morrow_routine(available.size())
+		super.update_companion(delta)
+		return
+	var target: Vector2 = target_report.get("position", companion)
+	if companion.distance_to(target) > HIDEAWAY_MORROW_ROUTINE_ARRIVAL_RADIUS:
+		hideaway_morrow_routine_reached = false
+		move_companion_toward(target, COMPANION_SPEED * 0.72, delta)
+		return
+	if not hideaway_morrow_routine_reached:
+		hideaway_morrow_routine_reached = true
+		hideaway_morrow_routine_dwell = HideawayMorrowRoutineModel.duration_seconds(entry)
+		set_companion_notice(
+			localise(
+				"ui.hideaway.morrow_routine.arrived",
+				"MORROW — {routine}",
+				{"routine": hideaway_morrow_routine_name(entry).to_upper()}
+			),
+			1.0
+		)
+		return
+	hideaway_morrow_routine_dwell = maxf(0.0, hideaway_morrow_routine_dwell - delta)
+	if hideaway_morrow_routine_dwell <= 0.0:
+		advance_hideaway_morrow_routine(available.size())
+
+
+func advance_hideaway_morrow_routine(available_count: int) -> void:
+	if available_count > 0:
+		hideaway_morrow_routine_cursor = (
+			hideaway_morrow_routine_cursor + 1
+		) % available_count
+	else:
+		hideaway_morrow_routine_cursor = 0
+	hideaway_morrow_routine_dwell = 0.0
+	hideaway_morrow_routine_reached = false
+	hideaway_morrow_routine_id = ""
 
 
 func perform_player_attack() -> void:
@@ -173,6 +364,54 @@ func damage_actor(actor_id: String, amount: int, attacker: Dictionary) -> void:
 	super.damage_actor(actor_id, amount, attacker)
 
 
+func hideaway_morrow_routine_visual_descriptor(entry: Dictionary) -> Dictionary:
+	return {
+		"signature": "%s:%s" % [
+			HideawayMorrowRoutineModel.pose_id(entry),
+			str(entry.get("id", "routine")),
+		],
+		"pose": HideawayMorrowRoutineModel.pose_id(entry),
+		"reached": hideaway_morrow_routine_reached,
+	}
+
+
+func draw_companion() -> void:
+	super.draw_companion()
+	if not is_in_archive_hideaway() or not hideaway_morrow_routine_reached:
+		return
+	var entry := current_hideaway_morrow_routine()
+	if entry.is_empty() or str(entry.get("id", "")) != hideaway_morrow_routine_id:
+		return
+	var pose := HideawayMorrowRoutineModel.pose_id(entry)
+	var accent := palette_color("accent", "d4aa63")
+	var soft := Color(accent.r, accent.g, accent.b, 0.62)
+	match pose:
+		"watch":
+			draw_line(companion + Vector2(5, -16), companion + Vector2(8, -23), soft, 1.5)
+			draw_line(companion + Vector2(10, -16), companion + Vector2(13, -23), soft, 1.5)
+		"sniff":
+			for index in range(3):
+				draw_line(
+					companion + Vector2(15 + index * 3, -9 - index),
+					companion + Vector2(17 + index * 3, -10 - index),
+					soft,
+					1.0
+				)
+		"warm":
+			draw_circle(companion + Vector2(0, -3), 17.0, Color(0.95, 0.55, 0.25, 0.2), false, 1.5)
+		"listen":
+			draw_arc(companion + Vector2(9, -11), 8.0, -PI * 0.45, PI * 0.45, 10, soft, 1.2)
+			draw_arc(companion + Vector2(9, -11), 12.0, -PI * 0.35, PI * 0.35, 10, Color(soft.r, soft.g, soft.b, 0.4), 1.0)
+		"curl":
+			draw_arc(companion + Vector2(-3, -3), 14.0, -PI * 0.15, PI * 1.35, 16, soft, 1.5)
+		"sleep":
+			draw_line(companion + Vector2(9, -20), companion + Vector2(15, -20), soft, 1.0)
+			draw_line(companion + Vector2(15, -20), companion + Vector2(9, -15), soft, 1.0)
+			draw_line(companion + Vector2(9, -15), companion + Vector2(15, -15), soft, 1.0)
+		_:
+			pass
+
+
 func draw_game() -> void:
 	super.draw_game()
 	if not is_in_archive_hideaway():
@@ -193,6 +432,7 @@ func cache_hideaway_definition(path: String, value: Variant) -> void:
 	hideaway_definition = (value as Dictionary).duplicate(true) if typeof(value) == TYPE_DICTIONARY else {}
 	hideaway_memento_cursor = 0
 	hideaway_quiet_moment_cursor = 0
+	reset_hideaway_morrow_routines()
 
 
 func refresh_hideaway_definition() -> void:
@@ -1008,6 +1248,13 @@ func draw_hideaway_status() -> void:
 		}
 	)
 	var controls := localise("ui.hideaway.status.ready", "RETURN TO THE ROAD WHEN READY")
+	var routine := current_hideaway_morrow_routine()
+	if not routine.is_empty() and hideaway_morrow_routine_reached:
+		controls = localise(
+			"ui.hideaway.status.morrow_routine",
+			"MORROW   {routine}   •   RETURN WHEN READY",
+			{"routine": hideaway_morrow_routine_name(routine).to_upper()}
+		)
 	if not shelf.is_empty():
 		var mementos := hideaway_memento_summary()
 		detail = localise(
@@ -1052,12 +1299,16 @@ func hideaway_runtime_contract_ok() -> bool:
 		and HIDEAWAY_BONUS_DAMAGE == 2
 		and HIDEAWAY_WARMTH_REDUCTION == 2
 		and HIDEAWAY_STATUS_WIDTH == 464.0
+		and HIDEAWAY_MORROW_ROUTINE_ARRIVAL_RADIUS == 8.0
+		and HIDEAWAY_MORROW_ROUTINE_OVERRIDE_SECONDS == 4.0
 		and HIDEAWAY_MEMENTO_KIND == HideawayMementoModel.SHELF_KIND
 		and HIDEAWAY_QUIET_MOMENT_KIND == HideawayQuietMomentModel.NOOK_KIND
 		and HideawayMementoModel.memento_contract_ok()
 		and HideawayQuietMomentModel.quiet_moment_contract_ok()
+		and HideawayMorrowRoutineModel.routine_contract_ok()
 		and not HideawayStewardship.refuge_summary(state).is_empty()
 		and (hideaway_definition_snapshot().is_empty() or HideawayStewardshipValidator.validate_definition(hideaway_definition_snapshot()).is_empty())
 		and str(hideaway_facility_visual_descriptor(&"archive_hearth", 3).get("signature", "")) == "chimney_glow"
 		and str(hideaway_quiet_moment_visual_descriptor({"id": "threshold_breaths", "speaker": "together"}, 0).get("signature", "")) == "together:threshold_breaths:0"
+		and str(hideaway_morrow_routine_visual_descriptor({"id": "threshold_watch", "pose": "watch"}).get("signature", "")) == "watch:threshold_watch"
 	)

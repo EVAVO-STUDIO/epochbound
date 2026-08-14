@@ -68,6 +68,10 @@ try {
     & python3 tools/check_hideaway_quiet_moments_contract.py
     if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway quiet moment contract failed." }
 
+    Write-Host "`n==> Validate Archive Hideaway Morrow routine contract"
+    & python3 tools/check_hideaway_morrow_routines_contract.py
+    if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway Morrow routine contract failed." }
+
     Write-Host "`n==> Validate Archive Hideaway visible progression contract"
     & python3 tools/check_hideaway_progression_contract.py
     if ($LASTEXITCODE -ne 0) { throw "Archive Hideaway visible progression contract failed." }
@@ -89,9 +93,11 @@ try {
         @("Compile deterministic localisation layout utility and regressions", "res://tools/compile_localisation_layout_probe.gd"),
         @("Compile Archive Hideaway memento model and shelf", "res://tools/compile_hideaway_memento_probe.gd"),
         @("Compile Archive Hideaway quiet moments", "res://tools/compile_hideaway_quiet_moment_probe.gd"),
+        @("Compile Archive Hideaway Morrow routines", "res://tools/compile_hideaway_morrow_routine_probe.gd"),
         @("Compile Archive Hideaway live runtime bridge", "res://tools/compile_hideaway_runtime_probe.gd"),
         @("Smoke test Archive Hideaway journey mementos", "res://tools/smoke_hideaway_mementos.gd"),
         @("Smoke test optional Archive Hideaway hearthside moments", "res://tools/smoke_hideaway_quiet_moments.gd"),
+        @("Smoke test optional Archive Hideaway Morrow routines", "res://tools/smoke_hideaway_morrow_routines.gd"),
         @("Smoke test Archive Hideaway stewardship foundation", "res://tools/smoke_hideaway_stewardship.gd"),
         @("Smoke test playable Archive Hideaway refuge loop", "res://tools/smoke_hideaway_runtime.gd"),
         @("Compile regional supply runtime validators editors and tests", "res://tools/compile_supply_region_probe.gd"),
@@ -176,7 +182,7 @@ try {
         Invoke-GodotStep $Test[0] @("--headless", "--path", $ProjectRoot, "--script", $Test[1])
         Assert-TrackedSourcesUnchanged $TrackedSourceBaseline $Test[0]
     }
-    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, measured localisation layout with deterministic wrapping and ellipsis, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, Archive Hideaway expedition stewardship with localised cap-safe feedback and strict one-use persistence, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
+    Write-Host "`nEpochbound project and all seventeen authoring systems passed canonical runtime, long-form journey, repeated progression endurance with thirty-two map transitions and four destructive restorations, host-authoritative co-op, authored PvP invasions, player-local connection setup, bounded authenticated snapshot transport, acknowledged host shutdown with independent ENet process exit, player settings, persistent controls, strict localisation with English fallback and pseudo-localisation, measured localisation layout with deterministic wrapping and ellipsis, progression-demand, warning-free reference release readiness, warning-safe editor plugin icons, leak-free headless shutdown, meaningful temporal shifts, locked combat telegraphs, stagger interrupts, ordinary-enemy pressure budget, boss phase music stems, multi-source affordability, deterministic economy balance with Economy choices 4/4 recovery-safe, Archive Hideaway expedition stewardship with localised cap-safe feedback, strict one-use persistence, reflective mementos, optional quiet moments and living Morrow refuge routines, regional supply, scarcity, sprite-animation, environment and combat-readability validation without mutating tracked source."
 }
 finally {
     Pop-Location

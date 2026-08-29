@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "consumer_adapter": "epochbound",
+  "baseline_era": "verdant",
+  "comparison_era": "ashen",
+  "exceptions": [
+    {
+      "map_id": "bellweather_crossing",
+      "cell": [24, 11],
+      "allowed_changes": ["terrain", "collision", "navigation"],
+      "reason": "Ashen Bellweather deliberately introduces a blocking cliff beat at this authored cell."
+    },
+    {
+      "map_id": "clockwood_edge",
+      "cell": [18, 13],
+      "allowed_changes": ["terrain", "collision", "navigation"],
+      "reason": "Ashen Clockwood deliberately introduces a blocking cliff beat at this authored cell."
+    }
+  ],
+  "rules": [
+    "Era palette and landmark presentation differences do not require gameplay exceptions.",
+    "Terrain, collision or navigation changes require an exact map/cell exception.",
+    "Entries, recovery anchors and travel portals remain campaign-owned and must be reviewed separately if they diverge by era.",
+    "Unlisted gameplay topology drift fails closed."
+  ]
+}

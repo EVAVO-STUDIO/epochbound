@@ -1,0 +1,44 @@
+{
+  "canonical_authority": "campaign",
+  "consumer_adapter": "epochbound",
+  "generated_resource_root": "res://build/godot",
+  "manifest_path": ".evavo/tile-map/world.tilemap-build.json",
+  "network_families": [],
+  "ownership_rules": [
+    "campaign data in the consumer repository remains canonical",
+    "Tile Map Studio may generate deterministic rendering/runtime packages but never rewrites consumer authority silently",
+    "Generated Godot resources are disposable build outputs and may be regenerated from canonical inputs",
+    "A Test Lab profile must be reviewed and tracked in the consumer repository before authoritative native QA",
+    "Promotion requires static proof, Godot round-trip validation, Test Lab evidence, and creative approval where applicable"
+  ],
+  "painted_over_grid": false,
+  "production_profile": "snes-topdown-rpg",
+  "repository": "EVAVO-STUDIO/epochbound",
+  "required_map_semantics": [
+    "entries",
+    "recovery_anchors",
+    "portals",
+    "encounter_zones",
+    "foreground_occlusion",
+    "era_variant"
+  ],
+  "required_tile_semantics": [
+    "collision",
+    "navigation",
+    "terrain",
+    "material",
+    "occlusion",
+    "audio_surface"
+  ],
+  "runtime_mutation": false,
+  "schema_version": 1,
+  "terrain_mode": "corners_and_sides",
+  "test_lab_profile_path": ".evavo/godot-lab-tile-map.json",
+  "validation_gates": [
+    "campaign-reachability",
+    "return-safety",
+    "era-parity",
+    "foreground-occlusion",
+    "pixel-scale"
+  ]
+}

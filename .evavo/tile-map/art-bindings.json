@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "consumer_adapter": "epochbound",
+  "production_profile": "snes-topdown-rpg",
+  "tile_width": 16,
+  "tile_height": 16,
+  "binding_policy": "authored-source-required",
+  "allowed_source_kinds": [
+    "art-studio",
+    "sprite-studio",
+    "hand-authored",
+    "licensed"
+  ],
+  "bindings": {},
+  "rules": [
+    "Campaign map data remains authoritative for terrain, collision, navigation, entries, recovery and travel.",
+    "Verdant and Ashen visual families may differ while their semantic_base_id preserves gameplay parity.",
+    "Palette swatches and Campaign Studio debug rendering are reference evidence only and are not production tile art.",
+    "Every production visual family must bind to a real source image region before a Tile Map Studio manifest can be approved.",
+    "Art bindings may change pixels and presentation but may not silently change collision, navigation or portal semantics."
+  ]
+}
